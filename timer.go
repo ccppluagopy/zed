@@ -5,13 +5,6 @@ import (
 	"time"
 )
 
-type TimerCallBack func()
-
-func timerHandler(handler TimerCallBack) {
-	defer PanicHandle()
-	handler()
-}
-
 /*
 timerWheel := Timer.NewTimerWheel(int64(tickTime), int64(time.Second), 2)
 cb1 := func() {
@@ -38,7 +31,14 @@ timerMgr.NewTimer("cb1", int64(time.Second), cb1, true)
 timerMgr.NewTimer("cb2", int64(time.Second*2), cb2, true)
 */
 
-type WheelTimer struct {
+type TimerCallBack func()
+
+func timerHandler(handler TimerCallBack) {
+	defer PanicHandle()
+	handler()
+}
+
+type wtimer struct {
 	key      string
 	active   bool
 	delay    int64
@@ -47,30 +47,20 @@ type WheelTimer struct {
 	callback TimerCallBack
 }
 
-type MapTimer struct {
-	key      string
-	internal int64
-	born     int64
-	active   bool
-	delay    int64
-	loop     bool
-	callback TimerCallBack
-}
-
-type Wheel map[string]*WheelTimer
+type wheel map[string]*wtimer
 
 type TimerWheel struct {
 	running bool
 	//chTicker  chan time.Time
-	chTimer chan *WheelTimer
+	chTimer chan *wtimer
 	//chStop    chan byte
 	ticker    *time.Ticker
 	currWheel int64
-	wheels    []Wheel
+	wheels    []wheel
 }
 
-func (timerWheel *TimerWheel) NewTimer(key string, delay int64, callback TimerCallBack, loop bool) *WheelTimer {
-	timer := &WheelTimer{}
+func (timerWheel *TimerWheel) NewTimer(key string, delay int64, callback TimerCallBack, loop bool) *wtimer {
+	timer := &wtimer{}
 	timer.key = key
 	timer.delay = delay
 	timer.callback = callback
@@ -81,16 +71,16 @@ func (timerWheel *TimerWheel) NewTimer(key string, delay int64, callback TimerCa
 	return timer
 }
 
-func (timerWheel *TimerWheel) DeleteTimer(timer *WheelTimer) {
+func (timerWheel *TimerWheel) DeleteTimer(timer *wtimer) {
 	timer.active = false
 	timerWheel.chTimer <- timer
 }
 
 func (timerWheel *TimerWheel) DeleteTimerByKey(key *string) {
-	for _, wheel := range timerWheel.wheels {
-		for _, timer := range wheel {
+	for _, wl := range timerWheel.wheels {
+		for _, timer := range wl {
 			if *key == timer.key {
-				delete(wheel, *key)
+				delete(wl, *key)
 				return
 			}
 		}
@@ -110,14 +100,14 @@ func (timerWheel *TimerWheel) IsRunning() bool {
 func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var timerWheel TimerWheel
 
-	timerWheel.chTimer = make(chan *WheelTimer)
+	timerWheel.chTimer = make(chan *wtimer)
 	timerWheel.currWheel = -1
-	timerWheel.wheels = make([]Wheel, wheelNum)
+	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(time.Duration(internal))
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
-		timerWheel.wheels[i] = make(map[string]*WheelTimer)
+		timerWheel.wheels[i] = make(map[string]*wtimer)
 	}
 	timerWheel.running = true
 
@@ -126,7 +116,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var currTick int64 = 0
 	var wheelIdx int64 = 0
 	var loopTime int64
-	var timer *WheelTimer
+	var timer *wtimer
 
 	lastTick = time.Now().UnixNano()
 	var halfInternal = internal / 2
@@ -159,12 +149,12 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 					for i = 1; i <= loopTime; i++ {
 						timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
 
-						wheel := timerWheel.wheels[timerWheel.currWheel]
+						wl := timerWheel.wheels[timerWheel.currWheel]
 
-						for _, timer := range wheel {
+						for _, timer := range wl {
 							timerHandler((timer).callback)
 							if !timer.loop {
-								delete(wheel, (timer).key)
+								delete(wl, (timer).key)
 							}
 						}
 					}
@@ -177,15 +167,25 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	return &timerWheel
 }
 
+type mtimer struct {
+	key      string
+	internal int64
+	born     int64
+	active   bool
+	delay    int64
+	loop     bool
+	callback TimerCallBack
+}
+
 type TimerMgr struct {
 	running bool
-	chTimer chan *MapTimer
-	timers  map[string]*MapTimer
+	chTimer chan *mtimer
+	timers  map[string]*mtimer
 	ticker  *time.Ticker
 }
 
-func (timerMgr *TimerMgr) NewTimer(key string, delay int64, internal int64, callback TimerCallBack, loop bool) *MapTimer {
-	var timer MapTimer
+func (timerMgr *TimerMgr) NewTimer(key string, delay int64, internal int64, callback TimerCallBack, loop bool) *mtimer {
+	var timer mtimer
 	timer.key = key
 	timer.internal = internal
 	timer.callback = callback
@@ -198,7 +198,7 @@ func (timerMgr *TimerMgr) NewTimer(key string, delay int64, internal int64, call
 	return &timer
 }
 
-func (timerMgr *TimerMgr) DeleteTimer(timer *MapTimer) {
+func (timerMgr *TimerMgr) DeleteTimer(timer *mtimer) {
 	timer.active = false
 	timerMgr.chTimer <- timer
 }
@@ -216,8 +216,8 @@ func (timerMgr *TimerMgr) IsRunning() bool {
 func NewTimerMgr(internal int64) *TimerMgr {
 	var timerMgr TimerMgr
 
-	timerMgr.chTimer = make(chan *MapTimer)
-	timerMgr.timers = make(map[string]*MapTimer)
+	timerMgr.chTimer = make(chan *mtimer)
+	timerMgr.timers = make(map[string]*mtimer)
 	timerMgr.ticker = time.NewTicker(time.Duration(internal))
 	timerMgr.running = true
 
