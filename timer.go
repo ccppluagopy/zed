@@ -1,4 +1,4 @@
-package main
+package zed
 
 import (
 	"time"
