@@ -12,8 +12,21 @@ type logtask struct {
 	taskType string
 }
 
+const (
+	LogCmd = iota
+	LogFile
+)
+
 var (
-	tags         map[int]string
+	tags    map[int]string
+	logConf = map[string]int{
+		"Info":  LogFile,
+		"Warn":  LogFile,
+		"Error": LogCmd,
+	}
+	infoOutput   = LogCmd
+	warnOutput   = LogCmd
+	errorOutput  = LogCmd
 	debug        bool
 	maxTagNum    = 0
 	infoEnabled  = true
@@ -131,7 +144,12 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+	logConf = logconf
+	infoOutput = logConf["Info"]
+	warnOutput = logConf["Warn"]
+	errorOutput = logConf["Error"]
+
 	debug = isDebug
 	maxTagNum = maxTag
 	tags = logtags
