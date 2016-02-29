@@ -1,13 +1,14 @@
 package zed
 
 import (
+	"fmt"
 	"time"
 )
 
 type TimerCallBack func()
 
 func timerHandler(handler TimerCallBack) {
-	defer HandlePanic()
+	defer PanicHandle()
 	handler()
 }
 
