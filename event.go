@@ -5,7 +5,7 @@ import (
 	"sync"
 )
 
-func Example() {
+func EventMgrExample() {
 	mgr := NewEventMgr("haha")
 	if emgr, ok := GetEventMgrByTag("haha"); ok {
 
