@@ -131,7 +131,7 @@ func Error(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func Start(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+func StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
 	debug = isDebug
 	maxTagNum = maxTag
 	tags = logtags
@@ -164,7 +164,7 @@ func Start(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, war
 	}
 }
 
-func Stop() {
+func StopLogger() {
 	for {
 	REP:
 		for _, task := range arrTaskInfo {
