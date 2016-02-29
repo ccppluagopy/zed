@@ -5,13 +5,9 @@ import (
 	"time"
 )
 
-const (
-	tickTime = 3
-)
-
 func EventMgrExample() {
-	mgr := zed.NewEventMgr("haha")
-	if emgr, ok := zed.GetEventMgrByTag("haha"); ok {
+	mgr := NewEventMgr("haha")
+	if emgr, ok := GetEventMgrByTag("haha"); ok {
 
 		emgr.NewListener("listener_001", 3, func(e interface{}, args []interface{}) {
 			fmt.Println("--- event 001 : ", e, args[0])
@@ -44,21 +40,21 @@ func LoggerExample() {
 		Tag3: "Tag3",
 	}
 	var LogConf = map[string]int{
-		"Info":  zed.LogFile,
-		"Warn":  zed.LogFile,
-		"Error": zed.LogCmd,
+		"Info":  LogFile,
+		"Warn":  LogFile,
+		"Error": LogCmd,
 	}
 
-	//zed.StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
+	//StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+	StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
 	for i := 0; i < 5; i++ {
-		zed.LogError(Tag1, i, "log test %d", i)
+		LogError(Tag1, i, "log test %d", i)
 	}
 
 }
 
 func TimerMgrExample() {
-	timerMgr := zed.NewTimerMgr(int64(tickTime))
+	timerMgr := NewTimerMgr(int64(3))
 
 	cb1 := func() {
 		fmt.Println("cb1")
