@@ -7,23 +7,24 @@ import (
 
 func Example() {
 	mgr := NewEventMgr("haha")
-	emgr := GetEventMgrByTag("haha")
+	if emgr, ok := GetEventMgrByTag("haha"); ok {
 
-	emgr.NewListener("listener_001", 3, func(e interface{}, args []interface{}) {
-		fmt.Println("--- event 001 : ", e, args[0])
-	})
-	emgr.NewListener("listener_002", 3, func(e interface{}, args []interface{}) {
-		fmt.Println("--- event 002 : ", e, args[0], args[1])
-	})
-	emgr.NewListener("listener_003", 3, func(e interface{}, args []interface{}) {
-		fmt.Println("--- event 003 : ", e, args[0], args[1], args[2])
-	})
-	emgr.NewListener("listener_004", 3, func(e interface{}, args []interface{}) {
-		fmt.Println("--- event 004 : ", e, args[0], args[1])
-	})
+		emgr.NewListener("listener_001", 3, func(e interface{}, args []interface{}) {
+			fmt.Println("--- event 001 : ", e, args[0])
+		})
+		emgr.NewListener("listener_002", 3, func(e interface{}, args []interface{}) {
+			fmt.Println("--- event 002 : ", e, args[0], args[1])
+		})
+		emgr.NewListener("listener_003", 3, func(e interface{}, args []interface{}) {
+			fmt.Println("--- event 003 : ", e, args[0], args[1], args[2])
+		})
+		emgr.NewListener("listener_004", 3, func(e interface{}, args []interface{}) {
+			fmt.Println("--- event 004 : ", e, args[0], args[1])
+		})
 
-	emgr.Dispatch(3, "ss", 10000)
-	mgr.Dispatch(3, "yy", 10000, "xx")
+		emgr.Dispatch(3, "ss", 10000)
+		mgr.Dispatch(3, "yy", 10000, "xx")
+	}
 }
 
 type EventHandler func(event interface{}, args []interface{})
