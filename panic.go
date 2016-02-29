@@ -27,6 +27,6 @@ func PanicHandle() {
 		}
 		errstr += separator
 
-		//LogError(LogConf.Panic, LogConf.SERVER, errstr)
+		fmt.Println(errstr)
 	}
 }
