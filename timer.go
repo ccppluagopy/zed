@@ -46,6 +46,16 @@ type WheelTimer struct {
 	callback TimerCallBack
 }
 
+type MapTimer struct {
+	key      string
+	internal int64
+	born     int64
+	active   bool
+	delay    int64
+	loop     bool
+	callback TimerCallBack
+}
+
 type Wheel map[string]*WheelTimer
 
 type TimerWheel struct {
