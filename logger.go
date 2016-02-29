@@ -64,7 +64,7 @@ func (task *logtask) stop() {
 	close(task.chMsg)
 }
 
-func Info(tag int, loggerIdx int, format string, v ...interface{}) {
+func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	if infoEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
@@ -86,7 +86,7 @@ func Info(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func Warn(tag int, loggerIdx int, format string, v ...interface{}) {
+func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	//if warnEnabled && (tags[tag] == true) {
 	if warnEnabled {
 		if debug {
@@ -109,7 +109,7 @@ func Warn(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func Error(tag int, loggerIdx int, format string, v ...interface{}) {
+func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	if errorEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
