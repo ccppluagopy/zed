@@ -2,11 +2,12 @@ package test
 
 import (
 	"fmt"
+	"github.com/ccppluagopy/zed"
 	"time"
 )
 
 func EventMgrExample() {
-	mgr := NewEventMgr("haha")
+	mgr := zed.NewEventMgr("haha")
 	if emgr, ok := GetEventMgrByTag("haha"); ok {
 
 		emgr.NewListener("listener_001", 3, func(e interface{}, args []interface{}) {
@@ -45,16 +46,16 @@ func LoggerExample() {
 		"Error": LogCmd,
 	}
 
-	//StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
-	StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
+	//zed.StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
 	for i := 0; i < 5; i++ {
-		LogError(Tag1, i, "log test %d", i)
+		zed.LogError(Tag1, i, "log test %d", i)
 	}
 
 }
 
 func TimerMgrExample() {
-	timerMgr := NewTimerMgr(int64(3))
+	timerMgr := zed.NewTimerMgr(int64(3))
 
 	cb1 := func() {
 		fmt.Println("cb1")
