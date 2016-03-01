@@ -61,7 +61,7 @@ func (server *TcpServer) Stop() {
 	server.running = false
 	server.listener.Close()
 
-	for {
+	/*for {
 		if len(ClientIdMap) == 0 {
 			break
 		}
@@ -71,7 +71,7 @@ func (server *TcpServer) Stop() {
 			client.Stop()
 		}
 		time.Sleep(time.Second / 20)
-	}
+	}*/
 
 	LogInfo(LOG_IDX, LOG_IDX, "[ShutDown] TcpServer Stop!")
 }
