@@ -35,7 +35,7 @@ func (client *TcpClient) HandleMsg(msg *NetMsg) bool {
 	if ok {
 		return cb(client, msg)
 	} else {
-		LogError(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", client.Id, client.Addr)
+		LogError(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
 		goto Err
 	}
 
@@ -67,6 +67,7 @@ func (client *TcpClient) Stop() {
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	client.sendQ <- msg
+	LogInfo(LOG_IDX, client.Idx, "SendMsg Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 }
 
 func (client *TcpClient) startReader(enableMsgHandleCor bool) {
