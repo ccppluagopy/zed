@@ -100,7 +100,7 @@ func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
 	server.RLock()
 	defer server.RUnlock()
 
-	if c, ok := server.idClientMap[client.Id]; ok {
+	if c, ok := server.idClientMap[id]; ok {
 		return c
 	}
 
