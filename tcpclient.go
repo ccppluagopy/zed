@@ -73,7 +73,7 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
 
 	var (
-		head     [PACK_HEAD_LEN]byte
+		head     = make([]byte, PACK_HEAD_LEN)
 		readLen  = 0
 		err      error
 		lastRead time.Time
@@ -146,7 +146,7 @@ func (client *TcpClient) startWriter() {
 
 		buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
 		binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
-		binary.LittleEndian.PutUint32(buf[4:8], int(msg.Cmd))
+		binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
 		copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 		writeLen, err := client.conn.Write(buf)
@@ -180,21 +180,21 @@ func (client *TcpClient) startMsgHandler() {
 
 func (client *TcpClient) start() bool {
 	if err := client.conn.SetKeepAlive(true); err != nil {
-		Logger.Error(LOG_IDX, client.Idx, "%d SetKeepAlive error: %v", client.Idx, err)
+		LogError(LOG_IDX, client.Idx, "%d SetKeepAlive error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := client.conn.SetKeepAlivePeriod(KEEP_ALIVE_TIME); err != nil {
-		Logger.Error(LOG_IDX, client.Idx, "%d SetKeepAlivePeriod error: %v", client.Idx, err)
+		LogError(LOG_IDX, client.Idx, "%d SetKeepAlivePeriod error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := (*client.conn).SetReadBuffer(RECV_BUF_LEN); err != nil {
-		Logger.Error(LOG_IDX, client.Idx, "%d SetReadBuffer error: %v", client.Idx, err)
+		LogError(LOG_IDX, client.Idx, "%d SetReadBuffer error: %v", client.Idx, err)
 		return false
 	}
 	if err := (*client.conn).SetWriteBuffer(SEND_BUF_LEN); err != nil {
-		Logger.Error(LOG_IDX, client.Idx, "%d SetWriteBuffer error: %v", client.Idx, err)
+		LogError(LOG_IDX, client.Idx, "%d SetWriteBuffer error: %v", client.Idx, err)
 		return false
 	}
 
@@ -220,7 +220,7 @@ func (client *TcpClient) start() bool {
 func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 	parent.ClientNum = parent.ClientNum + 1
 
-	client := &Client{
+	client := &TcpClient{
 		conn:    conn,
 		parent:  parent,
 		recvQ:   nil,

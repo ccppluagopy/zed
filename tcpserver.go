@@ -87,7 +87,7 @@ func (server *TcpServer) Stop() {
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
-	Logger.Println(LogConf.NetCoreClient, LogConf.SERVER, "AddMsgHandler", cmd, cb)
+	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler", cmd, cb)
 
 	server.handlerMap[cmd] = cb
 }
