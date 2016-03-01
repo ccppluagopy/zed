@@ -35,14 +35,14 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 			chStop <- "TcpServer Start Failed!"
 		}
 
-		defer listener.Close()
+		defer server.listener.Close()
 
 		server.running = true
 
 		LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
 
 		for {
-			conn, err := listener.AcceptTCP()
+			conn, err := server.listener.AcceptTCP()
 
 			if !server.running {
 				break
