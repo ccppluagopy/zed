@@ -177,6 +177,9 @@ func (client *TcpClient) startMsgHandler() {
 			goto Exit
 		}
 	}
+
+Exit:
+	client.Stop()
 }
 
 func (client *TcpClient) start() bool {
