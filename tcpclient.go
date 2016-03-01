@@ -35,7 +35,7 @@ func (client *TcpClient) HandleMsg(msg *NetMsg) bool {
 	if ok {
 		return cb(client, msg)
 	} else {
-		LogError(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
+		LogInfo(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
 		goto Err
 	}
 
@@ -137,9 +137,13 @@ func (client *TcpClient) startWriter() {
 
 	for {
 		msg = <-client.sendQ
+
 		if msg == nil {
 			goto Exit
 		}
+
+		LogInfo(LOG_IDX, client.Idx, "1111 Writer Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+
 		if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
 			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", client.Id, client.Addr, err)
 			goto Exit
@@ -151,6 +155,8 @@ func (client *TcpClient) startWriter() {
 		copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 		writeLen, err := client.conn.Write(buf)
+		LogInfo(LOG_IDX, client.Idx, "1111 Writer Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+
 		if err != nil || writeLen != len(buf) {
 			goto Exit
 		}
