@@ -3,7 +3,7 @@ package zed
 import (
 	"fmt"
 	"net"
-	"time"
+	//"time"
 )
 
 type TcpServer struct {
