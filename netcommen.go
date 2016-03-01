@@ -1,6 +1,6 @@
 package zed
 
-type int CmdType
+type CmdType int
 type ClientIDType string
 
 const (
