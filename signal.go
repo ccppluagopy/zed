@@ -15,7 +15,7 @@ func HandleSignal(maskAll bool) {
 
 		handlemsg := func(sig string) {
 			if maskAll {
-				Printf("Handled Signal %s!", sig)
+				LogInfo(LOG_IDX, LOG_IDX, "Handle Signal %s!", sig)
 			} else {
 				LogInfo(LOG_IDX, LOG_IDX, "Exit By Signal %s!", sig)
 				os.Exit(0)
