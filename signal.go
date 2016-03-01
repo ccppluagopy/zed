@@ -7,9 +7,7 @@ import (
 	"syscall"
 )
 
-func Start(chStop chan string, maskAll bool) {
-	chStop = chStop
-
+func HandleSignal(maskAll bool, chStop chan string) {
 	go func() {
 		var (
 			sig      os.Signal
@@ -19,10 +17,10 @@ func Start(chStop chan string, maskAll bool) {
 		handlemsg := func(sig string) {
 			if maskAll {
 				Printf("Handled Signal %s!", sig)
-				continue
-			}
-			if chStop != nil {
-				chStop <- fmt.Sprintf("Signal %s", sig)
+			} else {
+				if chStop != nil {
+					chStop <- fmt.Sprintf("Signal %s", sig)
+				}
 			}
 		}
 
@@ -53,6 +51,7 @@ func Start(chStop chan string, maskAll bool) {
 	}()
 }
 
+/*
 func Stop() {
-	//close(chSignal)
-}
+	close(chSignal)
+}*/

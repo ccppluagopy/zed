@@ -41,7 +41,7 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 		LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
 
 		for {
-			conn, err := server.listener.AcceptTCP()
+			_, err := server.listener.AcceptTCP()
 
 			if !server.running {
 				break
