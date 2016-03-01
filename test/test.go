@@ -69,3 +69,18 @@ func TimerMgrExample() {
 	timerMgr.NewTimer("cb1", int64(time.Second), int64(time.Second), cb1, true)
 	timerMgr.NewTimer("cb2", int64(time.Second), int64(time.Second*2), cb2, true)
 }
+
+func TimerWheelExample() {
+	timerWheel := Timer.NewTimerWheel(int64(tickTime), int64(time.Second), 2)
+
+	cb1 := func() {
+		fmt.Println("cb1")
+	}
+	cb2 := func() {
+		fmt.Println("cb2")
+	}
+
+	timerWheel.NewTimer("cb1", cb1, true)
+	time.Sleep(time.Second * 1)
+	timerWheel.NewTimer("cb2", cb2, true)
+}
