@@ -1,5 +1,9 @@
 package zed
 
+import (
+	"time"
+)
+
 type CmdType int
 type ClientIDType string
 

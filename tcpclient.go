@@ -44,7 +44,7 @@ Err:
 	return false
 }
 
-func (client *Client) Stop() {
+func (client *TcpClient) Stop() {
 	if client.running {
 		client.running = false
 
@@ -65,11 +65,11 @@ func (client *Client) Stop() {
 	}
 }
 
-func (client *Client) SendMsg(msg *NetMsg) {
+func (client *TcpClient) SendMsg(msg *NetMsg) {
 
 }
 
-func (client *Client) startReader(enableMsgHandleCor bool) {
+func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
 
 	var (

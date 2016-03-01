@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-type HandlerCB func(client *Client, msg *NetMsg) bool
+type HandlerCB func(client *TcpClient, msg *NetMsg) bool
 
 type TcpServer struct {
 	sync.RWMutex
