@@ -3,7 +3,6 @@ package zed
 import (
 	"fmt"
 	"net"
-	"os"
 	"time"
 )
 
