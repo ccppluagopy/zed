@@ -98,14 +98,14 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 
 		var msg = &NetMsg{
 			BufLen: binary.LittleEndian.Uint32(head[0:4]),
-			Cmd:    binary.LittleEndian.Uint32(head[4:8]),
+			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
 		}
 
 		if msg.BufLen > 0 {
 			msg.Buf = make([]byte, msg.BufLen)
 			readLen, err := io.ReadFull(client.conn, msg.Buf)
 			if err != nil || readLen != int(msg.BufLen) {
-				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read body error: %v", err)
+				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read body error: %v", client.Id, client.Addr, err)
 				goto Exit
 			}
 		}
@@ -113,7 +113,7 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 		if enableMsgHandleCor {
 			client.recvQ <- msg
 		} else {
-			client.HandleMsg(server, msg)
+			client.HandleMsg(msg)
 		}
 
 	}
@@ -146,7 +146,7 @@ func (client *TcpClient) startWriter() {
 
 		buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
 		binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
-		binary.LittleEndian.PutInt32(buf[4:8], msg.Cmd)
+		binary.LittleEndian.PutUint32(buf[4:8], int(msg.Cmd))
 		copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 		writeLen, err := client.conn.Write(buf)
@@ -170,7 +170,7 @@ func (client *TcpClient) startMsgHandler() {
 		msg = <-client.recvQ
 
 		if msg == nil {
-			LogInfo(LogConf.NetCoreClient, client.Idx, "%d msgCoroutine exit.", client.Idx)
+			LogInfo(LOG_IDX, client.Idx, "%d msgCoroutine exit.", client.Idx)
 			return
 		}
 
@@ -178,23 +178,23 @@ func (client *TcpClient) startMsgHandler() {
 	}
 }
 
-func (client *TcpClient) start() {
+func (client *TcpClient) start() bool {
 	if err := client.conn.SetKeepAlive(true); err != nil {
-		Logger.Error(LogConf.NetCoreClient, client.Idx, "%d SetKeepAlive error: %v", client.Idx, err)
+		Logger.Error(LOG_IDX, client.Idx, "%d SetKeepAlive error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := client.conn.SetKeepAlivePeriod(KEEP_ALIVE_TIME); err != nil {
-		Logger.Error(LogConf.NetCoreClient, client.Idx, "%d SetKeepAlivePeriod error: %v", client.Idx, err)
+		Logger.Error(LOG_IDX, client.Idx, "%d SetKeepAlivePeriod error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := (*client.conn).SetReadBuffer(RECV_BUF_LEN); err != nil {
-		Logger.Error(LogConf.NetCoreClient, client.Idx, "%d SetReadBuffer error: %v", client.Idx, err)
+		Logger.Error(LOG_IDX, client.Idx, "%d SetReadBuffer error: %v", client.Idx, err)
 		return false
 	}
 	if err := (*client.conn).SetWriteBuffer(SEND_BUF_LEN); err != nil {
-		Logger.Error(LogConf.NetCoreClient, client.Idx, "%d SetWriteBuffer error: %v", client.Idx, err)
+		Logger.Error(LOG_IDX, client.Idx, "%d SetWriteBuffer error: %v", client.Idx, err)
 		return false
 	}
 
@@ -213,6 +213,8 @@ func (client *TcpClient) start() {
 	}
 
 	LogInfo(LOG_IDX, client.Idx, "New Client Start, Idx: %d.", client.Idx)
+
+	return true
 }
 
 func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {

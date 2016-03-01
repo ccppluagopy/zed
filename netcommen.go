@@ -4,14 +4,14 @@ import (
 	"time"
 )
 
-type CmdType int
+type CmdType uint32
 type ClientIDType string
 
 const (
 	NullId = "Null"
 )
 
-var (
+const (
 	PACK_HEAD_LEN = 8
 
 	RECV_BUF_LEN     = 1024
