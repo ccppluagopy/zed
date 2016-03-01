@@ -73,10 +73,9 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
 
 	var (
-		head     = make([]byte, PACK_HEAD_LEN)
-		readLen  = 0
-		err      error
-		lastRead time.Time
+		head    = make([]byte, PACK_HEAD_LEN)
+		readLen = 0
+		err     error
 	)
 
 	for {
@@ -84,7 +83,6 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 			goto Exit
 		}
 
-		lastRead = time.Now().UTC()
 		readLen, err = io.ReadFull(client.conn, head)
 		if err != nil || readLen < PACK_HEAD_LEN {
 			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read Head Error: %v!", err)
