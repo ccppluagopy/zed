@@ -22,22 +22,25 @@ var (
 		LOG_IDX: LOG_TAG,
 	}
 	logConf = map[string]int{
-		"Info":  LogFile,
-		"Warn":  LogFile,
-		"Error": LogCmd,
+		"Info":   LogFile,
+		"Warn":   LogFile,
+		"Error":  LogCmd,
+		"Action": LogFile,
 	}
-	infoOutput   = LogCmd
-	warnOutput   = LogCmd
-	errorOutput  = LogCmd
-	debug        bool
-	maxTagNum    = 0
-	infoEnabled  = true
-	warnEnabled  = true
-	errorEnabled = true
+	infoOutput    = LogCmd
+	warnOutput    = LogCmd
+	errorOutput   = LogCmd
+	debug         bool
+	maxTagNum     = 0
+	infoEnabled   = true
+	warnEnabled   = true
+	errorEnabled  = true
+	actionEnabled = true
 
-	infoCount  = 0
-	warnCount  = 0
-	errorCount = 0
+	infoCount   = 0
+	warnCount   = 0
+	errorCount  = 0
+	actionCount = 0
 
 	infoLoggerNum int = 1
 	arrTaskInfo   []*logtask
@@ -47,6 +50,9 @@ var (
 
 	errorLoggerNum int = 1
 	arrTaskError   []*logtask
+
+	actionLoggerNum int = 1
+	arrTaskAction   []*logtask
 
 	logSep = ""
 
@@ -146,7 +152,29 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
+func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
+	if actionEnabled {
+		if debug {
+			if tagstr, ok := tags[tag]; ok {
+				s := strings.Join([]string{"[Action] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+				errorCount++
+				loggerIdx = loggerIdx % actionLoggerNum
+				arrTaskAction[loggerIdx].chMsg <- &s
+			}
+		} else {
+			if tag < maxTagNum {
+				if tagstr, ok := tags[tag]; ok {
+					s := strings.Join([]string{"[Action] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+					errorCount++
+					loggerIdx = loggerIdx % actionLoggerNum
+					arrTaskAction[loggerIdx].chMsg <- &s
+				}
+			}
+		}
+	}
+}
+
+func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int, actionLogNum int) {
 	logConf = logconf
 	infoOutput = logConf["Info"]
 	warnOutput = logConf["Warn"]
@@ -160,14 +188,15 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	infoLoggerNum = infoLogNum
 	warnLoggerNum = warnLogNum
 	errorLoggerNum = errorLogNum
+	actionLoggerNum = actionLogNum
 
 	infoEnabled = (infoLogNum > 0)
 	warnEnabled = (warnLogNum > 0)
 	errorEnabled = (errorLogNum > 0)
-
-	arrTaskInfo = make([]*logtask, infoLoggerNum)
+	actionEnabled = (actionLoggerNum > 0)
 
 	var i int
+	arrTaskInfo = make([]*logtask, infoLoggerNum)
 	for i = 0; i < infoLoggerNum; i++ {
 		arrTaskInfo[i] = new(logtask)
 		arrTaskInfo[i].start("Info")
@@ -183,6 +212,12 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	for i = 0; i < errorLoggerNum; i++ {
 		arrTaskError[i] = new(logtask)
 		arrTaskError[i].start("Error")
+	}
+
+	arrTaskAction = make([]*logtask, actionLoggerNum)
+	for i = 0; i < actionLoggerNum; i++ {
+		arrTaskAction[i] = new(logtask)
+		arrTaskAction[i].start("Action")
 	}
 }
 

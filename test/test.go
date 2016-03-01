@@ -43,9 +43,10 @@ func LoggerExample() {
 		Tag3:    "Tag3",
 	}
 	var LogConf = map[string]int{
-		"Info":  zed.LogFile,
-		"Warn":  zed.LogFile,
-		"Error": zed.LogCmd,
+		"Info":   zed.LogFile,
+		"Warn":   zed.LogFile,
+		"Error":  zed.LogCmd,
+		"Action": zed.LogFile,
 	}
 
 	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
