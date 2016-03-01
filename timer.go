@@ -217,7 +217,7 @@ func NewTimerMgr(internal int64) *TimerMgr {
 	var timerMgr TimerMgr
 
 	timerMgr.chTimer = make(chan *mtimer)
-	timerMgr.timers = make(map[string]*mtimer)
+	timerMgr.timers = make(map[interface{}]*mtimer)
 	timerMgr.ticker = time.NewTicker(time.Duration(internal))
 	timerMgr.running = true
 
