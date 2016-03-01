@@ -21,7 +21,7 @@ type TcpServer struct {
 	idClientMap map[ClientIDType]*TcpClient
 }
 
-func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
+func (server *TcpServer) Start(addr string) *TcpServer {
 	if server.running && server.listener != nil {
 		return server
 	}
@@ -35,13 +35,15 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 		tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
 		if err != nil {
 			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("ResolveTCPAddr error: %v\n", err)+GetStackInfo())
-			chStop <- "TcpServer Start Failed!"
+			//chStop <- "TcpServer Start Failed!"
+			return nil
 		}
 
 		server.listener, err = net.ListenTCP("tcp", tcpAddr)
 		if err != nil {
 			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("Listening error: %v\n", err)+GetStackInfo())
-			chStop <- "TcpServer Start Failed!"
+			//chStop <- "TcpServer Start Failed!"
+			return nil
 		}
 
 		defer server.listener.Close()
@@ -51,7 +53,7 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 		LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
 
 		for {
-			_, err := server.listener.AcceptTCP()
+			conn, err := server.listener.AcceptTCP()
 
 			if !server.running {
 				break
@@ -59,7 +61,9 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 			if err != nil {
 				LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
 			} else {
-				//newClient(conn)
+				if !newTcpClient(server, conn).start() {
+					parent.ClientNum = parent.ClientNum - 1
+				}
 			}
 		}
 	}()
@@ -70,18 +74,6 @@ func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
 func (server *TcpServer) Stop() {
 	server.running = false
 	server.listener.Close()
-
-	/*for {
-		if len(ClientIdMap) == 0 {
-			break
-		}
-
-		for _, client := range IdClientMap {
-			client.ClearAllCloseCB()
-			client.Stop()
-		}
-		time.Sleep(time.Second / 20)
-	}*/
 
 	LogInfo(LOG_IDX, LOG_IDX, "[ShutDown] TcpServer Stop!")
 }

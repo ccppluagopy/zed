@@ -40,8 +40,8 @@ func (client *TcpClient) HandleMsg(msg *NetMsg) bool {
 	}
 
 Err:
-	//client.Stop()
-	return false
+	client.SendMsg(msg)
+	return true
 }
 
 func (client *TcpClient) Stop() {
@@ -66,7 +66,7 @@ func (client *TcpClient) Stop() {
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
-
+	client.sendQ <- msg
 }
 
 func (client *TcpClient) startReader(enableMsgHandleCor bool) {
@@ -111,7 +111,9 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 		if enableMsgHandleCor {
 			client.recvQ <- msg
 		} else {
-			client.HandleMsg(msg)
+			if !client.HandleMsg(msg) {
+				goto Exit
+			}
 		}
 
 	}
@@ -168,11 +170,12 @@ func (client *TcpClient) startMsgHandler() {
 		msg = <-client.recvQ
 
 		if msg == nil {
-			LogInfo(LOG_IDX, client.Idx, "%d msgCoroutine exit.", client.Idx)
 			return
 		}
 
-		client.HandleMsg(msg)
+		if !client.HandleMsg(msg) {
+			goto Exit
+		}
 	}
 }
 
