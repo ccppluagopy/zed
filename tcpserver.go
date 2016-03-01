@@ -1,4 +1,4 @@
-package NetCore
+package zed
 
 import (
 	"net"
