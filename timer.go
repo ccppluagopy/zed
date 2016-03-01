@@ -39,7 +39,7 @@ func timerHandler(handler TimerCallBack) {
 }
 
 type wtimer struct {
-	key      string
+	key      interface{}
 	active   bool
 	delay    int64
 	loop     bool
@@ -59,7 +59,7 @@ type TimerWheel struct {
 	wheels    []wheel
 }
 
-func (timerWheel *TimerWheel) NewTimer(key string, delay int64, callback TimerCallBack, loop bool) *wtimer {
+func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loop bool) *wtimer {
 	timer := &wtimer{}
 	timer.key = key
 	timer.delay = delay
@@ -76,11 +76,11 @@ func (timerWheel *TimerWheel) DeleteTimer(timer *wtimer) {
 	timerWheel.chTimer <- timer
 }
 
-func (timerWheel *TimerWheel) DeleteTimerByKey(key *string) {
+func (timerWheel *TimerWheel) DeleteTimerByKey(key interface{}) {
 	for _, wl := range timerWheel.wheels {
 		for _, timer := range wl {
-			if *key == timer.key {
-				delete(wl, *key)
+			if key == timer.key {
+				timerWheel.DeleteTimer(timer)
 				return
 			}
 		}
@@ -107,7 +107,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
-		timerWheel.wheels[i] = make(map[string]*wtimer)
+		timerWheel.wheels[i] = make(map[interface{}]*wtimer)
 	}
 	timerWheel.running = true
 
@@ -168,7 +168,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 }
 
 type mtimer struct {
-	key      string
+	key      interface{}
 	internal int64
 	born     int64
 	active   bool
@@ -180,11 +180,11 @@ type mtimer struct {
 type TimerMgr struct {
 	running bool
 	chTimer chan *mtimer
-	timers  map[string]*mtimer
+	timers  map[interface{}]*mtimer
 	ticker  *time.Ticker
 }
 
-func (timerMgr *TimerMgr) NewTimer(key string, delay int64, internal int64, callback TimerCallBack, loop bool) *mtimer {
+func (timerMgr *TimerMgr) NewTimer(key interface{}, delay int64, internal int64, callback TimerCallBack, loop bool) *mtimer {
 	var timer mtimer
 	timer.key = key
 	timer.internal = internal
