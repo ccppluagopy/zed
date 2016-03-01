@@ -71,7 +71,7 @@ func TimerMgrExample() {
 }
 
 func TimerWheelExample() {
-	timerWheel := Timer.NewTimerWheel(int64(tickTime), int64(time.Second), 2)
+	timerWheel := zed.NewTimerWheel(int64(tickTime), int64(time.Second), 2)
 
 	cb1 := func() {
 		fmt.Println("cb1")
