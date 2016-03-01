@@ -16,7 +16,7 @@ type TcpClient struct {
 	recvQ   chan *NetMsg
 	sendQ   chan *NetMsg
 	Id      ClientIDType
-	Idx     uint64
+	Idx     int
 	Addr    string
 	closeCB map[interface{}]ClientCloseCB
 	running bool
