@@ -36,14 +36,14 @@ func (server *TcpServer) Start(addr string) *TcpServer {
 		if err != nil {
 			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("ResolveTCPAddr error: %v\n", err)+GetStackInfo())
 			//chStop <- "TcpServer Start Failed!"
-			return nil
+			return
 		}
 
 		server.listener, err = net.ListenTCP("tcp", tcpAddr)
 		if err != nil {
 			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("Listening error: %v\n", err)+GetStackInfo())
 			//chStop <- "TcpServer Start Failed!"
-			return nil
+			return
 		}
 
 		defer server.listener.Close()
@@ -62,7 +62,7 @@ func (server *TcpServer) Start(addr string) *TcpServer {
 				LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
 			} else {
 				if !newTcpClient(server, conn).start() {
-					parent.ClientNum = parent.ClientNum - 1
+					server.ClientNum = server.ClientNum - 1
 				}
 			}
 		}

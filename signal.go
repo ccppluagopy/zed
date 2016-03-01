@@ -1,7 +1,6 @@
 package zed
 
 import (
-	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
