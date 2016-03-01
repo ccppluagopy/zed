@@ -6,18 +6,24 @@ import (
 	"syscall"
 )
 
-var (
-	maskAllSig bool
-	chAppStop  chan string
-	chSignal   = make(chan os.Signal, 1)
-)
-
 func Start(chStop chan string, maskAll bool) {
-	chAppStop = chStop
-	maskAllSig = maskAll
+	chStop = chStop
 
 	go func() {
-		var sig os.Signal
+		var (
+			sig      os.Signal
+			chSignal = make(chan os.Signal, 1)
+		)
+
+		handlemsg := func(sig string) {
+			if maskAll {
+				Printf("Handled Signal %s!", sig)
+				continue
+			}
+			if chStop != nil {
+				chStop <- fmt.Sprintf("Signal %s", sig)
+			}
+		}
 
 		signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 
@@ -29,29 +35,17 @@ func Start(chStop chan string, maskAll bool) {
 
 			switch sig {
 			case syscall.SIGQUIT:
-				if maskAllSig {
-					Println("Handled Signal SIGQUIT!")
-					continue
-				}
-				chAppStop <- "Signal SIGQUIT"
+				handlemsg("SIGQUIT")
+
 			case syscall.SIGTERM:
-				if maskAllSig {
-					Println("Handled Signal SIGTERM!")
-					continue
-				}
-				chAppStop <- "Signal SIGTERM"
+				handlemsg("SIGTERM")
+
 			case syscall.SIGINT:
-				if maskAllSig {
-					Println("Handled Signal SIGINT!")
-					continue
-				}
-				chAppStop <- "Signal SIGINT"
+				handlemsg("SIGINT")
+
 			case syscall.SIGHUP:
-				if maskAllSig {
-					Println("Handled Signal SIGHUP!")
-					continue
-				}
-				chAppStop <- "Signal SIGHUP"
+				handlemsg("SIGHUP")
+
 			default:
 			}
 		}

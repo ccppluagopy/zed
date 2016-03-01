@@ -30,15 +30,17 @@ func EventMgrExample() {
 
 func LoggerExample() {
 	const (
-		Tag1 = iota
+		TagNull = iota
+		Tag1
 		Tag2
 		Tag3
 		TagMax
 	)
 	var LogTags = map[int]string{
-		Tag1: "Tag1",
-		Tag2: "Tag2",
-		Tag3: "Tag3",
+		TagNull: "",
+		Tag1:    "Tag1",
+		Tag2:    "Tag2",
+		Tag3:    "Tag3",
 	}
 	var LogConf = map[string]int{
 		"Info":  zed.LogFile,
@@ -46,7 +48,6 @@ func LoggerExample() {
 		"Error": zed.LogCmd,
 	}
 
-	//zed.StartLogger(isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int) {
 	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3)
 	for i := 0; i < 5; i++ {
 		zed.LogError(Tag1, i, "log test %d", i)

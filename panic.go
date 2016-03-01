@@ -30,3 +30,22 @@ func PanicHandle() {
 		fmt.Println(errstr)
 	}
 }
+
+func GetStackInfo() string {
+	errstr := fmt.Sprintf("%straceback:\n", separator)
+
+	i := 1
+	for {
+		pc, file, line, ok := runtime.Caller(i)
+
+		errstr += fmt.Sprintf("    stack: %d %v [file: %s] [func: %s] [line: %d]\n", i, ok, file, runtime.FuncForPC(pc).Name(), line)
+
+		i++
+		if !ok || i > maxStack {
+			break
+		}
+	}
+	errstr += separator
+
+	return errstr
+}

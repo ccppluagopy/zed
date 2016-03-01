@@ -18,7 +18,9 @@ const (
 )
 
 var (
-	tags    map[int]string
+	tags = map[int]string{
+		LOG_IDX: LOG_TAG,
+	}
 	logConf = map[string]int{
 		"Info":  LogFile,
 		"Warn":  LogFile,
@@ -70,7 +72,7 @@ func (task *logtask) start(taskType string) {
 			}
 		}
 	}()
-	fmt.Printf("Logger Start Log %s Task\n", taskType)
+	Printf("Logger Start Log %s Task\n", taskType)
 }
 
 func (task *logtask) stop() {
@@ -153,6 +155,8 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	debug = isDebug
 	maxTagNum = maxTag
 	tags = logtags
+	tags[LOG_IDX] = LOG_TAG
+
 	infoLoggerNum = infoLogNum
 	warnLoggerNum = warnLogNum
 	errorLoggerNum = errorLogNum
