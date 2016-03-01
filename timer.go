@@ -34,7 +34,7 @@ timerMgr.NewTimer("cb2", int64(time.Second*2), cb2, true)
 type TimerCallBack func()
 
 func timerHandler(handler TimerCallBack) {
-	defer PanicHandle()
+	defer PanicHandle(true)
 	handler()
 }
 

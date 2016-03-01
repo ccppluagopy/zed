@@ -10,7 +10,11 @@ const (
 	separator = "---------------------------------------\n"
 )
 
-func PanicHandle() {
+func PanicHandle(needLog bool, args ...interface{}) {
+	if len(args) > 0 {
+		LogInfo(LOG_IDX, LOG_IDX, args[0])
+	}
+
 	if err := recover(); err != nil {
 		errstr := fmt.Sprintf("%sruntime error: %v\ntraceback:\n", separator, err)
 
@@ -27,7 +31,9 @@ func PanicHandle() {
 		}
 		errstr += separator
 
-		fmt.Println(errstr)
+		if needLog {
+			LogError(LOG_IDX, LOG_IDX, errstr)
+		}
 	}
 }
 

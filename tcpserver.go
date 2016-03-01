@@ -3,12 +3,22 @@ package zed
 import (
 	"fmt"
 	"net"
-	//"time"
+	"sync"
 )
 
+type HandlerCB func(client *Client, msg *NetMsg) bool
+
 type TcpServer struct {
-	running  bool
-	listener *net.TCPListener
+	sync.RWMutex
+	running         bool
+	ClientNum       int
+	listener        *net.TCPListener
+	handlerMap      map[CmdType]HandlerCB
+	msgSendCorNum   int
+	msgHandleCorNum int
+
+	clientIdMap map[*TcpClient]ClientIDType
+	idClientMap map[ClientIDType]*TcpClient
 }
 
 func (server *TcpServer) Start(addr string, chStop chan string) *TcpServer {
@@ -76,9 +86,60 @@ func (server *TcpServer) Stop() {
 	LogInfo(LOG_IDX, LOG_IDX, "[ShutDown] TcpServer Stop!")
 }
 
-func NewTcpServer() *TcpServer {
+func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
+	Logger.Println(LogConf.NetCoreClient, LogConf.SERVER, "AddMsgHandler", cmd, cb)
+
+	server.handlerMap[cmd] = cb
+}
+
+func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb HandlerCB) {
+	delete(server.handlerMap, cmd)
+}
+
+func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
+	server.RLock()
+	defer server.RUnlock()
+
+	if c, ok := server.idClientMap[client.Id]; ok {
+		return c
+	}
+
+	return nil
+}
+
+func (server *TcpServer) AddClient(client *TcpClient) {
+	if client.Id != NullId {
+		server.Lock()
+		defer server.Unlock()
+
+		server.idClientMap[client.Id] = client
+		server.clientIdMap[client] = client.Id
+	}
+}
+
+func (server *TcpServer) RemoveClient(client *TcpClient) {
+	if client.Id != NullId {
+		server.Lock()
+		defer server.Unlock()
+
+		delete(server.idClientMap, client.Id)
+		delete(server.clientIdMap, client)
+	}
+}
+
+func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
+	return len(server.clientIdMap), server.ClientNum
+}
+
+func NewTcpServer(msgSendCorNum int, msgHandleCorNum int) *TcpServer {
 	return &TcpServer{
-		running:  false,
-		listener: nil,
+		running:         false,
+		ClientNum:       0,
+		listener:        nil,
+		handlerMap:      make(map[CmdType]HandlerCB),
+		msgSendCorNum:   msgSendCorNum,
+		msgHandleCorNum: msgHandleCorNum,
+		clientIdMap:     make(map[*TcpClient]ClientIDType),
+		idClientMap:     make(map[ClientIDType]*TcpClient),
 	}
 }

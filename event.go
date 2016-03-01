@@ -43,7 +43,7 @@ var (
 )
 
 func eventHandler(handler EventHandler, event interface{}, args []interface{}) {
-	defer PanicHandle()
+	defer PanicHandle(true)
 	handler(event, args)
 }
 
