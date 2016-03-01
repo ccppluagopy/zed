@@ -47,7 +47,7 @@ type wtimer struct {
 	callback TimerCallBack
 }
 
-type wheel map[string]*wtimer
+type wheel map[interface{}]*wtimer
 
 type TimerWheel struct {
 	running bool
