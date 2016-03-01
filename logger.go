@@ -187,43 +187,41 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 }
 
 func StopLogger() {
-	/*
-		for {
-		REP:
-			for _, task := range arrTaskInfo {
-				task.stop()
-			}
-
-			for _, task := range arrTaskWarn {
-				task.stop()
-			}
-
-			for _, task := range arrTaskError {
-				task.stop()
-			}
-
-			time.Sleep(time.Second / 10)
-
-			for _, task := range arrTaskInfo {
-				if task.running {
-					goto REP
-				}
-			}
-
-			for _, task := range arrTaskWarn {
-				if task.running {
-					goto REP
-				}
-			}
-
-			for _, task := range arrTaskError {
-				if task.running {
-					goto REP
-				}
-			}
-
-			Println("[ShutDown] Logger Stop!")
-			return
+	for {
+	REP:
+		for _, task := range arrTaskInfo {
+			task.stop()
 		}
-	*/
+
+		for _, task := range arrTaskWarn {
+			task.stop()
+		}
+
+		for _, task := range arrTaskError {
+			task.stop()
+		}
+
+		time.Sleep(time.Second / 10)
+
+		for _, task := range arrTaskInfo {
+			if task.running {
+				goto REP
+			}
+		}
+
+		for _, task := range arrTaskWarn {
+			if task.running {
+				goto REP
+			}
+		}
+
+		for _, task := range arrTaskError {
+			if task.running {
+				goto REP
+			}
+		}
+
+		Println("[ShutDown] Logger Stop!")
+		return
+	}
 }
