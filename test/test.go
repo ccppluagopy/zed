@@ -1,12 +1,15 @@
 package test
 
 import (
+	"encoding/binary"
 	"fmt"
 	"github.com/ccppluagopy/zed"
+	"io"
+	"net"
 	"time"
 )
 
-func EventMgrExample() {
+func TestEventMgr() {
 	mgr := zed.NewEventMgr("haha")
 	if emgr, ok := zed.GetEventMgrByTag("haha"); ok {
 
@@ -28,7 +31,7 @@ func EventMgrExample() {
 	}
 }
 
-func LoggerExample() {
+func TestLogger() {
 	const (
 		TagNull = iota
 		Tag1
@@ -56,7 +59,7 @@ func LoggerExample() {
 
 }
 
-func TimerMgrExample() {
+func TestTimerMgr() {
 	timerMgr := zed.NewTimerMgr(int64(3))
 
 	cb1 := func() {
@@ -70,7 +73,7 @@ func TimerMgrExample() {
 	timerMgr.NewTimer("cb2", int64(time.Second), int64(time.Second*2), cb2, true)
 }
 
-func TimerWheelExample() {
+func TestTimerWheel() {
 	timerWheel := zed.NewTimerWheel(int64(5), int64(time.Second), 2)
 
 	cb1 := func() {
@@ -83,4 +86,56 @@ func TimerWheelExample() {
 	timerWheel.NewTimer("cb1", 0, cb1, true)
 	time.Sleep(time.Second * 1)
 	timerWheel.NewTimer("cb2", 0, cb2, true)
+}
+
+func TestTcpServer() {
+	zed.NewTcpServer(10, 20).Start(":18000")
+}
+
+func TestEchoClientForTcpServer(addr string, clientNum int) {
+	var (
+		ROBOT_NUM = clientNum
+		buf       = make([]byte, len("hello world")+9)
+		buf2      = make([]byte, len(buf))
+		conns     = make([]net.Conn, ROBOT_NUM)
+	)
+
+	checkError := func(err error) {
+		if err != nil {
+			fmt.Println(err)
+		}
+	}
+
+	robot := func(idx int, conn net.Conn) {
+		n := 0
+		for {
+			n = n + 1
+			conn.Write(buf)
+			_, err := io.ReadFull(conn, buf2)
+			if err == nil {
+				fmt.Println(fmt.Sprintf("Client %d Recv Msg %d: %s", idx, n, string(buf2[8:])))
+			} else {
+				checkError(err)
+				break
+			}
+		}
+	}
+
+	binary.LittleEndian.PutUint32(buf[0:4], uint32(len(buf)-8))
+	binary.LittleEndian.PutUint32(buf[4:8], 899)
+	copy(buf[8:], fmt.Sprintf("hello world"))
+
+	for i := 0; i < ROBOT_NUM; i++ {
+		conn, err := net.Dial("tcp", addr)
+		checkError(err)
+		conns[i] = conn
+
+	}
+
+	for i := 0; i < ROBOT_NUM; i++ {
+		go robot(i+1, conns[i])
+	}
+
+	var str string
+	fmt.Scanf("%s", &str)
 }
