@@ -97,7 +97,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 }
 
 func (server *TcpServer) startHandlers() *TcpServer {
-	if server.msgHandleCorNum != len(server.senders) {
+	if server.msgHandleCorNum != len(server.handlers) {
 		server.handlers = make([]*msgtask, server.msgHandleCorNum)
 		for i := 0; i < server.msgHandleCorNum; i++ {
 			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
