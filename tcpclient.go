@@ -36,8 +36,13 @@ func (client *TcpClient) Stop() {
 
 		client.conn.Close()
 
-		close(client.recvQ)
-		close(client.sendQ)
+		if client.recvQ != nil {
+			close(client.recvQ)
+		}
+
+		if client.sendQ != nil {
+			close(client.sendQ)
+		}
 
 		for _, cb := range client.closeCB {
 			cb(client)
