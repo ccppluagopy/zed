@@ -190,10 +190,9 @@ func (server *TcpServer) Start(addr string) {
 }
 
 func (server *TcpServer) Stop() {
+	LogInfo(LOG_IDX, LOG_IDX, "......... Stop()")
 	if server.running {
 		defer PanicHandle(true, "TcpServer Stop()xx.")
-
-		server.running = false
 
 		for idx, client := range server.clients {
 			client.Stop()
@@ -214,7 +213,7 @@ func (server *TcpServer) Stop() {
 		}
 
 		server.listener.Close()
-
+		server.running = false
 		LogInfo(LOG_IDX, LOG_IDX, "[TcpServer Stop]")
 	}
 }
