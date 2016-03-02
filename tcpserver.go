@@ -68,20 +68,26 @@ func (task *msgtask) start4Handler(server *TcpServer) {
 	}
 }
 
+func (task *msgtask) stop() {
+	if task.msgQ != nil {
+		close(task.msgQ)
+	}
+}
+
 type TcpServer struct {
 	sync.RWMutex
-	running         bool
-	ClientNum       int
-	listener        *net.TCPListener
-	handlerMap      map[CmdType]HandlerCB
+	running    bool
+	ClientNum  int
+	listener   *net.TCPListener
+	handlerMap map[CmdType]HandlerCB
+
 	msgSendCorNum   int
 	msgHandleCorNum int
+	senders         []*msgtask
+	handlers        []*msgtask
 
 	clientIdMap map[*TcpClient]ClientIDType
 	idClientMap map[ClientIDType]*TcpClient
-
-	senders  []*msgtask
-	handlers []*msgtask
 }
 
 func (server *TcpServer) startSenders() *TcpServer {
@@ -96,6 +102,15 @@ func (server *TcpServer) startSenders() *TcpServer {
 	return server
 }
 
+func (server *TcpServer) stopSenders() *TcpServer {
+	for i := 0; i < server.msgHandleCorNum; i++ {
+		server.senders[i].stop()
+		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d.", i)
+	}
+
+	return server
+}
+
 func (server *TcpServer) startHandlers() *TcpServer {
 	if server.msgHandleCorNum != len(server.handlers) {
 		server.handlers = make([]*msgtask, server.msgHandleCorNum)
@@ -105,6 +120,15 @@ func (server *TcpServer) startHandlers() *TcpServer {
 			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startHandlers %d.", i)
 		}
 	}
+	return server
+}
+
+func (server *TcpServer) stopHandlers() *TcpServer {
+	for i := 0; i < server.msgHandleCorNum; i++ {
+		server.handlers[i].stop()
+		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopHandlers %d.", i)
+	}
+
 	return server
 }
 
@@ -161,6 +185,19 @@ func (server *TcpServer) Start(addr string) {
 func (server *TcpServer) Stop() {
 	server.running = false
 	server.listener.Close()
+
+	for k, _ := range server.handlerMap {
+		delete(server.handlerMap, k)
+	}
+	for k, _ := range server.clientIdMap {
+		delete(server.clientIdMap, k)
+	}
+	for k, _ := range server.idClientMap {
+		delete(server.idClientMap, k)
+	}
+
+	server.stopHandlers()
+	server.stopSenders()
 
 	LogInfo(LOG_IDX, LOG_IDX, "[ShutDown] TcpServer Stop!")
 }
