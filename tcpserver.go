@@ -86,6 +86,7 @@ type TcpServer struct {
 	senders         []*msgtask
 	handlers        []*msgtask
 
+	clients     map[int]*TcpClient
 	clientIdMap map[*TcpClient]ClientIDType
 	idClientMap map[ClientIDType]*TcpClient
 }
@@ -133,9 +134,12 @@ func (server *TcpServer) stopHandlers() *TcpServer {
 }
 
 func (server *TcpServer) startListener(addr string) {
+	defer LogInfo(LOG_IDX, LOG_IDX, "TcpServer Stopped.")
+
 	var (
 		tcpAddr *net.TCPAddr
 		err     error
+		client  *TcpClient
 	)
 
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
@@ -167,8 +171,11 @@ func (server *TcpServer) startListener(addr string) {
 		if err != nil {
 			LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
 		} else {
-			if !newTcpClient(server, conn).start() {
+			client = newTcpClient(server, conn)
+			if !client.start() {
 				server.ClientNum = server.ClientNum - 1
+			} else {
+				server.clients[client.Idx] = client
 			}
 		}
 	}
@@ -185,6 +192,11 @@ func (server *TcpServer) Start(addr string) {
 func (server *TcpServer) Stop() {
 	server.running = false
 	server.listener.Close()
+
+	for idx, client := range server.clients {
+		client.Stop()
+		delete(server.clients, idx)
+	}
 
 	for k, _ := range server.handlerMap {
 		delete(server.handlerMap, k)
