@@ -134,6 +134,7 @@ func (server *TcpServer) stopHandlers() *TcpServer {
 }
 
 func (server *TcpServer) startListener(addr string) {
+	defer Println(LOG_IDX, LOG_IDX, "TcpServer tListener Stopped.")
 	var (
 		tcpAddr *net.TCPAddr
 		err     error
@@ -178,7 +179,6 @@ func (server *TcpServer) startListener(addr string) {
 		}
 	}
 
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer startListener Stopped...")
 }
 
 func (server *TcpServer) Start(addr string) {
@@ -190,7 +190,7 @@ func (server *TcpServer) Start(addr string) {
 }
 
 func (server *TcpServer) Stop() {
-	LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 111")
+	Println(LOG_IDX, LOG_IDX, "......... Stop() 111")
 	if server.running {
 		defer PanicHandle(true, "TcpServer Stop()xx.")
 
@@ -198,27 +198,27 @@ func (server *TcpServer) Stop() {
 			client.Stop()
 			delete(server.clients, idx)
 		}
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 222")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 222")
 		server.stopHandlers()
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 333")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 333")
 		server.stopSenders()
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 444")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 444")
 		for k, _ := range server.handlerMap {
 			delete(server.handlerMap, k)
 		}
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 555")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 555")
 		for k, _ := range server.clientIdMap {
 			delete(server.clientIdMap, k)
 		}
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 666")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 666")
 		for k, _ := range server.idClientMap {
 			delete(server.idClientMap, k)
 		}
-		LogInfo(LOG_IDX, LOG_IDX, "......... Stop() 777")
+		Println(LOG_IDX, LOG_IDX, "......... Stop() 777")
 
 		server.listener.Close()
 		server.running = false
-		LogInfo(LOG_IDX, LOG_IDX, "[TcpServer Stop] 888")
+		Println(LOG_IDX, LOG_IDX, "[TcpServer Stop] 888")
 	}
 }
 
