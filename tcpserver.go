@@ -188,12 +188,14 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
-	defer PanicHandle(true, fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
+	defer PanicHandle(true)
 
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
 		if cb(msg) {
 			return
+		} else {
+			LogInfo(LOG_IDX, msg.Client.Idx, fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
 		}
 	} else {
 		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
@@ -208,6 +210,7 @@ func (server *TcpServer) SendMsg(msg *NetMsg) {
 		return
 	}
 	server.senders[msg.Client.Idx%server.msgSendCorNum].msgQ <- msg
+	LogInfo(LOG_IDX, msg.Client.Idx, "TcpServer SendMsg For Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
