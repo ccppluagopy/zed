@@ -104,7 +104,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 }
 
 func (server *TcpServer) stopSenders() *TcpServer {
-	for i := 0; i < server.msgHandleCorNum; i++ {
+	for i := 0; i < server.msgSendCorNum; i++ {
 		server.senders[i].stop()
 		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d.", i)
 	}
@@ -198,6 +198,9 @@ func (server *TcpServer) Stop() {
 		delete(server.clients, idx)
 	}
 
+	server.stopHandlers()
+	server.stopSenders()
+
 	for k, _ := range server.handlerMap {
 		delete(server.handlerMap, k)
 	}
@@ -208,10 +211,7 @@ func (server *TcpServer) Stop() {
 		delete(server.idClientMap, k)
 	}
 
-	server.stopHandlers()
-	server.stopSenders()
-
-	LogInfo(LOG_IDX, LOG_IDX, "[ShutDown] TcpServer Stop!")
+	LogInfo(LOG_IDX, LOG_IDX, "[TcpServer Stop]")
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
