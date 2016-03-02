@@ -149,17 +149,11 @@ func (server *TcpServer) startListener(addr string) {
 }
 
 func (server *TcpServer) Start(addr string) {
-	if server.running {
-		return server
+	if !server.running {
+		server.startSenders()
+		server.startHandlers()
+		server.startListener(addr)
 	}
-
-	server.startSenders()
-
-	server.startHandlers()
-
-	server.startListener(addr)
-
-	//return server
 }
 
 func (server *TcpServer) Stop() {
