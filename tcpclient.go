@@ -172,7 +172,6 @@ func (client *TcpClient) startMsgHandler() {
 		client.parent.HandleMsg(msg)
 	}
 
-Exit:
 	client.Stop()
 }
 

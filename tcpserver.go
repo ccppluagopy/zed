@@ -182,6 +182,10 @@ func (server *TcpServer) RelayMsg(msg *NetMsg) {
 	server.handlers[msg.Client.Idx%server.msgHandleCorNum].msgQ <- msg
 }
 
+func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
+	msg.Client.SendMsg(msg)
+}
+
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
@@ -192,8 +196,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
-Err:
-	msg.Client.SendMsg(msg)
+	server.OnClientMsgError(msg)
 }
 
 func (server *TcpServer) SendMsg(msg *NetMsg) {
