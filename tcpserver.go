@@ -193,7 +193,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	}
 
 Err:
-	client.SendMsg(msg)
+	msg.Client.SendMsg(msg)
 }
 
 func (server *TcpServer) SendMsg(msg *NetMsg) {
