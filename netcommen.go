@@ -27,5 +27,6 @@ const (
 type NetMsg struct {
 	Cmd    CmdType
 	BufLen uint32
+	Client *TcpClient
 	Buf    []byte
 }

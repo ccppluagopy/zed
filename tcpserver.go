@@ -6,7 +6,65 @@ import (
 	"sync"
 )
 
-type HandlerCB func(client *TcpClient, msg *NetMsg) bool
+type HandlerCB func(msg *NetMsg) bool
+
+type msgtask struct {
+	msgQ chan *NetMsg
+}
+
+func (task *msgtask) start4Sender() {
+	var (
+		msg      *NetMsg
+		buf      []byte
+		writeLen int
+		err      error
+	)
+
+	for {
+		for {
+			msg = <-task.msgQ
+
+			if msg == nil {
+				return
+			}
+
+			if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+				LogInfo(LOG_IDX, client.Idx, "Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", msg.Client.Id, msg.Client.Addr, err)
+				msg.Client.Stop()
+			}
+
+			buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
+			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
+			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+			copy(buf[PACK_HEAD_LEN:], msg.Buf)
+
+			writeLen, err = msg.Client.conn.Write(buf)
+			LogInfo(LOG_IDX, msg.Client.Idx, "Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+
+			if err != nil || writeLen != len(buf) {
+				msg.Client.Stop()
+			}
+		}
+
+	}
+}
+
+func (task *msgtask) start4Handler(server *TcpServer) {
+	var (
+		msg *NetMsg
+	)
+
+	for {
+		msg = <-task.msgQ
+
+		if msg == nil {
+			return
+		}
+
+		server.HandleMsg(msg)
+	}
+}
 
 type TcpServer struct {
 	sync.RWMutex
@@ -19,14 +77,38 @@ type TcpServer struct {
 
 	clientIdMap map[*TcpClient]ClientIDType
 	idClientMap map[ClientIDType]*TcpClient
+
+	senders  []*msgtask
+	handlers []*msgtask
+}
+
+func (server *TcpServer) startSenders() *TcpServer {
+	if server.msgSendCorNum != len(server.senders) {
+		server.senders = make([]*msgtask, server.msgSendCorNum)
+		for i := 0; i < server.msgSendCorNum; i++ {
+			server.senders[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
+			go server.senders[i].start4Sender()
+		}
+	}
+}
+
+func (server *TcpServer) startHandlers() *TcpServer {
+	if server.msgHandleCorNum != len(server.senders) {
+		server.handlers = make([]*msgtask, server.msgHandleCorNum)
+		for i := 0; i < server.msgHandleCorNum; i++ {
+			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
+			go server.handlers[i].start4Handler()
+		}
+	}
 }
 
 func (server *TcpServer) Start(addr string) *TcpServer {
-	if server.running && server.listener != nil {
+	if server.running {
 		return server
 	}
 
-	go func() {
+	//go
+	func() {
 		var (
 			tcpAddr *net.TCPAddr
 			err     error
@@ -86,6 +168,36 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
 
 func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb HandlerCB) {
 	delete(server.handlerMap, cmd)
+}
+
+func (server *TcpServer) RelayMsg(msg *NetMsg) {
+	if server.msgHandleCorNum == 0 {
+		LogError(LOG_IDX, msg.Client.Idx, "TcpServer RelayMsg Error, msgHandleCorNum is 0.")
+		return
+	}
+	server.handlers[msg.Client.Idx%server.msgHandleCorNum].msgQ <- msg
+}
+
+func (server *TcpServer) HandleMsg(msg *NetMsg) {
+	cb, ok := server.handlerMap[msg.Cmd]
+	if ok {
+		if cb(msg) {
+			return
+		}
+	} else {
+		LogInfo(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
+	}
+
+Err:
+	client.SendMsg(msg)
+}
+
+func (server *TcpServer) SendMsg(msg *NetMsg) {
+	if server.msgSendCorNum == 0 {
+		LogError(LOG_IDX, msg.Client.Idx, "TcpServer SendMsg Error, msgSendCorNum is 0.")
+		return
+	}
+	server.senders[msg.Client.Idx%server.msgSendCorNum].msgQ <- msg
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {

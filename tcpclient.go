@@ -30,20 +30,6 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 	delete(client.closeCB, key)
 }
 
-func (client *TcpClient) HandleMsg(msg *NetMsg) bool {
-	cb, ok := client.parent.handlerMap[msg.Cmd]
-	if ok {
-		return cb(client, msg)
-	} else {
-		LogInfo(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
-		goto Err
-	}
-
-Err:
-	client.SendMsg(msg)
-	return true
-}
-
 func (client *TcpClient) Stop() {
 	if client.running {
 		client.running = false
@@ -66,7 +52,12 @@ func (client *TcpClient) Stop() {
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
-	client.sendQ <- msg
+	if client.parent.msgSendCorNum == 0 {
+		client.sendQ <- msg
+	} else {
+		client.parent.SendMsg(msg)
+	}
+
 	LogInfo(LOG_IDX, client.Idx, "SendMsg Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 }
 
@@ -96,8 +87,9 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 		}
 
 		var msg = &NetMsg{
-			BufLen: binary.LittleEndian.Uint32(head[0:4]),
 			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
+			BufLen: binary.LittleEndian.Uint32(head[0:4]),
+			Client: client,
 		}
 
 		if msg.BufLen > 0 {
@@ -112,9 +104,7 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 		if enableMsgHandleCor {
 			client.recvQ <- msg
 		} else {
-			if !client.HandleMsg(msg) {
-				goto Exit
-			}
+			client.parent.RelayMsg(msg)
 		}
 
 	}
@@ -179,9 +169,7 @@ func (client *TcpClient) startMsgHandler() {
 			return
 		}
 
-		if !client.HandleMsg(msg) {
-			goto Exit
-		}
+		client.parent.HandleMsg(msg)
 	}
 
 Exit:
