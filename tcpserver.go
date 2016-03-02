@@ -190,6 +190,8 @@ func (server *TcpServer) Start(addr string) {
 }
 
 func (server *TcpServer) Stop() {
+	defer PanicHandle(true, "TcpServer Stop()xx.")
+
 	server.running = false
 	server.listener.Close()
 
