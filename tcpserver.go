@@ -106,55 +106,60 @@ func (server *TcpServer) startHandlers() *TcpServer {
 	return server
 }
 
-func (server *TcpServer) Start(addr string) *TcpServer {
+func (server *TcpServer) startListener(addr string) {
+	var (
+		tcpAddr *net.TCPAddr
+		err     error
+	)
+
+	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
+	if err != nil {
+		LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("ResolveTCPAddr error: %v\n", err)+GetStackInfo())
+		//chStop <- "TcpServer Start Failed!"
+		return
+	}
+
+	server.listener, err = net.ListenTCP("tcp", tcpAddr)
+	if err != nil {
+		LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("Listening error: %v\n", err)+GetStackInfo())
+		//chStop <- "TcpServer Start Failed!"
+		return
+	}
+
+	defer server.listener.Close()
+
+	server.running = true
+
+	LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
+
+	for {
+		conn, err := server.listener.AcceptTCP()
+
+		if !server.running {
+			break
+		}
+		if err != nil {
+			LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
+		} else {
+			if !newTcpClient(server, conn).start() {
+				server.ClientNum = server.ClientNum - 1
+			}
+		}
+	}
+}
+
+func (server *TcpServer) Start(addr string) {
 	if server.running {
 		return server
 	}
 
-	//go
-	func() {
-		var (
-			tcpAddr *net.TCPAddr
-			err     error
-		)
+	server.startSenders()
 
-		tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
-		if err != nil {
-			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("ResolveTCPAddr error: %v\n", err)+GetStackInfo())
-			//chStop <- "TcpServer Start Failed!"
-			return
-		}
+	server.startHandlers()
 
-		server.listener, err = net.ListenTCP("tcp", tcpAddr)
-		if err != nil {
-			LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("Listening error: %v\n", err)+GetStackInfo())
-			//chStop <- "TcpServer Start Failed!"
-			return
-		}
+	server.startListener(addr)
 
-		defer server.listener.Close()
-
-		server.running = true
-
-		LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
-
-		for {
-			conn, err := server.listener.AcceptTCP()
-
-			if !server.running {
-				break
-			}
-			if err != nil {
-				LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
-			} else {
-				if !newTcpClient(server, conn).start() {
-					server.ClientNum = server.ClientNum - 1
-				}
-			}
-		}
-	}()
-
-	return server
+	//return server
 }
 
 func (server *TcpServer) Stop() {
