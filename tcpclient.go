@@ -62,7 +62,9 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 }
 
 func (client *TcpClient) startReader(enableMsgHandleCor bool) {
-	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
+	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
+
+	LogInfo(LOG_IDX, client.Idx, "TcpClient startReader, enable handler %v!", enableMsgHandleCor)
 
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
@@ -115,7 +117,9 @@ Exit:
 }
 
 func (client *TcpClient) startWriter() {
-	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Writer exit.", client.Id, client.Addr))
+	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Writer exit.", client.Id, client.Addr))
+
+	LogInfo(LOG_IDX, client.Idx, fmt.Sprintf("startWriter Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
 
 	var (
 		msg *NetMsg
@@ -156,7 +160,9 @@ Exit:
 }
 
 func (client *TcpClient) startMsgHandler() {
-	defer PanicHandle(false, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
+	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
+
+	LogInfo(LOG_IDX, client.Idx, fmt.Sprintf("startMsgHandler Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
 
 	var msg *NetMsg
 

@@ -187,6 +187,8 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
+	defer PanicHandle(true, fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
+
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
 		if cb(msg) {
