@@ -106,7 +106,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 func (server *TcpServer) stopSenders() *TcpServer {
 	for i := 0; i < server.msgSendCorNum; i++ {
 		server.senders[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d.", i)
+		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d / %d.", i, server.msgSendCorNum)
 	}
 
 	return server
@@ -127,7 +127,7 @@ func (server *TcpServer) startHandlers() *TcpServer {
 func (server *TcpServer) stopHandlers() *TcpServer {
 	for i := 0; i < server.msgHandleCorNum; i++ {
 		server.handlers[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopHandlers %d.", i)
+		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopHandlers %d / %d.", i, server.msgHandleCorNum)
 	}
 
 	return server
@@ -190,30 +190,33 @@ func (server *TcpServer) Start(addr string) {
 }
 
 func (server *TcpServer) Stop() {
-	defer PanicHandle(true, "TcpServer Stop()xx.")
+	if server.running {
+		defer PanicHandle(true, "TcpServer Stop()xx.")
 
-	server.running = false
-	server.listener.Close()
+		server.running = false
 
-	for idx, client := range server.clients {
-		client.Stop()
-		delete(server.clients, idx)
+		for idx, client := range server.clients {
+			client.Stop()
+			delete(server.clients, idx)
+		}
+
+		server.stopHandlers()
+		server.stopSenders()
+
+		for k, _ := range server.handlerMap {
+			delete(server.handlerMap, k)
+		}
+		for k, _ := range server.clientIdMap {
+			delete(server.clientIdMap, k)
+		}
+		for k, _ := range server.idClientMap {
+			delete(server.idClientMap, k)
+		}
+
+		server.listener.Close()
+
+		LogInfo(LOG_IDX, LOG_IDX, "[TcpServer Stop]")
 	}
-
-	server.stopHandlers()
-	server.stopSenders()
-
-	for k, _ := range server.handlerMap {
-		delete(server.handlerMap, k)
-	}
-	for k, _ := range server.clientIdMap {
-		delete(server.clientIdMap, k)
-	}
-	for k, _ := range server.idClientMap {
-		delete(server.idClientMap, k)
-	}
-
-	LogInfo(LOG_IDX, LOG_IDX, "[TcpServer Stop]")
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
