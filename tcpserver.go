@@ -90,6 +90,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 		for i := 0; i < server.msgSendCorNum; i++ {
 			server.senders[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
 			go server.senders[i].start4Sender()
+			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startSenders %d.", i)
 		}
 	}
 	return server
@@ -101,6 +102,7 @@ func (server *TcpServer) startHandlers() *TcpServer {
 		for i := 0; i < server.msgHandleCorNum; i++ {
 			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
 			go server.handlers[i].start4Handler(server)
+			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startHandlers %d.", i)
 		}
 	}
 	return server
