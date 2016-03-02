@@ -211,7 +211,6 @@ func (server *TcpServer) Stop() {
 
 		server.listener.Close()
 		server.running = false
-		Println(LOG_IDX, LOG_IDX, "[TcpServer Stop] 888")
 	}
 }
 
@@ -306,6 +305,7 @@ func NewTcpServer(msgSendCorNum int, msgHandleCorNum int) *TcpServer {
 		handlerMap:      make(map[CmdType]HandlerCB),
 		msgSendCorNum:   msgSendCorNum,
 		msgHandleCorNum: msgHandleCorNum,
+		clients:         make(map[int]*TcpClient),
 		clientIdMap:     make(map[*TcpClient]ClientIDType),
 		idClientMap:     make(map[ClientIDType]*TcpClient),
 	}
