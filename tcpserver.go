@@ -1,9 +1,11 @@
 package zed
 
 import (
+	"encoding/binary"
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 type HandlerCB func(msg *NetMsg) bool
@@ -29,8 +31,8 @@ func (task *msgtask) start4Sender() {
 			}
 
 			if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-				LogInfo(LOG_IDX, client.Idx, "Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
-				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", msg.Client.Id, msg.Client.Addr, err)
+				LogInfo(LOG_IDX, msg.Client.Idx, "Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+				LogError(LOG_IDX, msg.Client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", msg.Client.Id, msg.Client.Addr, err)
 				msg.Client.Stop()
 			}
 
@@ -90,6 +92,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 			go server.senders[i].start4Sender()
 		}
 	}
+	return server
 }
 
 func (server *TcpServer) startHandlers() *TcpServer {
@@ -97,9 +100,10 @@ func (server *TcpServer) startHandlers() *TcpServer {
 		server.handlers = make([]*msgtask, server.msgHandleCorNum)
 		for i := 0; i < server.msgHandleCorNum; i++ {
 			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
-			go server.handlers[i].start4Handler()
+			go server.handlers[i].start4Handler(server)
 		}
 	}
+	return server
 }
 
 func (server *TcpServer) Start(addr string) *TcpServer {
@@ -185,7 +189,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 			return
 		}
 	} else {
-		LogInfo(LOG_IDX, client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, client.Id, client.Addr)
+		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 Err:
