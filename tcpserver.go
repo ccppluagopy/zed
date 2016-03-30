@@ -31,8 +31,8 @@ func (task *msgtask) start4Sender() {
 			}
 
 			if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-				LogInfo(LOG_IDX, msg.Client.Idx, "Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
-				LogError(LOG_IDX, msg.Client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", msg.Client.Id, msg.Client.Addr, err)
+				ZLog("Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+				ZLog("Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", msg.Client.Id, msg.Client.Addr, err)
 				msg.Client.Stop()
 			}
 
@@ -42,7 +42,7 @@ func (task *msgtask) start4Sender() {
 			copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 			writeLen, err = msg.Client.conn.Write(buf)
-			LogInfo(LOG_IDX, msg.Client.Idx, "Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+			ZLog("Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 
 			if err != nil || writeLen != len(buf) {
 				msg.Client.Stop()
@@ -97,7 +97,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 		for i := 0; i < server.msgSendCorNum; i++ {
 			server.senders[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
 			go server.senders[i].start4Sender()
-			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startSenders %d.", i)
+			ZLog("TcpServer startSenders %d.", i)
 		}
 	}
 	return server
@@ -106,7 +106,7 @@ func (server *TcpServer) startSenders() *TcpServer {
 func (server *TcpServer) stopSenders() *TcpServer {
 	for i := 0; i < server.msgSendCorNum; i++ {
 		server.senders[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d / %d.", i, server.msgSendCorNum)
+		ZLog("TcpServer stopSenders %d / %d.", i, server.msgSendCorNum)
 	}
 
 	return server
@@ -118,7 +118,7 @@ func (server *TcpServer) startHandlers() *TcpServer {
 		for i := 0; i < server.msgHandleCorNum; i++ {
 			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
 			go server.handlers[i].start4Handler(server)
-			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startHandlers %d.", i)
+			ZLog("TcpServer startHandlers %d.", i)
 		}
 	}
 	return server
@@ -127,14 +127,14 @@ func (server *TcpServer) startHandlers() *TcpServer {
 func (server *TcpServer) stopHandlers() *TcpServer {
 	for i := 0; i < server.msgHandleCorNum; i++ {
 		server.handlers[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopHandlers %d / %d.", i, server.msgHandleCorNum)
+		ZLog("TcpServer stopHandlers %d / %d.", i, server.msgHandleCorNum)
 	}
 
 	return server
 }
 
 func (server *TcpServer) startListener(addr string) {
-	defer Println(LOG_IDX, LOG_IDX, "TcpServer Stopped.")
+	defer Println("TcpServer Stopped.")
 	var (
 		tcpAddr *net.TCPAddr
 		err     error
@@ -143,14 +143,14 @@ func (server *TcpServer) startListener(addr string) {
 
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
-		LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("ResolveTCPAddr error: %v\n", err)+GetStackInfo())
+		ZLog(fmt.Sprintf("ResolveTCPAddr error: %v\n", err) + GetStackInfo())
 		//chStop <- "TcpServer Start Failed!"
 		return
 	}
 
 	server.listener, err = net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
-		LogError(LOG_IDX, LOG_IDX, fmt.Sprintf("Listening error: %v\n", err)+GetStackInfo())
+		ZLog(fmt.Sprintf("Listening error: %v\n", err) + GetStackInfo())
 		//chStop <- "TcpServer Start Failed!"
 		return
 	}
@@ -159,7 +159,7 @@ func (server *TcpServer) startListener(addr string) {
 
 	server.running = true
 
-	LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
+	ZLog(fmt.Sprintf("TcpServer Running on: %s", tcpAddr.String()))
 
 	for {
 		conn, err := server.listener.AcceptTCP()
@@ -168,7 +168,7 @@ func (server *TcpServer) startListener(addr string) {
 			break
 		}
 		if err != nil {
-			LogInfo(LOG_IDX, LOG_IDX, fmt.Sprintf("Accept error: %v\n", err)+GetStackInfo())
+			ZLog(fmt.Sprintf("Accept error: %v\n", err) + GetStackInfo())
 		} else {
 			client = newTcpClient(server, conn)
 			if !client.start() {
@@ -215,7 +215,7 @@ func (server *TcpServer) Stop() {
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler", cmd, cb)
+	ZLog("TcpServer AddMsgHandler", cmd, cb)
 
 	server.handlerMap[cmd] = cb
 }
@@ -226,7 +226,7 @@ func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb HandlerCB) {
 
 func (server *TcpServer) RelayMsg(msg *NetMsg) {
 	if server.msgHandleCorNum == 0 {
-		LogError(LOG_IDX, msg.Client.Idx, "TcpServer RelayMsg Error, msgHandleCorNum is 0.")
+		ZLog("TcpServer RelayMsg Error, msgHandleCorNum is 0.")
 		return
 	}
 	server.handlers[msg.Client.Idx%server.msgHandleCorNum].msgQ <- msg
@@ -244,10 +244,10 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		if cb(msg) {
 			return
 		} else {
-			LogInfo(LOG_IDX, msg.Client.Idx, fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
+			ZLog(fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
 		}
 	} else {
-		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		ZLog("No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 	server.OnClientMsgError(msg)
@@ -255,11 +255,11 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 
 func (server *TcpServer) SendMsg(msg *NetMsg) {
 	if server.msgSendCorNum == 0 {
-		LogError(LOG_IDX, msg.Client.Idx, "TcpServer SendMsg Error, msgSendCorNum is 0.")
+		ZLog("TcpServer SendMsg Error, msgSendCorNum is 0.")
 		return
 	}
 	server.senders[msg.Client.Idx%server.msgSendCorNum].msgQ <- msg
-	LogInfo(LOG_IDX, msg.Client.Idx, "TcpServer SendMsg For Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+	ZLog("TcpServer SendMsg For Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {

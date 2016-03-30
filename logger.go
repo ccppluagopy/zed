@@ -58,6 +58,7 @@ var (
 
 	Printf  = fmt.Printf
 	Println = fmt.Println
+	ZLog    = fmt.Printf
 )
 
 func (task *logtask) start(taskType string) {

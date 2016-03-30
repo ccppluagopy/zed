@@ -52,7 +52,7 @@ func (eventMgr *EventMgr) NewListener(tag interface{}, event interface{}, handle
 	defer eventMgr.mutex.Unlock()
 
 	if _, ok := eventMgr.listenerMap[tag]; ok {
-		fmt.Println("NewListener Error: listener %v exist!", tag)
+		ZLog("NewListener Error: listener %v exist!", tag)
 		return false
 	}
 
@@ -103,7 +103,7 @@ func NewEventMgr(tag interface{}) *EventMgr {
 	defer instanceMutex.Unlock()
 
 	if _, ok := instanceMap[tag]; ok {
-		fmt.Println("NewEventMgr Error: EventMgr %v exist!", tag)
+		ZLog("NewEventMgr Error: EventMgr %v exist!", tag)
 		return nil
 	}
 

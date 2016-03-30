@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"sync"
 	"time"
 )
 
 type ClientCloseCB func(client *TcpClient)
 
 type TcpClient struct {
+	sync.RWMutex
 	conn    *net.TCPConn
 	parent  *TcpServer
 	recvQ   chan *NetMsg
@@ -31,6 +33,8 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 }
 
 func (client *TcpClient) Stop() {
+	client.Lock()
+	defer client.Unlock()
 	if client.running {
 		client.running = false
 
@@ -52,24 +56,24 @@ func (client *TcpClient) Stop() {
 			delete(client.closeCB, key)
 		}
 
-		LogInfo(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Stopped.", client.Id, client.Addr)
+		ZLog("Client(Id: %s, Addr: %s) Stopped.", client.Id, client.Addr)
 	}
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	if client.parent.msgSendCorNum == 0 {
-		client.sendQ <- msg
+		client.RLock()
+		defer client.RUnlock()
+		if client.running {
+			client.sendQ <- msg
+		}
 	} else {
 		client.parent.SendMsg(msg)
 	}
-
-	LogInfo(LOG_IDX, client.Idx, "SendMsg Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 }
 
 func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Reader exit.", client.Id, client.Addr))
-
-	LogInfo(LOG_IDX, client.Idx, "TcpClient startReader, enable handler %v!", enableMsgHandleCor)
 
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
@@ -84,12 +88,12 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 
 		readLen, err = io.ReadFull(client.conn, head)
 		if err != nil || readLen < PACK_HEAD_LEN {
-			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read Head Error: %v!", err)
+			ZLog("Client(Id: %s, Addr: %s) Read Head Error: %v!", client.Id, client.Addr, err)
 			goto Exit
 		}
 
 		if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
-			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetReadDeadline Error: %v!", client.Id, client.Addr, err)
+			ZLog("Client(Id: %s, Addr: %s) SetReadDeadline Error: %v!", client.Id, client.Addr, err)
 			goto Exit
 		}
 
@@ -103,7 +107,7 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 			msg.Buf = make([]byte, msg.BufLen)
 			readLen, err := io.ReadFull(client.conn, msg.Buf)
 			if err != nil || readLen != int(msg.BufLen) {
-				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read body error: %v", client.Id, client.Addr, err)
+				ZLog("Client(Id: %s, Addr: %s) Read body error: %v", client.Id, client.Addr, err)
 				goto Exit
 			}
 		}
@@ -124,7 +128,7 @@ Exit:
 func (client *TcpClient) startWriter() {
 	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Writer exit.", client.Id, client.Addr))
 
-	LogInfo(LOG_IDX, client.Idx, fmt.Sprintf("startWriter Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
+	ZLog(fmt.Sprintf("startWriter Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
 
 	var (
 		msg *NetMsg
@@ -142,8 +146,8 @@ func (client *TcpClient) startWriter() {
 		}
 
 		if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-			LogInfo(LOG_IDX, client.Idx, "Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
-			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", client.Id, client.Addr, err)
+			ZLog("Write Failed Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+			ZLog("Client(Id: %s, Addr: %s) SetWriteDeadline Error: %v!", client.Id, client.Addr, err)
 			goto Exit
 		}
 
@@ -153,7 +157,7 @@ func (client *TcpClient) startWriter() {
 		copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 		writeLen, err := client.conn.Write(buf)
-		LogInfo(LOG_IDX, client.Idx, "Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+		ZLog("Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 
 		if err != nil || writeLen != len(buf) {
 			goto Exit
@@ -167,7 +171,7 @@ Exit:
 func (client *TcpClient) startMsgHandler() {
 	defer PanicHandle(true, fmt.Sprintf("Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
 
-	LogInfo(LOG_IDX, client.Idx, fmt.Sprintf("startMsgHandler Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr))
+	ZLog("startMsgHandler Client(Id: %s, Addr: %s) Msg Handler exit.", client.Id, client.Addr)
 
 	var msg *NetMsg
 
@@ -188,21 +192,21 @@ func (client *TcpClient) startMsgHandler() {
 
 func (client *TcpClient) start() bool {
 	if err := client.conn.SetKeepAlive(true); err != nil {
-		LogError(LOG_IDX, client.Idx, "%d SetKeepAlive error: %v", client.Idx, err)
+		ZLog("%d SetKeepAlive error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := client.conn.SetKeepAlivePeriod(KEEP_ALIVE_TIME); err != nil {
-		LogError(LOG_IDX, client.Idx, "%d SetKeepAlivePeriod error: %v", client.Idx, err)
+		ZLog("%d SetKeepAlivePeriod error: %v", client.Idx, err)
 		return false
 	}
 
 	if err := (*client.conn).SetReadBuffer(RECV_BUF_LEN); err != nil {
-		LogError(LOG_IDX, client.Idx, "%d SetReadBuffer error: %v", client.Idx, err)
+		ZLog("%d SetReadBuffer error: %v", client.Idx, err)
 		return false
 	}
 	if err := (*client.conn).SetWriteBuffer(SEND_BUF_LEN); err != nil {
-		LogError(LOG_IDX, client.Idx, "%d SetWriteBuffer error: %v", client.Idx, err)
+		ZLog("%d SetWriteBuffer error: %v", client.Idx, err)
 		return false
 	}
 
@@ -220,7 +224,7 @@ func (client *TcpClient) start() bool {
 		go client.startReader(false)
 	}
 
-	LogInfo(LOG_IDX, client.Idx, "New Client Start, Idx: %d.", client.Idx)
+	ZLog("New Client Start, Idx: %d.", client.Idx)
 
 	return true
 }
