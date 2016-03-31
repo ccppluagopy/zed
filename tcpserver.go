@@ -172,9 +172,11 @@ func (server *TcpServer) startListener(addr string) {
 		} else {
 			client = newTcpClient(server, conn)
 			if !client.start() {
-				server.ClientNum = server.ClientNum - 1
-			} else {
+				server.ClientNum = server.ClientNum + 1
 				server.clients[client.Idx] = client
+				client.AddCloseCB(0, func() {
+					delete(server.clients, client.Idx)
+				})
 			}
 		}
 	}
@@ -259,7 +261,6 @@ func (server *TcpServer) SendMsg(msg *NetMsg) {
 		return
 	}
 	server.senders[msg.Client.Idx%server.msgSendCorNum].msgQ <- msg
-	ZLog("TcpServer SendMsg For Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {

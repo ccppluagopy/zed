@@ -233,7 +233,7 @@ func (client *TcpClient) start() bool {
 }
 
 func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
-	parent.ClientNum = parent.ClientNum + 1
+	//parent.ClientNum = parent.ClientNum + 1
 
 	client := &TcpClient{
 		conn:    conn,
