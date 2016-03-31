@@ -58,7 +58,9 @@ var (
 
 	Printf  = fmt.Printf
 	Println = fmt.Println
-	ZLog    = fmt.Printf
+	ZLog    = func(format string, v ...interface{}) {
+		fmt.Printf(format+"\n", v...)
+	}
 )
 
 func (task *logtask) start(taskType string) {
