@@ -174,7 +174,7 @@ func (server *TcpServer) startListener(addr string) {
 			if !client.start() {
 				server.ClientNum = server.ClientNum + 1
 				server.clients[client.Idx] = client
-				client.AddCloseCB(0, func() {
+				client.AddCloseCB(0, func(client *TcpClient) {
 					delete(server.clients, client.Idx)
 				})
 			}
