@@ -139,3 +139,16 @@ func TestEchoClientForTcpServer(addr string, clientNum int) {
 	var str string
 	fmt.Scanf("%s", &str)
 }
+
+func TestBase() {
+	addr := "127.0.0.1:9999"
+	test.TestLogger()
+	test.TestEventMgr()
+
+	go func() {
+		time.Sleep(time.Second)
+		test.TestEchoClientForTcpServer(addr, 10)
+	}()
+
+	test.TestTcpServer(addr)
+}
