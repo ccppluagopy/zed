@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"sync"
+	//"sync"
+	"sync/atomic"
 	"time"
 )
 
 type ClientCloseCB func(client *TcpClient)
 
 type TcpClient struct {
-	sync.RWMutex
+	//sync.RWMutex
 	conn    *net.TCPConn
 	parent  *TcpServer
 	recvQ   chan *NetMsg
@@ -21,7 +22,7 @@ type TcpClient struct {
 	Idx     int
 	Addr    string
 	closeCB map[interface{}]ClientCloseCB
-	running bool
+	running uint32
 }
 
 func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
@@ -33,10 +34,11 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 }
 
 func (client *TcpClient) Stop() {
-	client.Lock()
-	defer client.Unlock()
-	if client.running {
+	atomic.AddUint32(&client.running, 1)
+	if client.running == 1 {
+		/*client.Lock()
 		client.running = false
+		client.Unlock()*/
 
 		client.conn.Close()
 
@@ -62,9 +64,10 @@ func (client *TcpClient) Stop() {
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	if client.parent.msgSendCorNum == 0 {
-		client.RLock()
-		defer client.RUnlock()
-		if client.running {
+		/*client.RLock()
+		defer client.RUnlock()*/
+		vrun := atomic.LoadUint32(&client.running)
+		if vrun == 0 {
 			client.sendQ <- msg
 		}
 	} else {
@@ -241,7 +244,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
-		running: true,
+		running: 0,
 	}
 
 	return client
