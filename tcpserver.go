@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-type HandlerCB func(msg *NetMsg) bool
-
 type msgtask struct {
 	msgQ chan *NetMsg
 }
@@ -79,7 +77,7 @@ type TcpServer struct {
 	running    bool
 	ClientNum  int
 	listener   *net.TCPListener
-	handlerMap map[CmdType]HandlerCB
+	handlerMap map[CmdType]MsgHandler
 
 	msgSendCorNum   int
 	msgHandleCorNum int
@@ -216,13 +214,13 @@ func (server *TcpServer) Stop() {
 	}
 }
 
-func (server *TcpServer) AddMsgHandler(cmd CmdType, cb HandlerCB) {
+func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	ZLog("TcpServer AddMsgHandler", cmd, cb)
 
 	server.handlerMap[cmd] = cb
 }
 
-func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb HandlerCB) {
+func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	delete(server.handlerMap, cmd)
 }
 
@@ -303,7 +301,7 @@ func NewTcpServer(msgSendCorNum int, msgHandleCorNum int) *TcpServer {
 		running:         false,
 		ClientNum:       0,
 		listener:        nil,
-		handlerMap:      make(map[CmdType]HandlerCB),
+		handlerMap:      make(map[CmdType]MsgHandler),
 		msgSendCorNum:   msgSendCorNum,
 		msgHandleCorNum: msgHandleCorNum,
 		clients:         make(map[int]*TcpClient),

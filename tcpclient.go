@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-type ClientCloseCB func(client *TcpClient)
-
 type TcpClient struct {
 	//sync.RWMutex
 	conn    *net.TCPConn
