@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	mysqlMgrs = make(map[string]*MongoMgr)
+	mysqlMgrs = make(map[string]*MysqlMgr)
 )
 
 type MysqlMgr struct {
