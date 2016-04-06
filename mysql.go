@@ -23,8 +23,7 @@ func (msqlMgr *MysqlMgr) Start(addr string, dbname string, usr string, passwd st
 	msqlMgr.DB, err = sql.Open("mysql", "user:password@/dbname")
 	if err != nil && msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
 		msqlMgr.tryCount = msqlMgr.tryCount + 1
-		msqlMgr.Start(addr, dbname, usr, passwd)
-		return
+		return msqlMgr.Start(addr, dbname, usr, passwd)
 	}
 
 	msqlMgr.tryCount = 0
@@ -58,7 +57,7 @@ func (msqlMgr *MysqlMgr) Stop() {
 	}
 }
 
-func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd string, cb DBErrorHandler) *MongoMgr {
+func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd string, cb DBErrorHandler) *MysqlMgr {
 	mgr, ok := mysqlMgrs[name]
 	if !ok {
 		mgr = &MysqlMgr{

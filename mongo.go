@@ -32,8 +32,6 @@ func (mongoMgr *MongoMgr) Start(addr string, dbname string, usr string, passwd s
 	mongoMgr.Session.SetMode(mgo.Monotonic, true)
 	mongoMgr.DB = mongoMgr.Session.DB(dbname)
 
-	mongoMgr.StuInfo = mongoMgr.DB.C("StuInfo")
-
 	mongoMgr.tryCount = 0
 
 	return true
