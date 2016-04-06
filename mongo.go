@@ -1,4 +1,4 @@
-package DBMgr
+package zed
 
 import (
 	"gopkg.in/mgo.v2"
