@@ -73,7 +73,7 @@ func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd str
 	return mgr
 }
 
-func GetMysqlMgrByName(name string) (*MongoMgr, bool) {
+func GetMysqlMgrByName(name string) (*MysqlMgr, bool) {
 	mgr, ok := mysqlMgrs[name]
 	return mgr, ok
 }
