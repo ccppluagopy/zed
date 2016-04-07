@@ -7,8 +7,9 @@ import (
 )
 
 var (
-	mutex sync.Mutex
-	last  = time.Now().Unix()
+	logdir = "./"
+	mutex  sync.Mutex
+	last   = time.Now().Unix()
 )
 
 type logfile struct {
@@ -30,7 +31,7 @@ func (logf *logfile) NewFile() {
 		last = last + 1
 	}
 
-	logf.name = time.Unix(last, 0).Format("20060102-150405")
+	logf.name = logdir + time.Unix(last, 0).Format("20060102-150405")
 
 	logf.file, err = os.OpenFile(logf.name, os.O_APPEND, 0666)
 	if err != nil {
@@ -81,8 +82,8 @@ func (logf *logfile) Close() {
 }
 
 func MakeNewLogDir(parentDir string) {
-	name := time.Now().Format("20060102-150405")
-	err := os.Mkdir(parentDir+"/"+name, 0777)
+	logdir := parentDir + "/" + time.Now().Format("20060102-150405") + "/"
+	err := os.Mkdir(logdir, 0777)
 	if err != nil {
 		ZLog("Error when MakeNewLogDir: %s: %v.", name, err)
 	}
