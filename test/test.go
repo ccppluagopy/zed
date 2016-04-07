@@ -40,7 +40,7 @@ func TestLogger() {
 		TagMax
 	)
 	var LogTags = map[int]string{
-		TagNull: "",
+		TagNull: "zed",
 		Tag1:    "Tag1",
 		Tag2:    "Tag2",
 		Tag3:    "Tag3",

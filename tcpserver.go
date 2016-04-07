@@ -40,7 +40,9 @@ func (task *msgtask) start4Sender() {
 			copy(buf[PACK_HEAD_LEN:], msg.Buf)
 
 			writeLen, err = msg.Client.conn.Write(buf)
-			ZLog("Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+			//ZLog("Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+
+			LogInfo(LOG_IDX, LOG_IDX, "Send Success Cmd: %d, BufLen: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 
 			if err != nil || writeLen != len(buf) {
 				msg.Client.Stop()
