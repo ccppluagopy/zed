@@ -86,7 +86,7 @@ func (task *logtask) start(taskType string) {
 }
 
 func (task *logtask) stop() {
-	for _, msg := range task.chMsg {
+	for msg := range task.chMsg {
 		task.logFile.Write(msg)
 	}
 	task.ticker.Stop()
