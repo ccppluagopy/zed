@@ -1,11 +1,6 @@
 package zed
 
 import (
-	"bufio" //缓存IO
-	"fmt"
-	"io"
-	"io/ioutil" //io 工具包
-	"os"
 	"sync"
 	"time"
 )
