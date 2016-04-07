@@ -53,7 +53,7 @@ func TestLogger() {
 		"Action": zed.LogFile,
 	}
 
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 19)
+	zed.StartLogger(LogConf, true, TagMax, LogTags, 1, 1, 1, 1)
 	for i := 0; i < 5; i++ {
 		zed.LogError(Tag1, i, "log test %d", i)
 	}
@@ -96,7 +96,7 @@ func TestTcpServer(addr string) {
 func TestEchoClientForTcpServer(addr string, clientNum int) {
 	var (
 		ROBOT_NUM = clientNum
-		buf       = make([]byte, len("hello world")+9)
+		buf       = make([]byte, len("hello world")+8)
 		buf2      = make([]byte, len(buf))
 		conns     = make([]net.Conn, ROBOT_NUM)
 	)

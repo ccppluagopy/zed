@@ -1,6 +1,7 @@
 package zed
 
 import (
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -25,7 +26,7 @@ func (logf *logfile) NewFile() {
 	var err error
 
 	now := time.Now().Unix()
-	if now != last {
+	if now > last {
 		last = now
 	} else {
 		last = last + 1
@@ -33,10 +34,13 @@ func (logf *logfile) NewFile() {
 
 	logf.name = logdir + time.Unix(last, 0).Format("20060102-150405")
 
-	logf.file, err = os.OpenFile(logf.name, os.O_APPEND, 0666)
+	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
-		ZLog("Error when Create logfile: %s: %v.", logf.name, err)
+		ZLog("Error when Create logfile: %s %s: %v.\n", logdir, logf.name, err)
+	} else {
+		logf.size = 0
+		ZLog("Create logfile: %s: Success.  %d\n", logf.name, last)
 	}
 }
 
@@ -82,10 +86,12 @@ func (logf *logfile) Close() {
 }
 
 func MakeNewLogDir(parentDir string) {
-	logdir := parentDir + "/" + time.Now().Format("20060102-150405") + "/"
+	logdir = parentDir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
 		ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
+	} else {
+		fmt.Println("MakeNewLogDir -----", parentDir, logdir)
 	}
 }
 

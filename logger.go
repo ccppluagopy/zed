@@ -99,7 +99,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	if infoEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
-				s := strings.Join([]string{"[Info] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
 				loggerIdx = loggerIdx % infoLoggerNum
 				arrTaskInfo[loggerIdx].chMsg <- &s
@@ -107,7 +107,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
-					s := strings.Join([]string{"[Info] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
 					loggerIdx = loggerIdx % infoLoggerNum
 					arrTaskInfo[loggerIdx].chMsg <- &s
@@ -122,7 +122,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	if warnEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
-				s := strings.Join([]string{"[Warn] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Warn] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				warnCount++
 				loggerIdx = loggerIdx % warnLoggerNum
 				arrTaskWarn[loggerIdx].chMsg <- &s
@@ -130,7 +130,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
-					s := strings.Join([]string{"[Warn] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Warn] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					warnCount++
 					loggerIdx = loggerIdx % warnLoggerNum
 					arrTaskWarn[loggerIdx].chMsg <- &s
@@ -144,7 +144,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	if errorEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
-				s := strings.Join([]string{"[Error] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Error] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % errorLoggerNum
 				arrTaskError[loggerIdx].chMsg <- &s
@@ -152,7 +152,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
-					s := strings.Join([]string{"[Error] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Error] [", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % errorLoggerNum
 					arrTaskError[loggerIdx].chMsg <- &s
@@ -166,7 +166,7 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 	if actionEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
-				s := strings.Join([]string{"[Action] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Action] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % actionLoggerNum
 				arrTaskAction[loggerIdx].chMsg <- &s
@@ -174,7 +174,7 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
-					s := strings.Join([]string{"[Action] [", tagstr, fmt.Sprintf("] [%s] ", time.Now().String()), fmt.Sprintf(format, v...)}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Action] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % actionLoggerNum
 					arrTaskAction[loggerIdx].chMsg <- &s
