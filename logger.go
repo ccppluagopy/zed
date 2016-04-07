@@ -14,11 +14,6 @@ type logtask struct {
 	logFile  *logfile
 }
 
-const (
-	LogCmd = iota
-	LogFile
-)
-
 var (
 	tags = map[int]string{
 		LOG_IDX: LOG_TAG,
@@ -80,7 +75,7 @@ func (task *logtask) start(taskType string) {
 					task.running = false
 					return
 				}
-				task.logFile.Write(*s)
+				task.logFile.Write(s)
 				Println(*s)
 			case <-task.ticker.C:
 				task.logFile.Save()
@@ -92,7 +87,7 @@ func (task *logtask) start(taskType string) {
 
 func (task *logtask) stop() {
 	for _, msg := range task.chMsg {
-		task.logFile.Write(*msg)
+		task.logFile.Write(msg)
 	}
 	task.ticker.Stop()
 	task.logFile.Close()

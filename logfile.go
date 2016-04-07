@@ -14,7 +14,7 @@ var (
 type logfile struct {
 	name string
 	file *os.File
-	size uint32
+	size int
 }
 
 func (logf *logfile) NewFile() {
@@ -47,7 +47,7 @@ func (logf *logfile) Write(s *string) {
 	nLen := len(*s)
 	nWrite, err := logf.file.WriteString(*s)
 	if err != nil || nWrite != nLen {
-		ZLog("Error when logfile %s Write, write len: %d err: %v.", logf.name, n, err)
+		ZLog("Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
 	} else {
 		logf.size = logf.size + nLen
 
