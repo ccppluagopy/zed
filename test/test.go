@@ -32,6 +32,7 @@ func TestEventMgr() {
 }
 
 func TestLogger() {
+	zed.MakeNewLogDir("./")
 	const (
 		TagNull = iota
 		Tag1

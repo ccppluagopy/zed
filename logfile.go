@@ -80,6 +80,14 @@ func (logf *logfile) Close() {
 	}
 }
 
+func MakeNewLogDir(parentDir string) {
+	name := time.Now().Format("20060102-150405")
+	err := os.Mkdir(parentDir+"/"+name, 0777)
+	if err != nil {
+		ZLog("Error when MakeNewLogDir: %s: %v.", name, err)
+	}
+}
+
 func CreateLogFile() *logfile {
 	return &logfile{
 		name: "",
