@@ -1,6 +1,7 @@
 package zed
 
 import (
+	"os"
 	"sync"
 	"time"
 )
