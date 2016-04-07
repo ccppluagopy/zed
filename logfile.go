@@ -80,7 +80,7 @@ func (logf *logfile) Close() {
 	}
 }
 
-func NewLogFile() *logfile {
+func CreateLogFile() *logfile {
 	return &logfile{
 		name: "",
 		file: nil,

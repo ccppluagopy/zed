@@ -64,7 +64,8 @@ func (task *logtask) start(taskType string) {
 	task.running = true
 	task.taskType = taskType
 	task.chMsg = make(chan *string, 100)
-	task.logFile = NewLogFile()
+	task.logFile = CreateLogFile()
+	task.logFile.NewFile()
 
 	go func() {
 		var s *string
