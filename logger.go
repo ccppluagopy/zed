@@ -10,6 +10,8 @@ type logtask struct {
 	running  bool
 	chMsg    chan *string
 	taskType string
+	ticker   *time.Ticker
+	logFile  *logfile
 }
 
 const (
@@ -67,6 +69,7 @@ func (task *logtask) start(taskType string) {
 	task.running = true
 	task.taskType = taskType
 	task.chMsg = make(chan *string, 100)
+	task.logFile = NewLogFile()
 
 	go func() {
 		var s *string
@@ -77,7 +80,10 @@ func (task *logtask) start(taskType string) {
 					task.running = false
 					return
 				}
+				task.logFile.Write(*s)
 				Println(*s)
+			case <-task.ticker.C:
+				task.logFile.Save()
 			}
 		}
 	}()
@@ -85,6 +91,11 @@ func (task *logtask) start(taskType string) {
 }
 
 func (task *logtask) stop() {
+	for _, msg := range task.chMsg {
+		task.logFile.Write(*msg)
+	}
+	task.ticker.Stop()
+	task.logFile.Close()
 	close(task.chMsg)
 }
 
@@ -201,65 +212,77 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	var i int
 	arrTaskInfo = make([]*logtask, infoLoggerNum)
 	for i = 0; i < infoLoggerNum; i++ {
-		arrTaskInfo[i] = new(logtask)
+		arrTaskInfo[i] = &logtask{
+			logFile: nil,
+			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
+		}
 		arrTaskInfo[i].start("Info")
 	}
 
 	arrTaskWarn = make([]*logtask, warnLoggerNum)
 	for i = 0; i < warnLoggerNum; i++ {
-		arrTaskWarn[i] = new(logtask)
+		arrTaskWarn[i] = &logtask{
+			logFile: nil,
+			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
+		}
 		arrTaskWarn[i].start("Warn")
 	}
 
 	arrTaskError = make([]*logtask, errorLoggerNum)
 	for i = 0; i < errorLoggerNum; i++ {
-		arrTaskError[i] = new(logtask)
+		arrTaskError[i] = &logtask{
+			logFile: nil,
+			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
+		}
 		arrTaskError[i].start("Error")
 	}
 
 	arrTaskAction = make([]*logtask, actionLoggerNum)
 	for i = 0; i < actionLoggerNum; i++ {
-		arrTaskAction[i] = new(logtask)
+		arrTaskAction[i] = &logtask{
+			logFile: nil,
+			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
+		}
 		arrTaskAction[i].start("Action")
 	}
 }
 
 func StopLogger() {
-	for {
-	REP:
-		for _, task := range arrTaskInfo {
-			task.stop()
-		}
-
-		for _, task := range arrTaskWarn {
-			task.stop()
-		}
-
-		for _, task := range arrTaskError {
-			task.stop()
-		}
-
-		time.Sleep(time.Second / 10)
-
-		for _, task := range arrTaskInfo {
-			if task.running {
-				goto REP
-			}
-		}
-
-		for _, task := range arrTaskWarn {
-			if task.running {
-				goto REP
-			}
-		}
-
-		for _, task := range arrTaskError {
-			if task.running {
-				goto REP
-			}
-		}
-
-		Println("[ShutDown] Logger Stop!")
-		return
+	/*for {
+	REP:*/
+	for _, task := range arrTaskInfo {
+		task.stop()
 	}
+
+	for _, task := range arrTaskWarn {
+		task.stop()
+	}
+
+	for _, task := range arrTaskError {
+		task.stop()
+	}
+
+	/*	time.Sleep(time.Second / 10)
+
+		for _, task := range arrTaskInfo {
+			if task.running {
+				goto REP
+			}
+		}
+
+		for _, task := range arrTaskWarn {
+			if task.running {
+				goto REP
+			}
+		}
+
+		for _, task := range arrTaskError {
+			if task.running {
+				goto REP
+			}
+		}
+	*/
+	Println("[ShutDown] Logger Stop!")
+	/*	return
+		}*/
 }
