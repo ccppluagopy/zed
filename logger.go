@@ -10,6 +10,7 @@ type logtask struct {
 	idx     int
 	chMsg   chan *string
 	ticker  *time.Ticker
+	logType int
 	logFile *logfile
 	running bool
 }
@@ -58,8 +59,9 @@ var (
 func (task *logtask) start(taskType string, logType int) {
 	task.running = true
 	task.chMsg = make(chan *string, 100)
-
+	task.logType = logType
 	if logType == LogFile {
+		task.ticker = time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL)
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
 			go func() {
@@ -102,8 +104,10 @@ func (task *logtask) stop() {
 	for msg := range task.chMsg {
 		task.logFile.Write(msg)
 	}
-	task.ticker.Stop()
-	task.logFile.Close()
+	if task.logType == LogFile {
+		task.ticker.Stop()
+		task.logFile.Close()
+	}
 	close(task.chMsg)
 }
 
@@ -227,7 +231,6 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 		arrTaskInfo[i] = &logtask{
 			idx:     i,
 			logFile: nil,
-			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
 		arrTaskInfo[i].start("Info", logConf["Info"])
 	}
@@ -237,7 +240,6 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 		arrTaskWarn[i] = &logtask{
 			idx:     i,
 			logFile: nil,
-			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
 		arrTaskWarn[i].start("Warn", logConf["Warn"])
 	}
@@ -247,7 +249,6 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 		arrTaskError[i] = &logtask{
 			idx:     i,
 			logFile: nil,
-			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
 		arrTaskError[i].start("Error", logConf["Error"])
 	}
@@ -257,7 +258,6 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 		arrTaskAction[i] = &logtask{
 			idx:     i,
 			logFile: nil,
-			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
 		arrTaskAction[i].start("Action", logConf["Action"])
 	}
