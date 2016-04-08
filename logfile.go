@@ -8,9 +8,10 @@ import (
 )
 
 var (
-	logdir = "./"
-	mutex  sync.Mutex
-	last   = time.Now().Unix()
+	logdir       = "./"
+	logdirInited = false
+	mutex        sync.Mutex
+	last         = time.Now().Unix()
 )
 
 type logfile struct {
@@ -23,6 +24,10 @@ type logfile struct {
 func (logf *logfile) NewFile() {
 	mutex.Lock()
 	defer mutex.Unlock()
+
+	if !logdirInited {
+		MakeNewLogDir(logdir)
+	}
 
 	var err error
 
@@ -114,6 +119,7 @@ func MakeNewLogDir(parentDir string) {
 		LogError(LOG_IDX, LOG_IDX, "Error when MakeNewLogDir: %s: %v.", logdir, err)
 	} else {
 		LogInfo(LOG_IDX, LOG_IDX, "MakeNewLogDir: %s Success", logdir)
+		logdirInited = true
 	}
 }
 
