@@ -7,10 +7,11 @@ import (
 )
 
 type logtask struct {
-	running bool
+	idx     int
 	chMsg   chan *string
 	ticker  *time.Ticker
 	logFile *logfile
+	running bool
 }
 
 var (
@@ -60,25 +61,27 @@ func (task *logtask) start(taskType string) {
 	task.running = true
 	task.chMsg = make(chan *string, 100)
 	task.logFile = CreateLogFile(taskType)
-	task.logFile.NewFile()
+	if task.logFile.NewFile() {
+		go func() {
+			var s *string
+			for {
+				select {
+				case s = <-task.chMsg:
+					if s == nil {
+						task.running = false
+						return
+					}
 
-	go func() {
-		var s *string
-		for {
-			select {
-			case s = <-task.chMsg:
-				if s == nil {
-					task.running = false
-					return
+					task.logFile.Write(s)
+					//Printf(*s)
+				case <-task.ticker.C:
+					task.logFile.Save()
 				}
-
-				task.logFile.Write(s)
-				//Printf(*s)
-			case <-task.ticker.C:
-				task.logFile.Save()
 			}
-		}
-	}()
+		}()
+	} else {
+		ZLog("logtask start failed, taskType: %s, idx: %d", taskType, task.idx)
+	}
 }
 
 func (task *logtask) stop() {
@@ -211,6 +214,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	arrTaskInfo = make([]*logtask, infoLoggerNum)
 	for i = 0; i < infoLoggerNum; i++ {
 		arrTaskInfo[i] = &logtask{
+			idx:     i,
 			logFile: nil,
 			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
@@ -220,6 +224,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	arrTaskWarn = make([]*logtask, warnLoggerNum)
 	for i = 0; i < warnLoggerNum; i++ {
 		arrTaskWarn[i] = &logtask{
+			idx:     i,
 			logFile: nil,
 			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
@@ -229,6 +234,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	arrTaskError = make([]*logtask, errorLoggerNum)
 	for i = 0; i < errorLoggerNum; i++ {
 		arrTaskError[i] = &logtask{
+			idx:     i,
 			logFile: nil,
 			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}
@@ -238,6 +244,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	arrTaskAction = make([]*logtask, actionLoggerNum)
 	for i = 0; i < actionLoggerNum; i++ {
 		arrTaskAction[i] = &logtask{
+			idx:     i,
 			logFile: nil,
 			ticker:  time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL),
 		}

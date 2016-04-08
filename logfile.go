@@ -21,7 +21,7 @@ type logfile struct {
 	size int
 }
 
-func (logf *logfile) NewFile() {
+func (logf *logfile) NewFile() bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
@@ -44,10 +44,13 @@ func (logf *logfile) NewFile() {
 	if err != nil {
 		logf.file = nil
 		LogError(LOG_IDX, LOG_IDX, "Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
+		return false
 	} else {
 		logf.size = 0
 		//LogInfo(LOG_IDX, LOG_IDX, "Create logfile: %s: Success.  %d", logf.name, last)
 	}
+
+	return true
 }
 
 func (logf *logfile) Write(s *string) {
@@ -116,9 +119,9 @@ func MakeNewLogDir(parentDir string) {
 	logdir = parentDir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
-		LogError(LOG_IDX, LOG_IDX, "Error when MakeNewLogDir: %s: %v.", logdir, err)
+		ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
 	} else {
-		LogInfo(LOG_IDX, LOG_IDX, "MakeNewLogDir: %s Success", logdir)
+		ZLog("MakeNewLogDir: %s Success", logdir)
 		logdirInited = true
 	}
 }
