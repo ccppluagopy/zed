@@ -217,7 +217,7 @@ func (server *TcpServer) Stop() {
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
-	ZLog("TcpServer AddMsgHandler", cmd, cb)
+	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler, Cmd: %d", cmd)
 
 	server.handlerMap[cmd] = cb
 }
@@ -228,7 +228,7 @@ func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 
 func (server *TcpServer) RelayMsg(msg *NetMsg) {
 	if server.msgHandleCorNum == 0 {
-		ZLog("TcpServer RelayMsg Error, msgHandleCorNum is 0.")
+		LogError(LOG_IDX, msg.Client.Idx, "TcpServer RelayMsg Error, msgHandleCorNum is 0.")
 		return
 	}
 	server.handlers[msg.Client.Idx%server.msgHandleCorNum].msgQ <- msg
@@ -246,10 +246,10 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		if cb(msg) {
 			return
 		} else {
-			ZLog(fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
+			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf)
 		}
 	} else {
-		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 	server.OnClientMsgError(msg)
