@@ -40,7 +40,7 @@ func (task *msgtask) start4Sender() {
 
 			writeLen, err = msg.Client.conn.Write(buf)
 
-			LogInfo(LOG_IDX, msg.Client.Idx, "Send Success  Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+			LogInfo(LOG_IDX, msg.Client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
 
 			if err != nil || writeLen != len(buf) {
 				msg.Client.Stop()
@@ -217,7 +217,10 @@ func (server *TcpServer) Stop() {
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler, Cmd: %d", cmd)
 
-	server.handlerMap[cmd] = cb
+	server.handlerMap[cmd] = func(msg *NetMsg) bool {
+		defer PanicHandle(true)
+		return cb(msg)
+	}
 }
 
 func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {

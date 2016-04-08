@@ -91,8 +91,6 @@ func (task *logtask) start(taskType string, logType int) {
 						return
 					}
 					Printf(*s)
-				case <-task.ticker.C:
-					task.logFile.Save()
 				}
 			}
 		}()

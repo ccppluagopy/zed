@@ -160,7 +160,7 @@ func (client *TcpClient) startWriter() {
 
 		writeLen, err := client.conn.Write(buf)
 
-		LogInfo(LOG_IDX, client.Idx, "Send Success Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+		LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
 
 		if err != nil || writeLen != len(buf) {
 			goto Exit

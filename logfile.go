@@ -105,10 +105,10 @@ func (logf *logfile) Save() {
 func (logf *logfile) Close() {
 	if logf.file != nil {
 		var err error
-		if err = logf.file.Sync(); err != nil {
+		/*if err = logf.file.Sync(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Sync() before Close(): %v.", logf.name, err)
 		}
-
+		*/
 		if err = logf.file.Close(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Close(): %v.", logf.name, err)
 		}
