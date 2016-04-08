@@ -14,6 +14,7 @@ var (
 )
 
 type logfile struct {
+	tag  string
 	name string
 	file *os.File
 	size int
@@ -32,7 +33,7 @@ func (logf *logfile) NewFile() {
 		last = last + 1
 	}
 
-	logf.name = logdir + time.Unix(last, 0).Format("20060102-150405")
+	logf.name = logdir + time.Unix(last, 0).Format("20060102-150405") + "-" + logf.tag
 
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
@@ -95,8 +96,9 @@ func MakeNewLogDir(parentDir string) {
 	}
 }
 
-func CreateLogFile() *logfile {
+func CreateLogFile(taskType string) *logfile {
 	return &logfile{
+		tag:  taskType,
 		name: "",
 		file: nil,
 		size: 0,

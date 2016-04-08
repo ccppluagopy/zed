@@ -249,7 +249,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 			ZLog(fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
 		}
 	} else {
-		ZLog("No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		LogInfo(LOG_IDX, LOG_IDX, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 	server.OnClientMsgError(msg)

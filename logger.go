@@ -29,10 +29,10 @@ var (
 	errorOutput   = LogCmd
 	debug         bool
 	maxTagNum     = 0
-	infoEnabled   = true
-	warnEnabled   = true
-	errorEnabled  = true
-	actionEnabled = true
+	infoEnabled   = false
+	warnEnabled   = false
+	errorEnabled  = false
+	actionEnabled = false
 
 	infoCount   = 0
 	warnCount   = 0
@@ -64,7 +64,7 @@ func (task *logtask) start(taskType string) {
 	task.running = true
 	task.taskType = taskType
 	task.chMsg = make(chan *string, 100)
-	task.logFile = CreateLogFile()
+	task.logFile = CreateLogFile(taskType)
 	task.logFile.NewFile()
 
 	go func() {
