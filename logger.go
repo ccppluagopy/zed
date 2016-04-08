@@ -7,11 +7,10 @@ import (
 )
 
 type logtask struct {
-	running  bool
-	chMsg    chan *string
-	taskType string
-	ticker   *time.Ticker
-	logFile  *logfile
+	running bool
+	chMsg   chan *string
+	ticker  *time.Ticker
+	logFile *logfile
 }
 
 var (
@@ -62,7 +61,6 @@ var (
 
 func (task *logtask) start(taskType string) {
 	task.running = true
-	task.taskType = taskType
 	task.chMsg = make(chan *string, 100)
 	task.logFile = CreateLogFile(taskType)
 	task.logFile.NewFile()
@@ -77,13 +75,12 @@ func (task *logtask) start(taskType string) {
 					return
 				}
 				task.logFile.Write(s)
-				Println(*s)
+				//Printf(*s)
 			case <-task.ticker.C:
 				task.logFile.Save()
 			}
 		}
 	}()
-	Printf("Logger Start Log %s Task\n", taskType)
 }
 
 func (task *logtask) stop() {
@@ -99,7 +96,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	if infoEnabled {
 		if debug {
 			if tagstr, ok := tags[tag]; ok {
-				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().Format("20060102-150405")), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
 				loggerIdx = loggerIdx % infoLoggerNum
 				arrTaskInfo[loggerIdx].chMsg <- &s
@@ -107,7 +104,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
-					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().String()), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s] ", time.Now().Format("20060102-150405")), "[Info] [", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
 					loggerIdx = loggerIdx % infoLoggerNum
 					arrTaskInfo[loggerIdx].chMsg <- &s
