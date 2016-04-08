@@ -114,7 +114,7 @@ func (client *TcpClient) startReader(enableMsgHandleCor bool) {
 			}
 		}
 
-		LogInfo(LOG_IDX, client.Idx, "Recv Msg, Cmd: %d, BufLen: %d, Data: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+		LogInfo(LOG_IDX, client.Idx, "Recv Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Data: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
 
 		if enableMsgHandleCor {
 			client.recvQ <- msg
@@ -160,7 +160,7 @@ func (client *TcpClient) startWriter() {
 
 		writeLen, err := client.conn.Write(buf)
 
-		LogInfo(LOG_IDX, client.Idx, "Send Success Cmd: %d, BufLen: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+		LogInfo(LOG_IDX, client.Idx, "Send Success Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
 
 		if err != nil || writeLen != len(buf) {
 			goto Exit

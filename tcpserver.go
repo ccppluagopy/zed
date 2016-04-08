@@ -40,7 +40,7 @@ func (task *msgtask) start4Sender() {
 
 			writeLen, err = msg.Client.conn.Write(buf)
 
-			LogInfo(LOG_IDX, msg.Client.Idx, "Send Success Cmd: %d, BufLen: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+			LogInfo(LOG_IDX, msg.Client.Idx, "Send Success  Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
 
 			if err != nil || writeLen != len(buf) {
 				msg.Client.Stop()
@@ -247,7 +247,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf)
 		}
 	} else {
-		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s)", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 	server.OnClientMsgError(msg)
