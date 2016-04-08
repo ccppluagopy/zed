@@ -38,14 +38,35 @@ func (logf *logfile) NewFile() {
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
-		ZLog("Error when Create logfile: %s %s: %v.\n", logdir, logf.name, err)
+		ZLog("Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
 	} else {
 		logf.size = 0
-		ZLog("Create logfile: %s: Success.  %d\n", logf.name, last)
+		ZLog("Create logfile: %s: Success.  %d", logf.name, last)
 	}
 }
 
 func (logf *logfile) Write(s *string) {
+	if logf.file == nil {
+		ZLog("Error when logfile %s Write, err: file is nil.", logf.name)
+		return
+	}
+	nLen := len(*s)
+
+	if logf.size+nLen >= MAX_LOG_FILE_SIZE {
+		logf.Close()
+		logf.NewFile()
+	}
+
+	nWrite, err := logf.file.WriteString(*s)
+	if err != nil || nWrite != nLen {
+		ZLog("Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
+	} else {
+		logf.size = logf.size + nLen
+	}
+
+}
+
+/*func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
 		ZLog("Error when logfile %s Write, err: file is nil.", logf.name)
 		return
@@ -63,7 +84,7 @@ func (logf *logfile) Write(s *string) {
 		}
 	}
 
-}
+}*/
 
 func (logf *logfile) Save() {
 	if logf.file != nil {
