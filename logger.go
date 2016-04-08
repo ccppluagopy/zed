@@ -26,7 +26,7 @@ var (
 	infoOutput    = LogCmd
 	warnOutput    = LogCmd
 	errorOutput   = LogCmd
-	debug         bool
+	debug         = true
 	maxTagNum     = 0
 	infoEnabled   = false
 	warnEnabled   = false
@@ -71,6 +71,7 @@ func (task *logtask) start(taskType string) {
 					task.running = false
 					return
 				}
+
 				task.logFile.Write(s)
 				//Printf(*s)
 			case <-task.ticker.C:
@@ -100,16 +101,20 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 			if tagstr, ok := tags[tag]; ok {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
+				Println("111 logtask idx: ", loggerIdx, infoLoggerNum)
 				loggerIdx = loggerIdx % infoLoggerNum
 				arrTaskInfo[loggerIdx].chMsg <- &s
+				Println("222 logtask idx: ", loggerIdx, infoLoggerNum)
 			}
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
+					Println("111 logtask idx: ", loggerIdx, infoLoggerNum)
 					loggerIdx = loggerIdx % infoLoggerNum
 					arrTaskInfo[loggerIdx].chMsg <- &s
+					Println("222 logtask idx: ", loggerIdx, infoLoggerNum)
 				}
 			}
 		}

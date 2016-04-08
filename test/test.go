@@ -53,7 +53,7 @@ func TestLogger() {
 		"Action": zed.LogFile,
 	}
 
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 1, 1, 1, 1)
+	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 3)
 	for i := 0; i < 5; i++ {
 		zed.LogError(Tag1, i, "log test %d", i)
 	}

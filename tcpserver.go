@@ -42,7 +42,7 @@ func (task *msgtask) start4Sender() {
 			writeLen, err = msg.Client.conn.Write(buf)
 			//ZLog("Write Success Cmd: %d, Len: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 
-			LogInfo(LOG_IDX, LOG_IDX, "Send Success Cmd: %d, BufLen: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
+			LogInfo(LOG_IDX, msg.Client.Idx, "Send Success Cmd: %d, BufLen: %d, Buf: %s", msg.Cmd, msg.BufLen, string(msg.Buf))
 
 			if err != nil || writeLen != len(buf) {
 				msg.Client.Stop()
@@ -171,7 +171,7 @@ func (server *TcpServer) startListener(addr string) {
 			ZLog(fmt.Sprintf("Accept error: %v\n", err) + GetStackInfo())
 		} else {
 			client = newTcpClient(server, conn)
-			if !client.start() {
+			if client.start() {
 				server.ClientNum = server.ClientNum + 1
 				server.clients[client.Idx] = client
 				client.AddCloseCB(0, func(client *TcpClient) {
@@ -249,7 +249,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 			ZLog(fmt.Sprintf("HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf))
 		}
 	} else {
-		LogInfo(LOG_IDX, LOG_IDX, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		LogInfo(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s.", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
 	server.OnClientMsgError(msg)
