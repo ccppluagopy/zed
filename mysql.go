@@ -37,9 +37,8 @@ func (msqlMgr *MysqlMgr) heartbeat() {
 	for {
 		time.Sleep(time.Hour)
 		if msqlMgr.DB != nil {
-			ZLog("msql mgr heartbeat!")
 			if err := msqlMgr.DB.Ping(); err != nil {
-				ZLog("msql mgr heartbeat err %v!", err)
+				LogError(LOG_IDX, LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
 			}
 		} else {
 			break
@@ -67,7 +66,7 @@ func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd str
 
 		return mgr
 	} else {
-		ZLog("NewMysqlMgr Error: %s has been exist!", name)
+		LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr Error: %s has been exist!", name)
 	}
 
 	return mgr

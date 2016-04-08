@@ -57,7 +57,7 @@ func NewMongoMgr(name string, addr string, dbname string, usr string, passwd str
 
 		return mgr
 	} else {
-		ZLog("NewMongoMgr Error: %s has been exist!", name)
+		LogError(LOG_IDX, LOG_IDX, "NewMongoMgr Error: %s has been exist!", name)
 	}
 
 	return mgr

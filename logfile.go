@@ -1,7 +1,7 @@
 package zed
 
 import (
-	"fmt"
+	//"fmt"
 	"os"
 	"sync"
 	"time"
@@ -38,16 +38,16 @@ func (logf *logfile) NewFile() {
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
-		ZLog("Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
+		LogError(LOG_IDX, LOG_IDX, "Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
 	} else {
 		logf.size = 0
-		ZLog("Create logfile: %s: Success.  %d", logf.name, last)
+		//LogInfo(LOG_IDX, LOG_IDX, "Create logfile: %s: Success.  %d", logf.name, last)
 	}
 }
 
 func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
-		ZLog("Error when logfile %s Write, err: file is nil.", logf.name)
+		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, err: file is nil.", logf.name)
 		return
 	}
 	nLen := len(*s)
@@ -59,7 +59,7 @@ func (logf *logfile) Write(s *string) {
 
 	nWrite, err := logf.file.WriteString(*s)
 	if err != nil || nWrite != nLen {
-		ZLog("Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
+		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
 	} else {
 		logf.size = logf.size + nLen
 	}
@@ -68,13 +68,13 @@ func (logf *logfile) Write(s *string) {
 
 /*func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
-		ZLog("Error when logfile %s Write, err: file is nil.", logf.name)
+		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, err: file is nil.", logf.name)
 		return
 	}
 	nLen := len(*s)
 	nWrite, err := logf.file.WriteString(*s)
 	if err != nil || nWrite != nLen {
-		ZLog("Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
+		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
 	} else {
 		logf.size = logf.size + nLen
 
@@ -89,7 +89,7 @@ func (logf *logfile) Write(s *string) {
 func (logf *logfile) Save() {
 	if logf.file != nil {
 		if err := logf.file.Sync(); err != nil {
-			ZLog("Error when logfile %s Save(): %v.", logf.name, err)
+			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Save(): %v.", logf.name, err)
 		}
 	}
 }
@@ -98,11 +98,11 @@ func (logf *logfile) Close() {
 	if logf.file != nil {
 		var err error
 		if err = logf.file.Sync(); err != nil {
-			ZLog("Error when logfile %s Sync() before Close(): %v.", logf.name, err)
+			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Sync() before Close(): %v.", logf.name, err)
 		}
 
 		if err = logf.file.Close(); err != nil {
-			ZLog("Error when logfile %s Close(): %v.", logf.name, err)
+			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Close(): %v.", logf.name, err)
 		}
 	}
 }
@@ -111,9 +111,9 @@ func MakeNewLogDir(parentDir string) {
 	logdir = parentDir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
-		ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
+		LogError(LOG_IDX, LOG_IDX, "Error when MakeNewLogDir: %s: %v.", logdir, err)
 	} else {
-		fmt.Println("MakeNewLogDir -----", parentDir, logdir)
+		LogInfo(LOG_IDX, LOG_IDX, "MakeNewLogDir: %s Success", logdir)
 	}
 }
 

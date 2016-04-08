@@ -15,9 +15,9 @@ func HandleSignal(maskAll bool) {
 
 		handlemsg := func(sig string) {
 			if maskAll {
-				ZLog("Handle Signal %s!", sig)
+				LogError(LOG_IDX, LOG_IDX, "Handle Signal %s!", sig)
 			} else {
-				ZLog("Exit By Signal %s!", sig)
+				LogError(LOG_IDX, LOG_IDX, "Exit By Signal %s!", sig)
 				os.Exit(0)
 			}
 		}
