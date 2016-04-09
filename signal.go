@@ -12,7 +12,7 @@ var (
 
 func HandleSignal(maskAll bool) {
 	if !signalHandled {
-		go func() {
+		NewCoroutine(func() {
 			var (
 				sig      os.Signal
 				chSignal = make(chan os.Signal, 1)
@@ -51,7 +51,7 @@ func HandleSignal(maskAll bool) {
 				default:
 				}
 			}
-		}()
+		})
 		signalHandled = true
 	}
 }

@@ -28,7 +28,9 @@ func (msqlMgr *MysqlMgr) Start(addr string, dbname string, usr string, passwd st
 
 	msqlMgr.tryCount = 0
 
-	go msqlMgr.heartbeat()
+	NewCoroutine(func() {
+		msqlMgr.heartbeat()
+	})
 
 	return true
 }

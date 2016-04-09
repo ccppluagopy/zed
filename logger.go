@@ -68,7 +68,7 @@ func (task *logtask) start(taskType string, logType int) {
 		task.ticker = time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL)
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
-			go func() {
+			NewCoroutine(func() {
 				var (
 					s  *string
 					ok = false
@@ -85,12 +85,12 @@ func (task *logtask) start(taskType string, logType int) {
 						task.logFile.Save()
 					}
 				}
-			}()
+			})
 		} else {
 
 		}
 	} else {
-		go func() {
+		NewCoroutine(func() {
 			var (
 				s  *string
 				ok = false
@@ -105,7 +105,7 @@ func (task *logtask) start(taskType string, logType int) {
 					Printf(*s)
 				}
 			}
-		}()
+		})
 	}
 
 }
@@ -128,13 +128,12 @@ func (task *logtask) stop() {
 )*/
 
 func ZLog(format string, v ...interface{}) {
-	//nn = nn + 1
-	//Println("zlog nn: ", nn, GetStackInfo())
-	//time.Sleep(time.Second / 10)
-	s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
-	zlogfile.Write(&s)
-	zlogfile.Save()
-	Printf(s)
+	if zlogfile != nil {
+		s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+		zlogfile.Write(&s)
+		zlogfile.Save()
+		Printf(s)
+	}
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {

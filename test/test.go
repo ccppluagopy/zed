@@ -147,7 +147,10 @@ func TestEchoClientForTcpServer(addr string, clientNum int) {
 	}
 
 	for i := 0; i < ROBOT_NUM; i++ {
-		go robot(i+1, conns[i])
+		idx := i
+		zed.NewCoroutine(func() {
+			go robot(idx, conns[idx])
+		})
 	}
 
 	var str string
@@ -159,10 +162,10 @@ func TestBase() {
 	TestLogger()
 	TestEventMgr()
 
-	go func() {
+	zed.NewCoroutine(func() {
 		time.Sleep(time.Second)
 		TestEchoClientForTcpServer(addr, 10)
-	}()
+	})
 
 	TestTcpServer(addr)
 }

@@ -160,7 +160,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 			}
 		}
 	}
-	go timerfunc()
+	NewCoroutine(timerfunc)
 
 	return &timerWheel
 }
@@ -253,7 +253,7 @@ func NewTimerMgr(internal int64) *TimerMgr {
 			}
 		}
 	}
-	go timerfunc()
+	NewCoroutine(timerfunc)
 
 	return &timerMgr
 }
