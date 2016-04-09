@@ -1,7 +1,7 @@
 package zed
 
 import (
-	//"fmt"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -14,6 +14,7 @@ var (
 	logdirInited = false
 	mutex        sync.Mutex
 	last         = time.Now().Unix()
+	logfiletag   = -1
 )
 
 type logfile struct {
@@ -38,8 +39,9 @@ func (logf *logfile) NewFile() bool {
 	now := time.Now().Unix()
 	if now > last {
 		last = now
+		logfiletag = 0
 	} else {
-		last = last + 1
+		logfiletag = logfiletag + 1
 	}
 
 	subdir := time.Now().Format("20060102/")
@@ -56,7 +58,7 @@ func (logf *logfile) NewFile() bool {
 	}
 
 	//s := time.Unix(last, 0).Format("150405/")
-	logf.name = logdir + logsubdir + time.Unix(last, 0).Format("150405") + "-" + logf.tag
+	logf.name = logdir + logsubdir + time.Unix(now, 0).Format("150405") + fmt.Sprintf("-%d-", logfiletag) + logf.tag
 
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
