@@ -95,6 +95,8 @@ func TestTcpServer(addr string) {
 }
 
 func TestEchoClientForTcpServer(addr string, clientNum int) {
+	zed.HandleSignal(true)
+
 	var (
 		ROBOT_NUM = clientNum
 		buf       = make([]byte, len("hello world")+8)

@@ -6,47 +6,54 @@ import (
 	"syscall"
 )
 
+var (
+	signalHandled = false
+)
+
 func HandleSignal(maskAll bool) {
-	go func() {
-		var (
-			sig      os.Signal
-			chSignal = make(chan os.Signal, 1)
-		)
+	if !signalHandled {
+		go func() {
+			var (
+				sig      os.Signal
+				chSignal = make(chan os.Signal, 1)
+			)
 
-		handlemsg := func(sig string) {
-			if maskAll {
-				LogError(LOG_IDX, LOG_IDX, "Handle Signal %s!", sig)
-			} else {
-				LogError(LOG_IDX, LOG_IDX, "Exit By Signal %s!", sig)
-				os.Exit(0)
-			}
-		}
-
-		signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
-
-		for {
-			sig = <-chSignal
-			if sig == nil {
-				return
+			handlemsg := func(sig string) {
+				if maskAll {
+					LogError(LOG_IDX, LOG_IDX, "Handle Signal %s!", sig)
+				} else {
+					LogError(LOG_IDX, LOG_IDX, "Exit By Signal %s!", sig)
+					os.Exit(0)
+				}
 			}
 
-			switch sig {
-			case syscall.SIGQUIT:
-				handlemsg("SIGQUIT")
+			signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
 
-			case syscall.SIGTERM:
-				handlemsg("SIGTERM")
+			for {
+				sig = <-chSignal
+				if sig == nil {
+					return
+				}
 
-			case syscall.SIGINT:
-				handlemsg("SIGINT")
+				switch sig {
+				case syscall.SIGQUIT:
+					handlemsg("SIGQUIT")
 
-			case syscall.SIGHUP:
-				handlemsg("SIGHUP")
+				case syscall.SIGTERM:
+					handlemsg("SIGTERM")
 
-			default:
+				case syscall.SIGINT:
+					handlemsg("SIGINT")
+
+				case syscall.SIGHUP:
+					handlemsg("SIGHUP")
+
+				default:
+				}
 			}
-		}
-	}()
+		}()
+		signalHandled = true
+	}
 }
 
 /*
