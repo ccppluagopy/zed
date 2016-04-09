@@ -1,16 +1,7 @@
 package zed
 
-import (
-	"os"
-)
-
-func init() {
-	workdir = "./"
-
-	if len(os.Args) >= 2 {
-		workdir = os.Args[1]
-
-	}
+func Init(wdir string) {
+	workdir = wdir
 
 	MakeNewLogDir()
 
