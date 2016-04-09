@@ -8,7 +8,8 @@ import (
 )
 
 var (
-	logdir       = "./"
+	workdir      = "./"
+	logdir       = ""
 	logsubdir    = ""
 	logdirInited = false
 	mutex        sync.Mutex
@@ -28,9 +29,9 @@ func (logf *logfile) NewFile() bool {
 
 	logf.Close()
 
-	if !logdirInited {
-		MakeNewLogDir(logdir)
-	}
+	/*if !logdirInited {
+		MakeNewLogDir()
+	}*/
 
 	var err error
 
@@ -47,18 +48,10 @@ func (logf *logfile) NewFile() bool {
 		logsubdir = subdir
 		err = os.Mkdir(logdir+logsubdir, 0777)
 		if err != nil {
-			if isLoggerStarted {
-				LogError(LOG_IDX, LOG_IDX, "Error when Make Log Sub Dir: %s: %v.", logdir+logsubdir, err)
-			} else {
-				ZLog("Error when Make Log Sub Dir: %s: %v.", logdir+logsubdir, err)
-			}
+			Printf("Error when Make Log Sub Dir: %s: %v\n", logdir+logsubdir, err)
 			return false
 		} else {
-			if isLoggerStarted {
-				LogError(LOG_IDX, LOG_IDX, "Make Log Sub Dir: %s Success", logdir+logsubdir)
-			} else {
-				ZLog("Make Log Sub Dir: %s Success", logdir+logsubdir)
-			}
+			Printf("Make Log Sub Dir: %s Success\n", logdir+logsubdir)
 		}
 	}
 
@@ -68,19 +61,11 @@ func (logf *logfile) NewFile() bool {
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
-		if isLoggerStarted {
-			LogError(LOG_IDX, LOG_IDX, "Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
-		} else {
-			ZLog("Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
-		}
+		Printf("Error when Create logfile: %s: %v\n", logf.name, err)
 		return false
 	} else {
 		logf.size = 0
-		if isLoggerStarted {
-			LogInfo(LOG_IDX, LOG_IDX, "Create logfile: %s: Success", logf.name)
-		} else {
-			ZLog("Create logfile: %s: Success.  %d", logf.name, last)
-		}
+		Printf("Create logfile: %s: Success\n", logf.name)
 	}
 
 	return true
@@ -88,7 +73,7 @@ func (logf *logfile) NewFile() bool {
 
 func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
-		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, err: file is nil.", logf.name)
+		Printf("Error when logfile %s Write, err: file is nil.", logf.name)
 		return
 	}
 	nLen := len(*s)
@@ -105,71 +90,38 @@ func (logf *logfile) Write(s *string) {
 
 	nWrite, err := logf.file.WriteString(*s)
 	if err != nil || nWrite != nLen {
-		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
+		Printf("Error when logfile %s Write, write len: %d err: %v\n", logf.name, err)
 	} else {
 		logf.size = logf.size + nLen
 	}
-
 }
-
-/*func (logf *logfile) Write(s *string) {
-	if logf.file == nil {
-		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, err: file is nil.", logf.name)
-		return
-	}
-	nLen := len(*s)
-	nWrite, err := logf.file.WriteString(*s)
-	if err != nil || nWrite != nLen {
-		LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Write, write len: %d err: %v.", logf.name, err)
-	} else {
-		logf.size = logf.size + nLen
-
-		if logf.size >= MAX_LOG_FILE_SIZE {
-			logf.Close()
-			logf.NewFile()
-		}
-	}
-
-}*/
 
 func (logf *logfile) Save() {
 	if logf.file != nil {
 		if err := logf.file.Sync(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Save(): %v.", logf.name, err)
+			Printf("Error when logfile %s Save(): %v\n", logf.name, err)
 		}
 	}
 }
 
 func (logf *logfile) Close() {
 	if logf.file != nil {
-		var err error
-		/*if err = logf.file.Sync(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Sync() before Close(): %v.", logf.name, err)
-		}
-		*/
-		if err = logf.file.Close(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "Error when logfile %s Close(): %v.", logf.name, err)
+		if err := logf.file.Close(); err != nil {
+			Printf("Error when logfile %s Close(): %v\n", logf.name, err)
 		}
 	}
 }
 
-func MakeNewLogDir(parentDir string) {
-	logdir = parentDir + time.Now().Format("20060102-150405") + "/"
+func MakeNewLogDir() {
+	logdir = workdir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
-		if isLoggerStarted {
-			LogError(LOG_IDX, LOG_IDX, "Error when MakeNewLogDir: %s: %v.", logdir, err)
-		} else {
-			ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
-		}
+		Printf("Error when MakeNewLogDir: %s: %v\n", logdir, err)
 	} else {
-		if isLoggerStarted {
-			LogError(LOG_IDX, LOG_IDX, "MakeNewLogDir: %s Success", logdir)
-		} else {
-			ZLog("MakeNewLogDir: %s Success", logdir)
-		}
-		logdirInited = true
+		Printf("MakeNewLogDir %s  %s Success\n", workdir, logdir)
 	}
+
+	logdirInited = true
 }
 
 func CreateLogFile(taskType string) *logfile {

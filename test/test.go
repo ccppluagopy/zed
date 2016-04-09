@@ -32,7 +32,7 @@ func TestEventMgr() {
 }
 
 func TestLogger() {
-	zed.MakeNewLogDir("./")
+	//zed.MakeNewLogDir("./")
 	const (
 		TagNull = iota
 		Tag1
@@ -49,7 +49,7 @@ func TestLogger() {
 	var LogConf = map[string]int{
 		"Info":   zed.LogFile,
 		"Warn":   zed.LogFile,
-		"Error":  zed.LogCmd,
+		"Error":  zed.LogFile,
 		"Action": zed.LogFile,
 	}
 

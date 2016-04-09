@@ -1,7 +1,7 @@
 package zed
 
 import (
-	"fmt"
+	//"fmt"
 	"time"
 )
 
@@ -192,7 +192,7 @@ func (timerMgr *TimerMgr) NewTimer(key interface{}, delay int64, internal int64,
 	timer.active = true
 	timerMgr.chTimer <- &timer
 
-	fmt.Printf("new %s %d %d\n", key, internal, timer.born)
+	//LogInfo(LOG_IDX, LOG_IDX, "new %s %d %d\n", key, internal, timer.born)
 	return &timer
 }
 

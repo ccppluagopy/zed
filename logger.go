@@ -50,6 +50,8 @@ var (
 	actionLoggerNum int = 1
 	arrTaskAction   []*logtask
 
+	zlogfile *logfile = nil
+
 	logSep = ""
 
 	Printf  = fmt.Printf
@@ -85,7 +87,7 @@ func (task *logtask) start(taskType string, logType int) {
 				}
 			}()
 		} else {
-			ZLog("logtask start failed, taskType: %s, idx: %d", taskType, task.idx)
+
 		}
 	} else {
 		go func() {
@@ -121,9 +123,18 @@ func (task *logtask) stop() {
 	ZLog("logtask stopped, taskType: %s, idx: %d", task.logType, task.idx)
 }
 
+/*var (
+	nn = 0
+)*/
+
 func ZLog(format string, v ...interface{}) {
-	//fmt.Printf(format+"\n", v...)
-	fmt.Printf(strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep))
+	//nn = nn + 1
+	//Println("zlog nn: ", nn, GetStackInfo())
+	//time.Sleep(time.Second / 10)
+	s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+	zlogfile.Write(&s)
+	zlogfile.Save()
+	Printf(s)
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
@@ -136,7 +147,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 				if arrTaskInfo[loggerIdx].running {
 					arrTaskInfo[loggerIdx].chMsg <- &s
 				} else {
-					Println("Info Task runnign fasle")
+					ZLog("Error when LogInfo, Task runnign: fasle")
 				}
 			}
 		} else {
@@ -148,7 +159,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 					if arrTaskInfo[loggerIdx].running {
 						arrTaskInfo[loggerIdx].chMsg <- &s
 					} else {
-						Println("Info Task runnign fasle")
+						ZLog("Error when LogInfo, Task runnign: fasle")
 					}
 				}
 			}
@@ -166,6 +177,8 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 				loggerIdx = loggerIdx % warnLoggerNum
 				if arrTaskWarn[loggerIdx].running {
 					arrTaskWarn[loggerIdx].chMsg <- &s
+				} else {
+					ZLog("Error when LogWarn, Task runnign: fasle")
 				}
 			}
 		} else {
@@ -176,6 +189,8 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 					loggerIdx = loggerIdx % warnLoggerNum
 					if arrTaskWarn[loggerIdx].running {
 						arrTaskWarn[loggerIdx].chMsg <- &s
+					} else {
+						ZLog("Error when LogWarn, Task runnign: fasle")
 					}
 				}
 			}
@@ -193,7 +208,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 				if arrTaskError[loggerIdx].running {
 					arrTaskError[loggerIdx].chMsg <- &s
 				} else {
-					Println("Error Task runnign fasle")
+					ZLog("Error when LogError, Task runnign: fasle")
 				}
 			}
 		} else {
@@ -205,7 +220,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 					if arrTaskError[loggerIdx].running {
 						arrTaskError[loggerIdx].chMsg <- &s
 					} else {
-						Println("Error Task runnign fasle")
+						ZLog("Error when LogError, Task runnign: fasle")
 					}
 				}
 			}
@@ -222,6 +237,8 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 				loggerIdx = loggerIdx % actionLoggerNum
 				if arrTaskAction[loggerIdx].running {
 					arrTaskAction[loggerIdx].chMsg <- &s
+				} else {
+					ZLog("Error when LogAction, Task runnign: fasle")
 				}
 			}
 		} else {
@@ -232,6 +249,8 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 					loggerIdx = loggerIdx % actionLoggerNum
 					if arrTaskAction[loggerIdx].running {
 						arrTaskAction[loggerIdx].chMsg <- &s
+					} else {
+						ZLog("Error when LogAction, Task runnign: fasle")
 					}
 				}
 			}
@@ -340,7 +359,8 @@ func StopLogger() {
 			}
 		}
 	*/
-	Println("[ShutDown] Logger Stop!")
+	ZLog("[ShutDown] Logger Stop!")
+	zlogfile.Close()
 	/*	return
 		}*/
 }
