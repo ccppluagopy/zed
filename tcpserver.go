@@ -87,29 +87,30 @@ func (server *TcpServer) Start(addr string) {
 func (server *TcpServer) Stop() {
 	server.Lock()
 	defer server.Unlock()
+	defer PanicHandle(true, "TcpServer Stop().")
 
-	if server.running {
-		defer PanicHandle(true, "TcpServer Stop().")
-
-		for idx, client := range server.clients {
-			client.Stop()
-			delete(server.clients, idx)
-		}
-		//server.stopHandlers()
-		//server.stopSenders()
-		for k, _ := range server.handlerMap {
-			delete(server.handlerMap, k)
-		}
-		for k, _ := range server.clientIdMap {
-			delete(server.clientIdMap, k)
-		}
-		for k, _ := range server.idClientMap {
-			delete(server.idClientMap, k)
-		}
-
-		server.listener.Close()
-		server.running = false
+	if !server.running {
+		return
 	}
+
+	for idx, client := range server.clients {
+		client.Stop()
+		delete(server.clients, idx)
+	}
+	//server.stopHandlers()
+	//server.stopSenders()
+	for k, _ := range server.handlerMap {
+		delete(server.handlerMap, k)
+	}
+	for k, _ := range server.clientIdMap {
+		delete(server.clientIdMap, k)
+	}
+	for k, _ := range server.idClientMap {
+		delete(server.idClientMap, k)
+	}
+
+	server.listener.Close()
+	server.running = false
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
@@ -178,16 +179,19 @@ func (server *TcpServer) AddClient(client *TcpClient) {
 }
 
 func (server *TcpServer) RemoveClient(client *TcpClient) {
-	if client.Id != NullId {
-		server.Lock()
-		defer server.Unlock()
+	//if client.Id != NullId {
+	server.Lock()
+	defer server.Unlock()
 
-		delete(server.idClientMap, client.Id)
-		delete(server.clientIdMap, client)
-	}
+	delete(server.idClientMap, client.Id)
+	delete(server.clientIdMap, client)
+	//}
 }
 
 func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
+	server.RLock()
+	defer server.RUnlock()
+
 	return len(server.clientIdMap), server.ClientNum
 }
 
