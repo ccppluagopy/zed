@@ -109,16 +109,25 @@ func TestEchoClientForTcpServer(addr string, clientNum int) {
 
 	robot := func(idx int, conn net.Conn) {
 		n := 0
+		var err error
+		var nwrite = 0
 		for {
 			n = n + 1
-			conn.Write(buf)
-			_, err := io.ReadFull(conn, buf2)
+			nwrite, err = conn.Write(buf)
 			if err == nil {
-				fmt.Println(fmt.Sprintf("Client %d Recv Msg %d: %s", idx, n, string(buf2[8:])))
+				fmt.Println(fmt.Sprintf("Client %d Send Msg %d: %s", idx, nwrite, string(buf[8:])))
 			} else {
 				checkError(err)
 				break
 			}
+			nwrite, err = io.ReadFull(conn, buf2)
+			if err == nil {
+				fmt.Println(fmt.Sprintf("Client %d Recv Msg %d: %s", idx, nwrite, string(buf2[8:])))
+			} else {
+				checkError(err)
+				break
+			}
+			//time.Sleep(time.Second)
 		}
 	}
 

@@ -12,7 +12,8 @@ const (
 
 func PanicHandle(needLog bool, args ...interface{}) {
 	if len(args) > 0 {
-		LogError(LOG_IDX, LOG_IDX, args[0].(string))
+		ZLog(args[0].(string))
+		//fmt.Println(LOG_IDX, LOG_IDX, args[0].(string))
 	}
 
 	if err := recover(); err != nil {
@@ -32,7 +33,8 @@ func PanicHandle(needLog bool, args ...interface{}) {
 		errstr += separator
 
 		if needLog {
-			LogError(LOG_IDX, LOG_IDX, errstr)
+			ZLog(errstr)
+			//fmt.Println(LOG_IDX, LOG_IDX, errstr)
 		}
 	}
 }

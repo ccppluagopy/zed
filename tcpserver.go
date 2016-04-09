@@ -14,6 +14,7 @@ type msgtask struct {
 
 func (task *msgtask) start4Sender() {
 	var (
+		ok       = false
 		msg      *NetMsg
 		buf      []byte
 		writeLen int
@@ -21,33 +22,32 @@ func (task *msgtask) start4Sender() {
 	)
 
 	for {
-		for {
-			msg = <-task.msgQ
+		msg, ok = <-task.msgQ
 
-			if msg == nil {
-				return
-			}
-
-			if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-				LogError(LOG_IDX, msg.Client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", msg.Client.Id, msg.Client.Addr, err)
-				msg.Client.Stop()
-			}
-
-			buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
-			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
-			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-			copy(buf[PACK_HEAD_LEN:], msg.Buf)
-
-			writeLen, err = msg.Client.conn.Write(buf)
-
-			LogInfo(LOG_IDX, msg.Client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
-
-			if err != nil || writeLen != len(buf) {
-				msg.Client.Stop()
-			}
+		//Println("Sender ok: ", ok)
+		if !ok {
+			return
 		}
 
+		if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+			LogError(LOG_IDX, msg.Client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", msg.Client.Id, msg.Client.Addr, err)
+			msg.Client.Stop()
+		}
+
+		buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
+		binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
+		binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+		copy(buf[PACK_HEAD_LEN:], msg.Buf)
+
+		writeLen, err = msg.Client.conn.Write(buf)
+
+		LogInfo(LOG_IDX, msg.Client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+
+		if err != nil || writeLen != len(buf) {
+			msg.Client.Stop()
+		}
 	}
+
 }
 
 func (task *msgtask) start4Handler(server *TcpServer) {
@@ -253,6 +253,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s)", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
+	//Println("HandleMsg ==>>")
 	server.OnClientMsgError(msg)
 }
 

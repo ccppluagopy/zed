@@ -9,6 +9,7 @@ import (
 
 var (
 	logdir       = "./"
+	logsubdir    = ""
 	logdirInited = false
 	mutex        sync.Mutex
 	last         = time.Now().Unix()
@@ -25,6 +26,8 @@ func (logf *logfile) NewFile() bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
+	logf.Close()
+
 	if !logdirInited {
 		MakeNewLogDir(logdir)
 	}
@@ -38,16 +41,46 @@ func (logf *logfile) NewFile() bool {
 		last = last + 1
 	}
 
-	logf.name = logdir + time.Unix(last, 0).Format("20060102-150405") + "-" + logf.tag
+	subdir := time.Now().Format("20060102/")
+	//subdir := time.Now().Format("150405/")
+	if logsubdir != subdir {
+		logsubdir = subdir
+		err = os.Mkdir(logdir+logsubdir, 0777)
+		if err != nil {
+			if isLoggerStarted {
+				LogError(LOG_IDX, LOG_IDX, "Error when Make Log Sub Dir: %s: %v.", logdir+logsubdir, err)
+			} else {
+				ZLog("Error when Make Log Sub Dir: %s: %v.", logdir+logsubdir, err)
+			}
+			return false
+		} else {
+			if isLoggerStarted {
+				LogError(LOG_IDX, LOG_IDX, "Make Log Sub Dir: %s Success", logdir+logsubdir)
+			} else {
+				ZLog("Make Log Sub Dir: %s Success", logdir+logsubdir)
+			}
+		}
+	}
+
+	//s := time.Unix(last, 0).Format("150405/")
+	logf.name = logdir + logsubdir + time.Unix(last, 0).Format("150405") + "-" + logf.tag
 
 	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
-		LogError(LOG_IDX, LOG_IDX, "Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
+		if isLoggerStarted {
+			LogError(LOG_IDX, LOG_IDX, "Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
+		} else {
+			ZLog("Error when Create logfile: %s %s: %v.", logdir, logf.name, err)
+		}
 		return false
 	} else {
 		logf.size = 0
-		//LogInfo(LOG_IDX, LOG_IDX, "Create logfile: %s: Success.  %d", logf.name, last)
+		if isLoggerStarted {
+			LogInfo(LOG_IDX, LOG_IDX, "Create logfile: %s: Success", logf.name)
+		} else {
+			ZLog("Create logfile: %s: Success.  %d", logf.name, last)
+		}
 	}
 
 	return true
@@ -61,7 +94,12 @@ func (logf *logfile) Write(s *string) {
 	nLen := len(*s)
 
 	if logf.size+nLen >= MAX_LOG_FILE_SIZE {
-		logf.Close()
+		logf.NewFile()
+	}
+
+	//subdir := time.Now().Format("150405/")
+	subdir := time.Now().Format("20060102/")
+	if logsubdir != subdir {
 		logf.NewFile()
 	}
 
@@ -119,9 +157,17 @@ func MakeNewLogDir(parentDir string) {
 	logdir = parentDir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
-		ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
+		if isLoggerStarted {
+			LogError(LOG_IDX, LOG_IDX, "Error when MakeNewLogDir: %s: %v.", logdir, err)
+		} else {
+			ZLog("Error when MakeNewLogDir: %s: %v.", logdir, err)
+		}
 	} else {
-		ZLog("MakeNewLogDir: %s Success", logdir)
+		if isLoggerStarted {
+			LogError(LOG_IDX, LOG_IDX, "MakeNewLogDir: %s Success", logdir)
+		} else {
+			ZLog("MakeNewLogDir: %s Success", logdir)
+		}
 		logdirInited = true
 	}
 }

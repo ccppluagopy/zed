@@ -54,6 +54,8 @@ var (
 
 	Printf  = fmt.Printf
 	Println = fmt.Println
+
+	isLoggerStarted = false
 )
 
 func (task *logtask) start(taskType string, logType int) {
@@ -65,12 +67,15 @@ func (task *logtask) start(taskType string, logType int) {
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
 			go func() {
-				var s *string
+				var (
+					s  *string
+					ok = false
+				)
 				for {
 					select {
-					case s = <-task.chMsg:
-						if s == nil {
-							task.running = false
+					case s, ok = <-task.chMsg:
+						if !ok {
+							task.stop()
 							return
 						}
 						task.logFile.Write(s)
@@ -84,12 +89,15 @@ func (task *logtask) start(taskType string, logType int) {
 		}
 	} else {
 		go func() {
-			var s *string
+			var (
+				s  *string
+				ok = false
+			)
 			for {
 				select {
-				case s = <-task.chMsg:
-					if s == nil {
-						task.running = false
+				case s, ok = <-task.chMsg:
+					if !ok {
+						task.stop()
 						return
 					}
 					Printf(*s)
@@ -109,6 +117,8 @@ func (task *logtask) stop() {
 		task.logFile.Close()
 	}
 	close(task.chMsg)
+	task.running = false
+	ZLog("logtask stopped, taskType: %s, idx: %d", task.logType, task.idx)
 }
 
 func ZLog(format string, v ...interface{}) {
@@ -123,17 +133,23 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
 				loggerIdx = loggerIdx % infoLoggerNum
-				arrTaskInfo[loggerIdx].chMsg <- &s
+				if arrTaskInfo[loggerIdx].running {
+					arrTaskInfo[loggerIdx].chMsg <- &s
+				} else {
+					Println("Info Task runnign fasle")
+				}
 			}
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
-					Println("111 logtask idx: ", loggerIdx, infoLoggerNum)
 					loggerIdx = loggerIdx % infoLoggerNum
-					arrTaskInfo[loggerIdx].chMsg <- &s
-					Println("222 logtask idx: ", loggerIdx, infoLoggerNum)
+					if arrTaskInfo[loggerIdx].running {
+						arrTaskInfo[loggerIdx].chMsg <- &s
+					} else {
+						Println("Info Task runnign fasle")
+					}
 				}
 			}
 		}
@@ -148,7 +164,9 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				warnCount++
 				loggerIdx = loggerIdx % warnLoggerNum
-				arrTaskWarn[loggerIdx].chMsg <- &s
+				if arrTaskWarn[loggerIdx].running {
+					arrTaskWarn[loggerIdx].chMsg <- &s
+				}
 			}
 		} else {
 			if tag < maxTagNum {
@@ -156,7 +174,9 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					warnCount++
 					loggerIdx = loggerIdx % warnLoggerNum
-					arrTaskWarn[loggerIdx].chMsg <- &s
+					if arrTaskWarn[loggerIdx].running {
+						arrTaskWarn[loggerIdx].chMsg <- &s
+					}
 				}
 			}
 		}
@@ -170,7 +190,11 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % errorLoggerNum
-				arrTaskError[loggerIdx].chMsg <- &s
+				if arrTaskError[loggerIdx].running {
+					arrTaskError[loggerIdx].chMsg <- &s
+				} else {
+					Println("Error Task runnign fasle")
+				}
 			}
 		} else {
 			if tag < maxTagNum {
@@ -178,7 +202,11 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % errorLoggerNum
-					arrTaskError[loggerIdx].chMsg <- &s
+					if arrTaskError[loggerIdx].running {
+						arrTaskError[loggerIdx].chMsg <- &s
+					} else {
+						Println("Error Task runnign fasle")
+					}
 				}
 			}
 		}
@@ -192,7 +220,9 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % actionLoggerNum
-				arrTaskAction[loggerIdx].chMsg <- &s
+				if arrTaskAction[loggerIdx].running {
+					arrTaskAction[loggerIdx].chMsg <- &s
+				}
 			}
 		} else {
 			if tag < maxTagNum {
@@ -200,7 +230,9 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % actionLoggerNum
-					arrTaskAction[loggerIdx].chMsg <- &s
+					if arrTaskAction[loggerIdx].running {
+						arrTaskAction[loggerIdx].chMsg <- &s
+					}
 				}
 			}
 		}
@@ -232,6 +264,8 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 			idx:     i,
 			logFile: nil,
 		}
+	}
+	for i = 0; i < infoLoggerNum; i++ {
 		arrTaskInfo[i].start("Info", logConf["Info"])
 	}
 
@@ -241,6 +275,8 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 			idx:     i,
 			logFile: nil,
 		}
+	}
+	for i = 0; i < warnLoggerNum; i++ {
 		arrTaskWarn[i].start("Warn", logConf["Warn"])
 	}
 
@@ -250,6 +286,8 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 			idx:     i,
 			logFile: nil,
 		}
+	}
+	for i = 0; i < errorLoggerNum; i++ {
 		arrTaskError[i].start("Error", logConf["Error"])
 	}
 
@@ -259,8 +297,12 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 			idx:     i,
 			logFile: nil,
 		}
+	}
+	for i = 0; i < actionLoggerNum; i++ {
 		arrTaskAction[i].start("Action", logConf["Action"])
 	}
+
+	isLoggerStarted = true
 }
 
 func StopLogger() {
