@@ -59,6 +59,8 @@ func (server *TcpServer) startListener(addr string) {
 				server.ClientNum = server.ClientNum + 1
 				server.clients[client.Idx] = client
 				client.AddCloseCB(0, func(client *TcpClient) {
+					server.Lock()
+					defer server.Unlock()
 					delete(server.clients, client.Idx)
 				})
 			}
@@ -83,6 +85,8 @@ func (server *TcpServer) Start(addr string) {
 }
 
 func (server *TcpServer) Stop() {
+	server.Lock()
+	defer server.Unlock()
 
 	if server.running {
 		defer PanicHandle(true, "TcpServer Stop().")
