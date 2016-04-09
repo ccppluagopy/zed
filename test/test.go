@@ -90,7 +90,8 @@ func TestTimerWheel() {
 }
 
 func TestTcpServer(addr string) {
-	zed.NewTcpServer(10, 20).Start(addr)
+	zed.HandleSignal(true)
+	zed.NewTcpServer().Start(addr)
 }
 
 func TestEchoClientForTcpServer(addr string, clientNum int) {

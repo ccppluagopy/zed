@@ -1,135 +1,22 @@
 package zed
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	//"fmt"
 	"net"
 	"sync"
-	"time"
+	//"time"
 )
-
-type msgtask struct {
-	msgQ chan *NetMsg
-}
-
-func (task *msgtask) start4Sender() {
-	var (
-		ok       = false
-		msg      *NetMsg
-		buf      []byte
-		writeLen int
-		err      error
-	)
-
-	for {
-		msg, ok = <-task.msgQ
-
-		//Println("Sender ok: ", ok)
-		if !ok {
-			return
-		}
-
-		if err = msg.Client.conn.SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-			LogError(LOG_IDX, msg.Client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", msg.Client.Id, msg.Client.Addr, err)
-			msg.Client.Stop()
-		}
-
-		buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
-		binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
-		binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-		copy(buf[PACK_HEAD_LEN:], msg.Buf)
-
-		writeLen, err = msg.Client.conn.Write(buf)
-
-		LogInfo(LOG_IDX, msg.Client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
-
-		if err != nil || writeLen != len(buf) {
-			msg.Client.Stop()
-		}
-	}
-
-}
-
-func (task *msgtask) start4Handler(server *TcpServer) {
-	var (
-		msg *NetMsg
-	)
-
-	for {
-		msg = <-task.msgQ
-
-		if msg == nil {
-			return
-		}
-
-		server.HandleMsg(msg)
-	}
-}
-
-func (task *msgtask) stop() {
-	if task.msgQ != nil {
-		close(task.msgQ)
-	}
-}
 
 type TcpServer struct {
 	sync.RWMutex
-	running    bool
-	ClientNum  int
-	listener   *net.TCPListener
-	handlerMap map[CmdType]MsgHandler
-
-	msgSendCorNum   int
-	msgHandleCorNum int
-	senders         []*msgtask
-	handlers        []*msgtask
-
+	running     bool
+	ClientNum   int
+	listener    *net.TCPListener
+	handlerMap  map[CmdType]MsgHandler
 	clients     map[int]*TcpClient
 	clientIdMap map[*TcpClient]ClientIDType
 	idClientMap map[ClientIDType]*TcpClient
-}
-
-func (server *TcpServer) startSenders() *TcpServer {
-	if server.msgSendCorNum != len(server.senders) {
-		server.senders = make([]*msgtask, server.msgSendCorNum)
-		for i := 0; i < server.msgSendCorNum; i++ {
-			server.senders[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
-			go server.senders[i].start4Sender()
-			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startSenders %d", i)
-
-		}
-	}
-	return server
-}
-
-func (server *TcpServer) stopSenders() *TcpServer {
-	for i := 0; i < server.msgSendCorNum; i++ {
-		server.senders[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopSenders %d / %d", i, server.msgSendCorNum)
-	}
-
-	return server
-}
-
-func (server *TcpServer) startHandlers() *TcpServer {
-	if server.msgHandleCorNum != len(server.handlers) {
-		server.handlers = make([]*msgtask, server.msgHandleCorNum)
-		for i := 0; i < server.msgHandleCorNum; i++ {
-			server.handlers[i] = &msgtask{msgQ: make(chan *NetMsg, 5)}
-			go server.handlers[i].start4Handler(server)
-			LogInfo(LOG_IDX, LOG_IDX, "TcpServer startHandlers %d.", i)
-		}
-	}
-	return server
-}
-
-func (server *TcpServer) stopHandlers() *TcpServer {
-	for i := 0; i < server.msgHandleCorNum; i++ {
-		server.handlers[i].stop()
-		LogInfo(LOG_IDX, LOG_IDX, "TcpServer stopHandlers %d / %d", i, server.msgHandleCorNum)
-	}
-
-	return server
 }
 
 func (server *TcpServer) startListener(addr string) {
@@ -143,7 +30,6 @@ func (server *TcpServer) startListener(addr string) {
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
 		LogInfo(LOG_IDX, LOG_IDX, "ResolveTCPAddr error: %v", err)
-		//chStop <- "TcpServer Start Failed!"
 		return
 	}
 
@@ -182,14 +68,22 @@ func (server *TcpServer) startListener(addr string) {
 }
 
 func (server *TcpServer) Start(addr string) {
+	server.Lock()
+	running := server.running
 	if !server.running {
-		server.startSenders()
-		server.startHandlers()
+		server.running = true
+	}
+	server.Unlock()
+
+	if !running {
 		server.startListener(addr)
+	} else {
+
 	}
 }
 
 func (server *TcpServer) Stop() {
+
 	if server.running {
 		defer PanicHandle(true, "TcpServer Stop().")
 
@@ -197,8 +91,8 @@ func (server *TcpServer) Stop() {
 			client.Stop()
 			delete(server.clients, idx)
 		}
-		server.stopHandlers()
-		server.stopSenders()
+		//server.stopHandlers()
+		//server.stopSenders()
 		for k, _ := range server.handlerMap {
 			delete(server.handlerMap, k)
 		}
@@ -215,6 +109,9 @@ func (server *TcpServer) Stop() {
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
+	server.Lock()
+	defer server.Unlock()
+
 	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler, Cmd: %d", cmd)
 
 	server.handlerMap[cmd] = func(msg *NetMsg) bool {
@@ -224,15 +121,10 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 }
 
 func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
-	delete(server.handlerMap, cmd)
-}
+	server.Lock()
+	defer server.Unlock()
 
-func (server *TcpServer) RelayMsg(msg *NetMsg) {
-	if server.msgHandleCorNum == 0 {
-		LogError(LOG_IDX, msg.Client.Idx, "TcpServer RelayMsg Error, msgHandleCorNum is 0.")
-		return
-	}
-	server.handlers[msg.Client.Idx%server.msgHandleCorNum].msgQ <- msg
+	delete(server.handlerMap, cmd)
 }
 
 func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
@@ -240,7 +132,10 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
-	defer PanicHandle(true)
+	//defer PanicHandle(true)
+
+	//server.RLock()
+	//defer server.RUnlock()
 
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
@@ -255,14 +150,6 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 
 	//Println("HandleMsg ==>>")
 	server.OnClientMsgError(msg)
-}
-
-func (server *TcpServer) SendMsg(msg *NetMsg) {
-	if server.msgSendCorNum == 0 {
-		LogError(LOG_IDX, msg.Client.Idx, "TcpServer SendMsg Error, msgSendCorNum is 0")
-		return
-	}
-	server.senders[msg.Client.Idx%server.msgSendCorNum].msgQ <- msg
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
@@ -300,16 +187,14 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 	return len(server.clientIdMap), server.ClientNum
 }
 
-func NewTcpServer(msgSendCorNum int, msgHandleCorNum int) *TcpServer {
+func NewTcpServer() *TcpServer {
 	return &TcpServer{
-		running:         false,
-		ClientNum:       0,
-		listener:        nil,
-		handlerMap:      make(map[CmdType]MsgHandler),
-		msgSendCorNum:   msgSendCorNum,
-		msgHandleCorNum: msgHandleCorNum,
-		clients:         make(map[int]*TcpClient),
-		clientIdMap:     make(map[*TcpClient]ClientIDType),
-		idClientMap:     make(map[ClientIDType]*TcpClient),
+		running:     false,
+		ClientNum:   0,
+		listener:    nil,
+		handlerMap:  make(map[CmdType]MsgHandler),
+		clients:     make(map[int]*TcpClient),
+		clientIdMap: make(map[*TcpClient]ClientIDType),
+		idClientMap: make(map[ClientIDType]*TcpClient),
 	}
 }
