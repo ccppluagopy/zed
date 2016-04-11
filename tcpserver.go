@@ -30,12 +30,14 @@ func (server *TcpServer) startListener(addr string) {
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
 		LogInfo(LOG_IDX, LOG_IDX, "ResolveTCPAddr error: %v", err)
+		ZLog("ResolveTCPAddr error: %v", err)
 		return
 	}
 
 	server.listener, err = net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
 		LogError(LOG_IDX, LOG_IDX, "Listening error: %v", err)
+		ZLog("Listening error: %v", err)
 		return
 	}
 
@@ -53,6 +55,7 @@ func (server *TcpServer) startListener(addr string) {
 		}
 		if err != nil {
 			LogInfo(LOG_IDX, LOG_IDX, "Accept error: %v\n", err)
+			ZLog("TcpServer Running on: %s", "Accept error: %v\n", err)
 		} else {
 			client = newTcpClient(server, conn)
 			if client.start() {
