@@ -77,7 +77,7 @@ func (task *logtask) start(taskType string, logType int) {
 					select {
 					case s, ok = <-task.chMsg:
 						if !ok {
-							task.stop()
+							//task.stop()
 							return
 						}
 						task.logFile.Write(s)
@@ -99,7 +99,7 @@ func (task *logtask) start(taskType string, logType int) {
 				select {
 				case s, ok = <-task.chMsg:
 					if !ok {
-						task.stop()
+						//task.stop()
 						return
 					}
 					Printf(*s)
@@ -111,21 +111,23 @@ func (task *logtask) start(taskType string, logType int) {
 }
 
 func (task *logtask) stop() {
+	close(task.chMsg)
 	for msg := range task.chMsg {
-		task.logFile.Write(msg)
+		if task.logType == LogFile {
+			task.logFile.Write(msg)
+		} else {
+			Printf(*msg)
+		}
 	}
+
 	if task.logType == LogFile {
 		task.ticker.Stop()
 		task.logFile.Close()
 	}
-	close(task.chMsg)
-	task.running = false
-	ZLog("logtask stopped, taskType: %s, idx: %d", task.logType, task.idx)
-}
 
-/*var (
-	nn = 0
-)*/
+	task.running = false
+	ZLog("logtask stopped, taskType: %d, idx: %d", task.logType, task.idx)
+}
 
 func ZLog(format string, v ...interface{}) {
 	if zlogfile != nil {
@@ -324,8 +326,6 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 }
 
 func StopLogger() {
-	/*for {
-	REP:*/
 	for _, task := range arrTaskInfo {
 		task.stop()
 	}
@@ -358,8 +358,10 @@ func StopLogger() {
 			}
 		}
 	*/
-	ZLog("[ShutDown] Logger Stop!")
-	zlogfile.Close()
+	ZLog("[ShutDown] Logger Stopped!")
+	if zlogfile != nil {
+		zlogfile.Close()
+	}
 	/*	return
 		}*/
 }
