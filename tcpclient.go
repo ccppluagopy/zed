@@ -17,6 +17,7 @@ type TcpClient struct {
 	Idx     int
 	Addr    string
 	closeCB map[interface{}]ClientCloseCB
+	chSend  chan *NetMsg
 	running bool
 }
 
@@ -37,25 +38,65 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 }
 
 func (client *TcpClient) Stop() {
-	NewCoroutine(func() {
-		client.Lock()
-		defer client.Unlock()
+	//NewCoroutine(func() {
+	client.Lock()
+	defer client.Unlock()
 
-		if client.running {
-			client.conn.Close()
+	if client.running {
+		client.conn.Close()
 
-			for _, cb := range client.closeCB {
-				cb(client)
-			}
+		close(client.chSend)
 
-			for key, _ := range client.closeCB {
-				delete(client.closeCB, key)
-			}
-
-			client.running = false
-			LogInfo(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Stopped.", client.Id, client.Addr)
+		for _, cb := range client.closeCB {
+			cb(client)
 		}
-	})
+
+		for key, _ := range client.closeCB {
+			delete(client.closeCB, key)
+		}
+
+		client.running = false
+		LogInfo(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Stopped.", client.Id, client.Addr)
+	}
+	//})
+}
+
+func (client *TcpClient) writer() {
+	var (
+		writeLen = 0
+		buf      []byte
+		err      error
+		msg      *NetMsg = nil
+		ok       bool    = false
+	)
+
+	for {
+		if msg, ok = <-client.chSend; ok {
+			if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", client.Id, client.Addr, err)
+				goto Exit
+			}
+
+			buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
+			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
+			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+			copy(buf[PACK_HEAD_LEN:], msg.Buf)
+
+			writeLen, err = client.conn.Write(buf)
+
+			LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+
+			if err != nil || writeLen != len(buf) {
+				goto Exit
+			}
+		} else {
+			break
+		}
+	}
+
+Exit:
+	client.Stop()
+	LogInfo(LOG_IDX, client.Idx, "writer Exit Client(Id: %s, Addr: %s)", client.Id, client.Addr)
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
@@ -63,29 +104,8 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	defer client.RUnlock()
 
 	if client.running {
-		if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-			LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", client.Id, client.Addr, err)
-			goto Exit
-		}
-
-		buf := make([]byte, PACK_HEAD_LEN+len(msg.Buf))
-		binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
-		binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-		copy(buf[PACK_HEAD_LEN:], msg.Buf)
-
-		writeLen, err := client.conn.Write(buf)
-
-		LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
-
-		if err != nil || writeLen != len(buf) {
-			goto Exit
-		}
-
-		return
+		client.chSend <- msg
 	}
-
-Exit:
-	client.Stop()
 }
 
 func (client *TcpClient) reader() {
@@ -134,6 +154,7 @@ func (client *TcpClient) reader() {
 
 Exit:
 	client.Stop()
+	LogInfo(LOG_IDX, client.Idx, "reader Exit Client(Id: %s, Addr: %s)", client.Id, client.Addr)
 }
 
 func (client *TcpClient) start() bool {
@@ -157,6 +178,10 @@ func (client *TcpClient) start() bool {
 	}
 
 	NewCoroutine(func() {
+		client.writer()
+	})
+
+	NewCoroutine(func() {
 		client.reader()
 	})
 
@@ -173,6 +198,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
+		chSend:  make(chan *NetMsg, 10),
 		running: true,
 	}
 
