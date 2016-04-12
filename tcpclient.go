@@ -43,6 +43,8 @@ func (client *TcpClient) Stop() {
 	defer client.Unlock()
 
 	if client.running {
+		client.running = false
+
 		client.conn.Close()
 
 		close(client.chSend)
@@ -55,7 +57,6 @@ func (client *TcpClient) Stop() {
 			delete(client.closeCB, key)
 		}
 
-		client.running = false
 		LogInfo(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Stopped.", client.Id, client.Addr)
 	}
 	//})
