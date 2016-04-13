@@ -16,14 +16,13 @@ type MsgHandler func(msg *NetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
-/*
-func NewCoroutine(cb ClosureCB) {
+/*func NewCoroutine(cb ClosureCB) {
 	go func() {
 		defer PanicHandle(true)
 		cb()
 	}()
-}
-*/
+}*/
+
 func NewCoroutine(cb interface{}, args ...interface{}) {
 	f := reflect.ValueOf(cb)
 	if f.Kind() == reflect.Func {
