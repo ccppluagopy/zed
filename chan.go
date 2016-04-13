@@ -11,39 +11,44 @@ type Chan struct {
 	using bool
 }
 
-func (q *Chan) Push(item interface{}) bool {
-	q.Lock()
-	defer q.Unlock()
-
-	if q.using {
-		q.data <- item
+func (ch *Chan) Push(item interface{}) bool {
+	ch.Lock()
+	if ch.using {
+		ch.Unlock()
+		ch.data <- item
 		return true
+	} else {
+		ch.Unlock()
 	}
 
 	return false
 }
 
-func (q *Chan) Pop() interface{} {
-	q.Lock()
-	defer q.Unlock()
+func (ch *Chan) Pop() interface{} {
+	ch.Lock()
+	if ch.using {
+		ch.Unlock()
+		item, ok := <-ch.data
 
-	if q.using && len(q.data) > 0 {
-		item := <-q.data
-
-		return item
+		if ok {
+			return item
+		}
+	} else {
+		ch.Unlock()
 	}
 
 	return nil
 }
 
-func (q *Chan) Close() {
-	q.Lock()
-	defer q.Unlock()
-	q.using = false
+func (ch *Chan) Close() {
+	ch.Lock()
+	defer ch.Unlock()
+	ch.using = false
 }
 
-func NewMsgChan() *Chan {
+func NewMsgChan(bufSize int) *Chan {
 	return &Chan{
 		using: true,
+		data:  make(chan interface{}, bufSize),
 	}
 }
