@@ -13,57 +13,152 @@ var (
 
 type MysqlMgr struct {
 	sync.RWMutex
+	//Session  *mgo.Session
 	DB       *sql.DB
 	tryCount int
-	errCB    DBErrorHandler
+	addr     string
+	dbname   string
+	usr      string
+	passwd   string
+	chAction chan MysqlActionCB
+	ticker   *time.Ticker
+	running  bool
 }
 
-func (msqlMgr *MysqlMgr) Start(addr string, dbname string, usr string, passwd string) bool {
-	var err error
-	msqlMgr.DB, err = sql.Open("mysql", "user:password@/dbname")
-	if err != nil && msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
-		msqlMgr.tryCount = msqlMgr.tryCount + 1
-		return msqlMgr.Start(addr, dbname, usr, passwd)
-	}
+func (msqlMgr *MysqlMgr) IsRunning() bool {
+	msqlMgr.Lock()
+	defer msqlMgr.Unlock()
 
-	msqlMgr.tryCount = 0
-
-	NewCoroutine(func() {
-		msqlMgr.heartbeat()
-	})
-
-	return true
+	return msqlMgr.running
 }
 
-func (msqlMgr *MysqlMgr) heartbeat() {
+func (msqlMgr *MysqlMgr) SetRunningState(running bool) {
+	msqlMgr.Lock()
+	defer msqlMgr.Unlock()
+
+	msqlMgr.running = running
+}
+
+func (msqlMgr *MysqlMgr) handleAction() {
+	var (
+		cb       MysqlActionCB
+		ok       bool
+		chAction = msqlMgr.chAction
+	)
+
 	for {
-		time.Sleep(time.Hour)
-		if msqlMgr.DB != nil {
-			if err := msqlMgr.DB.Ping(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
+		select {
+		case cb, ok = <-chAction:
+			if ok && msqlMgr.IsRunning() {
+				if !cb(msqlMgr) {
+					NewCoroutine(func() {
+						msqlMgr.Restart()
+					})
+				}
+			} else {
+				break
 			}
-		} else {
-			break
+		case <-msqlMgr.ticker.C:
+			msqlMgr.heartbeat()
 		}
 	}
+}
+
+func (msqlMgr *MysqlMgr) Start() {
+	var err error
+
+	if !msqlMgr.IsRunning() {
+		//msqlMgr.Session, err = mgo.DialWithTimeout(msqlMgr.addr, DB_DIAL_TIMEOUT)
+		msqlMgr.DB, err = sql.Open("mysql", "user:password@/dbname")
+		if err != nil {
+			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
+				msqlMgr.tryCount = msqlMgr.tryCount + 1
+				msqlMgr.Start()
+
+				return
+			} else {
+				return
+			}
+		}
+
+		/*msqlMgr.Session.SetMode(mgo.Monotonic, true)
+		msqlMgr.DB = msqlMgr.Session.DB(msqlMgr.dbname)*/
+
+		msqlMgr.tryCount = 0
+
+		msqlMgr.ticker = time.NewTicker(time.Hour)
+
+		msqlMgr.SetRunningState(true)
+
+		NewCoroutine(func() {
+			msqlMgr.chAction = make(chan MysqlActionCB)
+			msqlMgr.handleAction()
+		})
+	}
+}
+
+func (msqlMgr *MysqlMgr) Restart() {
+	msqlMgr.Stop()
+	msqlMgr.Start()
 }
 
 func (msqlMgr *MysqlMgr) Stop() {
 	msqlMgr.Lock()
 	defer msqlMgr.Unlock()
 
-	if msqlMgr.DB != nil {
-		msqlMgr.DB.Close()
-		msqlMgr.DB = nil
+	if msqlMgr.running {
+		msqlMgr.running = false
+		if msqlMgr.DB != nil {
+			msqlMgr.DB.Close()
+			msqlMgr.DB = nil
+		}
+		if msqlMgr.chAction != nil {
+			close(msqlMgr.chAction)
+		}
+		if msqlMgr.ticker != nil {
+			msqlMgr.ticker.Stop()
+		}
 	}
 }
 
-func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd string, cb DBErrorHandler) *MysqlMgr {
+func (msqlMgr *MysqlMgr) DBAction(cb MysqlActionCB) {
+	msqlMgr.Lock()
+	defer msqlMgr.Unlock()
+
+	if msqlMgr.running {
+		msqlMgr.chAction <- cb
+	} else {
+		cb(nil)
+	}
+}
+
+func (msqlMgr *MysqlMgr) heartbeat() {
+	msqlMgr.DBAction(func(msql *MysqlMgr) bool {
+		if msql.DB != nil {
+			if err := msql.DB.Ping(); err != nil {
+				LogError(LOG_IDX, LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
+				return false
+			}
+		} else {
+
+		}
+		return true
+	})
+}
+
+func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd string) *MysqlMgr {
 	mgr, ok := mysqlMgrs[name]
 	if !ok {
 		mgr = &MysqlMgr{
 			tryCount: 0,
-			errCB:    cb,
+			DB:       nil,
+			addr:     addr,
+			dbname:   dbname,
+			usr:      usr,
+			passwd:   passwd,
+			chAction: nil,
+			ticker:   nil,
+			running:  false,
 		}
 
 		return mgr

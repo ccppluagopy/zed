@@ -115,6 +115,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var wheelIdx int64 = 0
 	var loopTime int64
 	var timer *wtimer
+	var ok bool = false
 
 	lastTick = time.Now().UnixNano()
 	var halfInternal = internal / 2
@@ -125,8 +126,8 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 			}
 
 			select {
-			case timer = <-timerWheel.chTimer:
-				if timer == nil {
+			case timer, ok = <-timerWheel.chTimer:
+				if !ok {
 					return
 				}
 				if (*timer).active {
@@ -227,8 +228,8 @@ func NewTimerMgr(internal int64) *TimerMgr {
 			}
 
 			select {
-			case timer := <-timerMgr.chTimer:
-				if timer == nil {
+			case timer, ok := <-timerMgr.chTimer:
+				if !ok {
 					return
 				}
 				if (*timer).active {

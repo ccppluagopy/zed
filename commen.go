@@ -1,14 +1,14 @@
 package zed
 
-import (
+/*import (
 	"reflect"
-)
+)*/
 
 type ClosureCB func()
 
 type TimerCallBack func()
 
-type DBErrorHandler func()
+//type DBErrorHandler func()
 
 type EventHandler func(event interface{}, args []interface{})
 
@@ -16,13 +16,18 @@ type MsgHandler func(msg *NetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
-/*func NewCoroutine(cb ClosureCB) {
+type MongoActionCB func(mongo *MongoMgr) bool
+
+type MysqlActionCB func(mysql *MysqlMgr) bool
+
+func NewCoroutine(cb ClosureCB) {
 	go func() {
 		defer PanicHandle(true)
 		cb()
 	}()
-}*/
+}
 
+/*
 func NewCoroutine(cb interface{}, args ...interface{}) {
 	f := reflect.ValueOf(cb)
 	if f.Kind() == reflect.Func {
@@ -45,3 +50,4 @@ func NewCoroutine(cb interface{}, args ...interface{}) {
 		Println("NewCoroutine Error: cb is not function")
 	}
 }
+*/
