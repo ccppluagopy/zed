@@ -11,18 +11,20 @@ var (
 	mongoMgrs = make(map[string]*MongoMgr)
 )
 
+type MongoActionCB func(mongo *MongoMgr) bool
+
 type MongoMgr struct {
 	sync.RWMutex
-	Session  *mgo.Session
-	DB       *mgo.Database
-	tryCount int
-	addr     string
-	dbname   string
-	usr      string
-	passwd   string
-	chAction chan MongoActionCB
-	ticker   *time.Ticker
-	running  bool
+	Session    *mgo.Session
+	tryCount   int
+	addr       string
+	database   string
+	collection string
+	usr        string
+	passwd     string
+	//chAction chan MongoActionCB
+	ticker  *time.Ticker
+	running bool
 }
 
 func (mongoMgr *MongoMgr) IsRunning() bool {
@@ -39,15 +41,16 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 	mongoMgr.running = running
 }
 
-func (mongoMgr *MongoMgr) handleAction() {
-	var (
+func (mongoMgr *MongoMgr) startHeartbeat() {
+	/*var (
 		cb       MongoActionCB
 		ok       bool
 		chAction = mongoMgr.chAction
-	)
-
-	select {
-	case cb, ok = <-chAction:
+	)*/
+	Printf("MongoMgr start heartbeat \n")
+	for {
+		select {
+		/*case cb, ok = <-chAction:
 		if ok && mongoMgr.IsRunning() {
 			if !cb(mongoMgr) {
 				NewCoroutine(func() {
@@ -56,9 +59,10 @@ func (mongoMgr *MongoMgr) handleAction() {
 			}
 		} else {
 			break
+		}*/
+		case <-mongoMgr.ticker.C:
+			mongoMgr.heartbeat()
 		}
-	case <-mongoMgr.ticker.C:
-		mongoMgr.heartbeat()
 	}
 }
 
@@ -68,6 +72,7 @@ func (mongoMgr *MongoMgr) Start() {
 	if !mongoMgr.IsRunning() {
 		mongoMgr.Session, err = mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
+			Printf("MongoMgr Start err: %v .............\n", err)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
 				mongoMgr.Start()
@@ -78,8 +83,8 @@ func (mongoMgr *MongoMgr) Start() {
 			}
 		}
 
-		mongoMgr.Session.SetMode(mgo.Monotonic, true)
-		mongoMgr.DB = mongoMgr.Session.DB(mongoMgr.dbname)
+		//mongoMgr.Session.SetMode(mgo.Monotonic, true)
+		//mongoMgr.DB = mongoMgr.Session.DB(mongoMgr.dbname)
 
 		mongoMgr.tryCount = 0
 
@@ -88,15 +93,19 @@ func (mongoMgr *MongoMgr) Start() {
 		mongoMgr.SetRunningState(true)
 
 		NewCoroutine(func() {
-			mongoMgr.chAction = make(chan MongoActionCB)
-			mongoMgr.handleAction()
+			//mongoMgr.chAction = make(chan MongoActionCB)
+			mongoMgr.startHeartbeat()
 		})
+
+		Printf("MongoMgr addr: %s dbname: %s Start() --->>>\n", mongoMgr.addr, mongoMgr.database)
 	}
 }
 
 func (mongoMgr *MongoMgr) Restart() {
-	mongoMgr.Stop()
-	mongoMgr.Start()
+	NewCoroutine(func() {
+		mongoMgr.Stop()
+		mongoMgr.Start()
+	})
 }
 
 func (mongoMgr *MongoMgr) Stop() {
@@ -108,54 +117,69 @@ func (mongoMgr *MongoMgr) Stop() {
 		if mongoMgr.Session != nil {
 			mongoMgr.Session.Close()
 			mongoMgr.Session = nil
-			mongoMgr.DB = nil
 		}
-		if mongoMgr.chAction != nil {
+		/*if mongoMgr.chAction != nil {
 			close(mongoMgr.chAction)
-		}
+		}*/
 	}
 }
 
-func (mongoMgr *MongoMgr) DBAction(cb MongoActionCB) {
-	mongoMgr.Lock()
-	defer mongoMgr.Unlock()
+func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
+	mongoMgr.RLock()
+	defer func() {
+		mongoMgr.RUnlock()
+		if err := recover(); err != nil {
+			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
+			mongoMgr.Restart()
+		}
+	}()
 
 	if mongoMgr.running {
-		mongoMgr.chAction <- cb
+		session := mongoMgr.Session.Clone()
+		defer func() {
+			session.Close()
+			if err := recover(); err != nil {
+				panic(err)
+			}
+		}()
+		//c := session.DB(mongoMgr.database).C(mongoMgr.collection)
+		//cb(c)
+		cb(session.DB(mongoMgr.database).C(mongoMgr.collection))
 	} else {
 		cb(nil)
 	}
 }
 
 func (mongoMgr *MongoMgr) heartbeat() {
-	mongoMgr.DBAction(func(mongo *MongoMgr) bool {
-		if mongo.Session != nil {
-			if err := mongo.Session.Ping(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "MongoMgr heartbeat err: %v!", err)
-				return false
-			}
-		} else {
+	mongoMgr.RLock()
+	defer mongoMgr.RUnlock()
 
+	if mongoMgr.Session != nil {
+		if err := mongoMgr.Session.Ping(); err != nil {
+			LogError(LOG_IDX, LOG_IDX, "MongoMgr heartbeat err: %v!", err)
+			mongoMgr.Restart()
 		}
-		return true
-	})
+	} else {
+
+	}
+
 }
 
-func NewMongoMgr(name string, addr string, dbname string, usr string, passwd string) *MongoMgr {
+func NewMongoMgr(name string, addr string, dbname string, cname string, usr string, passwd string) *MongoMgr {
 	mgr, ok := mongoMgrs[name]
 	if !ok {
 		mgr = &MongoMgr{
-			tryCount: 0,
-			Session:  nil,
-			DB:       nil,
-			addr:     addr,
-			dbname:   dbname,
-			usr:      usr,
-			passwd:   passwd,
-			chAction: nil,
-			running:  false,
+			tryCount:   0,
+			Session:    nil,
+			addr:       addr,
+			database:   dbname,
+			collection: cname,
+			usr:        usr,
+			passwd:     passwd,
+			//chAction: nil,
+			running: false,
 		}
-
+		mgr.Start()
 		return mgr
 	} else {
 		LogError(LOG_IDX, LOG_IDX, "NewMongoMgr Error: %s has been exist!", name)

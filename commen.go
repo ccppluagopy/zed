@@ -21,8 +21,6 @@ type MsgHandler func(msg *NetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
-type MongoActionCB func(mongo *MongoMgr) bool
-
 type MysqlActionCB func(mysql *MysqlMgr) bool
 
 func NewCoroutine(cb ClosureCB) {
