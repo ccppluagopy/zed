@@ -94,3 +94,9 @@ func IsProcExisting(name string) bool {
 
 	return false
 }
+
+func CheckSingleProc() {
+	if IsProcExisting(GetProcName()) {
+		os.Exit(0)
+	}
+}
