@@ -151,6 +151,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		defer func() {
 			if err := recover(); err != nil {
 				LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err: %v!", err)
+				msg.Client.Stop()
 			}
 		}()
 		if cb(msg) {
