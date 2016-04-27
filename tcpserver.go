@@ -122,10 +122,11 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 
 	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler, Cmd: %d", cmd)
 
-	server.handlerMap[cmd] = func(msg *NetMsg) bool {
+	/*server.handlerMap[cmd] = func(msg *NetMsg) bool {
 		defer PanicHandle(true)
 		return cb(msg)
-	}
+	}*/
+	server.handlerMap[cmd] = cb
 }
 
 func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
@@ -147,6 +148,11 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
+		defer func() {
+			if err := recover(); err != nil {
+				LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err: %v!", err)
+			}
+		}()
 		if cb(msg) {
 			return
 		} else {
