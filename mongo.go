@@ -67,10 +67,9 @@ func (mongoMgr *MongoMgr) startHeartbeat() {
 }
 
 func (mongoMgr *MongoMgr) Start() {
-	var err error
-
 	if !mongoMgr.IsRunning() {
-		mongoMgr.Session, err = mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
+
+		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
 			Printf("MongoMgr Start err: %v .............\n", err)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
@@ -83,6 +82,7 @@ func (mongoMgr *MongoMgr) Start() {
 			}
 		}
 
+		mongoMgr.Session = session
 		//mongoMgr.Session.SetMode(mgo.Monotonic, true)
 		//mongoMgr.DB = mongoMgr.Session.DB(mongoMgr.dbname)
 
