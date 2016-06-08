@@ -139,7 +139,7 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
 		defer func() {
 			session.Close()
 			if err := recover(); err != nil {
-				panic(err)
+				//panic(err)
 			}
 		}()
 		//c := session.DB(mongoMgr.database).C(mongoMgr.collection)
