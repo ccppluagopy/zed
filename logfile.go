@@ -59,8 +59,8 @@ func (logf *logfile) NewFile() bool {
 
 	//s := time.Unix(last, 0).Format("150405/")
 	logf.name = logdir + logsubdir + time.Unix(now, 0).Format("150405") + fmt.Sprintf("-%d-", logfiletag) + logf.tag
+	logf.file, err = os.OpenFile(logf.name, os.O_CREATE|os.O_RDWR, 0666)
 
-	logf.file, err = os.OpenFile(logf.name, os.O_CREATE, 0666)
 	if err != nil {
 		logf.file = nil
 		Printf("Error when Create logfile: %s: %v\n", logf.name, err)
@@ -75,7 +75,7 @@ func (logf *logfile) NewFile() bool {
 
 func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
-		Printf("Error when logfile %s Write, err: file is nil.", logf.name)
+		Printf("Error when logfile %s Write, err: file is nil, str: %s.", logf.name, *s)
 		return
 	}
 	nLen := len(*s)
