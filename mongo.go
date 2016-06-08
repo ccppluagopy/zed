@@ -135,15 +135,14 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
 	}()
 
 	if mongoMgr.running {
-		session := mongoMgr.Session.Clone()
+		session := mongoMgr.Session
+		/*session := mongoMgr.Session.Clone()
 		defer func() {
 			session.Close()
 			if err := recover(); err != nil {
-				//panic(err)
+
 			}
-		}()
-		//c := session.DB(mongoMgr.database).C(mongoMgr.collection)
-		//cb(c)
+		}()*/
 		cb(session.DB(mongoMgr.database).C(mongoMgr.collection))
 	} else {
 		cb(nil)
