@@ -125,21 +125,21 @@ func (mongoMgr *MongoMgr) Stop() {
 }
 
 func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
-	mongoMgr.RLock()
+	/*mongoMgr.RLock()
 	defer mongoMgr.Unlock()
-
-	if mongoMgr.running {
-		defer func() {
-			if err := recover(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
-				mongoMgr.Restart()
-			}
-		}()
-		session := mongoMgr.Session //.Clone()
-		cb(session.DB(mongoMgr.database).C(mongoMgr.collection))
-	} else {
+	*/
+	//if mongoMgr.running {
+	defer func() {
+		if err := recover(); err != nil {
+			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
+			mongoMgr.Restart()
+		}
+	}()
+	session := mongoMgr.Session //.Clone()
+	cb(session.DB(mongoMgr.database).C(mongoMgr.collection))
+	/*} else {
 		cb(nil)
-	}
+	}*/
 }
 
 func (mongoMgr *MongoMgr) heartbeat() {
