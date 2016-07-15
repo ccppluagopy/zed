@@ -63,6 +63,8 @@ func newAgentConn(clientConn *net.TCPConn, serverAddr string) {
 
 		go c2sCor()
 		go s2cCor()
+	} else {
+		clientConn.Close()
 	}
 }
 
