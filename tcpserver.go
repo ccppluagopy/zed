@@ -35,6 +35,7 @@ func (server *TcpServer) startListener(addr string) {
 	}
 
 	server.listener, err = net.ListenTCP("tcp", tcpAddr)
+	
 	if err != nil {
 		LogError(LOG_IDX, LOG_IDX, "Listening error: %v", err)
 		ZLog("Listening error: %v", err)
@@ -112,8 +113,8 @@ func (server *TcpServer) Stop() {
 		delete(server.idClientMap, k)
 	}
 
-	server.listener.Close()
 	server.running = false
+	server.listener.Close()
 }
 
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {

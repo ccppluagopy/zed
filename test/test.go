@@ -94,10 +94,10 @@ func TestTcpServer(addr string) {
 	zed.HandleSignal(true)
 	server := zed.NewTcpServer()
 
-	go func() {
+	/*go func() {
 		time.Sleep(time.Second * 3)
 		server.Stop()
-	}()
+	}()*/
 
 	server.Start(addr)
 }
