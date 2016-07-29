@@ -174,5 +174,15 @@ func TestBase() {
 		TestEchoClientForTcpServer(addr, 10)
 	})
 
-	TestTcpServer(addr)
+	zed.HandleSignal(true)
+	server := zed.NewTcpServer()
+
+	zed.NewCoroutine(func() {
+		time.Sleep(time.Second)
+		server.Stop()
+		zed.StopLogger()
+	})
+
+	server.Start(addr)
+	//TestTcpServer(addr)
 }
