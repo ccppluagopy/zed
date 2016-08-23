@@ -96,5 +96,5 @@ func RunAgent(agentAddr string, serverAddr string) {
 }
 
 func TestAgent() {
-	Run("127.0.0.1:8888", "127.0.0.1:9999")
+	RunAgent("127.0.0.1:8888", "127.0.0.1:9999")
 }

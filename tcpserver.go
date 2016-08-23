@@ -8,6 +8,10 @@ import (
 	//"time"
 )
 
+var (
+	servers = make(map[string]*TcpServer)
+)
+
 type TcpServer struct {
 	sync.RWMutex
 	running     bool
@@ -35,7 +39,7 @@ func (server *TcpServer) startListener(addr string) {
 	}
 
 	server.listener, err = net.ListenTCP("tcp", tcpAddr)
-	
+
 	if err != nil {
 		LogError(LOG_IDX, LOG_IDX, "Listening error: %v", err)
 		ZLog("Listening error: %v", err)
@@ -206,8 +210,13 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 	return len(server.clientIdMap), server.ClientNum
 }
 
-func NewTcpServer() *TcpServer {
-	return &TcpServer{
+func NewTcpServer(name string) *TcpServer {
+	if _, ok := servers[name]; ok {
+		ZLog("NewTcpServer Error: TcpServer %s already exists.", name)
+		return nil
+	}
+
+	server := &TcpServer{
 		running:     false,
 		ClientNum:   0,
 		listener:    nil,
@@ -216,4 +225,16 @@ func NewTcpServer() *TcpServer {
 		clientIdMap: make(map[*TcpClient]ClientIDType),
 		idClientMap: make(map[ClientIDType]*TcpClient),
 	}
+
+	servers[name] = server
+
+	return server
+}
+
+func GetTcpServerByName(name string) (*TcpServer, bool) {
+	server, ok := servers[name]
+	if !ok {
+		ZLog("GetTcpServerByName Error: TcpServer %s doesn't exists.", name)
+	}
+	return server, ok
 }

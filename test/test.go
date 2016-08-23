@@ -92,7 +92,7 @@ func TestTimerWheel() {
 
 func TestTcpServer(addr string) {
 	zed.HandleSignal(true)
-	server := zed.NewTcpServer()
+	server := zed.NewTcpServer("testserver")
 
 	/*go func() {
 		time.Sleep(time.Second * 3)
