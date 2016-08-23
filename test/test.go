@@ -175,7 +175,7 @@ func TestBase() {
 	})
 
 	zed.HandleSignal(true)
-	server := zed.NewTcpServer()
+	server := zed.NewTcpServer("testserver")
 
 	zed.NewCoroutine(func() {
 		time.Sleep(time.Second)

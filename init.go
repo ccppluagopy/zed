@@ -5,9 +5,9 @@ func Init(wdir string) {
 
 	MakeNewLogDir()
 
-	if zlogfile == nil {
+	/*if zlogfile == nil {
 		zlogfile = CreateLogFile("ZLog")
 		zlogfile.NewFile()
-	}
+	}*/
 	//os.Exit(0)
 }

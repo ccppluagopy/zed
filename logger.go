@@ -50,7 +50,7 @@ var (
 	actionLoggerNum int = 1
 	arrTaskAction   []*logtask
 
-	zlogfile *logfile = nil
+	//zlogfile *logfile = nil
 
 	logSep = ""
 
@@ -130,12 +130,13 @@ func (task *logtask) stop() {
 }
 
 func ZLog(format string, v ...interface{}) {
-	if zlogfile != nil {
+	/*if zlogfile != nil {
 		s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 		zlogfile.Write(&s)
 		zlogfile.Save()
-		Printf(s)
-	}
+	}*/
+	s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+	Printf(s)
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
@@ -359,9 +360,9 @@ func StopLogger() {
 		}
 	*/
 	ZLog("[ShutDown] Logger Stopped!")
-	if zlogfile != nil {
+	/*if zlogfile != nil {
 		zlogfile.Close()
-	}
+	}*/
 	/*	return
 		}*/
 }
