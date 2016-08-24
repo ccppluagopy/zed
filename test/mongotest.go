@@ -10,7 +10,7 @@ import (
 
 const (
 	COR_NUM    = 100
-	MONGO_NUM  = 10
+	MONGO_NUM  = 20
 	ACTION_NUM = 1000
 )
 
@@ -23,7 +23,7 @@ func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
 	idx = idx * ACTION_NUM * 10
 	ok := true
 	for i := 0; i < ACTION_NUM; i++ {
-		pool.DBAction(idx, func(collection *mgo.Collection) {
+		pool.DBAction(idx/10/ACTION_NUM, func(collection *mgo.Collection) {
 			err := collection.Insert(&Student{fmt.Sprintf("stu_%d", idx+i), 20 + idx/10000})
 			if err != nil {
 				fmt.Println("Insert err: ", err)
@@ -59,5 +59,6 @@ func main() {
 			break
 		}
 	}
-	fmt.Println(fmt.Sprintf("%d insert time used: ", MONGO_NUM*ACTION_NUM), time.Since(t1))
+	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
+	pool.Stop()
 }

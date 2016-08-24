@@ -35,11 +35,18 @@ type MongoMgrPool struct {
 }
 
 func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
+	Println("--", idx%len(pool.mgrs))
 	return pool.mgrs[idx%len(pool.mgrs)]
 }
 
 func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection)) {
 	pool.GetMgr(idx).DBAction(cb)
+}
+
+func (pool *MongoMgrPool) Stop() {
+	for i := 0; i < len(pool.mgrs); i++ {
+		pool.mgrs[i].Stop()
+	}
 }
 
 func (mongoMgr *MongoMgr) IsRunning() bool {
@@ -85,7 +92,7 @@ func (mongoMgr *MongoMgr) startHeartbeat() {
 	}
 }
 
-func (mongoMgr *MongoMgr) Start() {
+func (mongoMgr *MongoMgr) Start() bool {
 	if !mongoMgr.IsRunning() {
 
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
@@ -93,11 +100,10 @@ func (mongoMgr *MongoMgr) Start() {
 			Printf("MongoMgr Start err: %v .............\n", err)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
-				mongoMgr.Start()
 
-				return
+				return mongoMgr.Start()
 			} else {
-				return
+				return false
 			}
 		}
 
@@ -119,6 +125,8 @@ func (mongoMgr *MongoMgr) Start() {
 
 		Printf("MongoMgr addr: %s dbname: %s Start() --->>>\n", mongoMgr.addr, mongoMgr.database)
 	}
+
+	return true
 }
 
 func (mongoMgr *MongoMgr) Restart() {
@@ -200,7 +208,12 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 			running:    false,
 			restarting: false,
 		}
-		mgr.Start()
+		ok := mgr.Start()
+		if !ok {
+			LogError(LOG_IDX, LOG_IDX, "%s mgr.Start() Error.!", name)
+			return nil
+		}
+
 		mgrs.mgrs[0] = mgr
 		for i := 1; i < size; i++ {
 			mgrCopy := &MongoMgr{
@@ -215,7 +228,13 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 				running:    false,
 				restarting: false,
 			}
+			ok := mgrCopy.Start()
+			if !ok {
+				LogError(LOG_IDX, LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
+				return nil
+			}
 			mgrs.mgrs[i] = mgrCopy
+			//Println("mongo copy", i, mgr.Session, mgrs.mgrs[i].Session)
 		}
 		return mgrs
 	} else {
