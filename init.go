@@ -1,7 +1,14 @@
 package zed
 
-func Init(wdir string) {
+var (
+	workdir    = "./"
+	logdir     = ""
+	worklogdir = "./log"
+)
+
+func Init(wdir string, ldir string) {
 	workdir = wdir
+	worklogdir = ldir
 
 	MakeNewLogDir()
 

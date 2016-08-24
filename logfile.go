@@ -8,8 +8,6 @@ import (
 )
 
 var (
-	workdir      = "./"
-	logdir       = ""
 	logsubdir    = ""
 	logdirInited = false
 	mutex        sync.Mutex
@@ -115,12 +113,12 @@ func (logf *logfile) Close() {
 }
 
 func MakeNewLogDir() {
-	logdir = workdir + time.Now().Format("20060102-150405") + "/"
+	logdir = worklogdir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
 		Printf("Error when MakeNewLogDir: %s: %v\n", logdir, err)
 	} else {
-		Printf("MakeNewLogDir %s  %s Success\n", workdir, logdir)
+		Printf("MakeNewLogDir %s  %s Success\n", worklogdir, logdir)
 	}
 
 	logdirInited = true

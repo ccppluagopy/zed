@@ -78,14 +78,14 @@ func (client *TcpClient) writer() {
 				goto Exit
 			}
 
-			buf = make([]byte, PACK_HEAD_LEN+len(msg.Buf))
-			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Buf)))
+			buf = make([]byte, PACK_HEAD_LEN+len(msg.Data))
+			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Data)))
 			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-			copy(buf[PACK_HEAD_LEN:], msg.Buf)
+			copy(buf[PACK_HEAD_LEN:], msg.Data)
 
 			writeLen, err = client.conn.Write(buf)
 
-			LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Buf: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+			LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, Len: %d, Data: %s", client.Id, client.Addr, msg.Cmd, msg.Len, string(msg.Data))
 
 			if err != nil || writeLen != len(buf) {
 				goto Exit
@@ -135,20 +135,20 @@ func (client *TcpClient) reader() {
 
 		var msg = &NetMsg{
 			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-			BufLen: binary.LittleEndian.Uint32(head[0:4]),
+			Len:    binary.LittleEndian.Uint32(head[0:4]),
 			Client: client,
 		}
 
-		if msg.BufLen > 0 {
-			msg.Buf = make([]byte, msg.BufLen)
-			readLen, err := io.ReadFull(client.conn, msg.Buf)
-			if err != nil || readLen != int(msg.BufLen) {
+		if msg.Len > 0 {
+			msg.Data = make([]byte, msg.Len)
+			readLen, err := io.ReadFull(client.conn, msg.Data)
+			if err != nil || readLen != int(msg.Len) {
 				LogInfo(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) Read Body Err: %v.", client.Id, client.Addr, err)
 				goto Exit
 			}
 		}
 
-		LogInfo(LOG_IDX, client.Idx, "Recv Msg Client(Id: %s, Addr: %s) Cmd: %d, BufLen: %d, Data: %s", client.Id, client.Addr, msg.Cmd, msg.BufLen, string(msg.Buf))
+		LogInfo(LOG_IDX, client.Idx, "Recv Msg Client(Id: %s, Addr: %s) Cmd: %d, Len: %d, Data: %s", client.Id, client.Addr, msg.Cmd, msg.Len, string(msg.Data))
 
 		client.parent.HandleMsg(msg)
 	}

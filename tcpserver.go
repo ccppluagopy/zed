@@ -162,7 +162,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		if cb(msg) {
 			return
 		} else {
-			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Buf: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Buf)
+			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Data: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Data)
 		}
 	} else {
 		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s)", msg.Cmd, msg.Client.Id, msg.Client.Addr)
