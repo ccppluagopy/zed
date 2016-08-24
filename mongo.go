@@ -7,12 +7,12 @@ import (
 	"time"
 )
 
-type MongoMgrPool []*MongoMgr
+type MongoMgrs []*MongoMgr
 
 type MongoActionCB func(mongo *MongoMgr) bool
 
 var (
-	mongoMgrPools = make(map[string]MongoMgrPool)
+	mongoMgrPools = make(map[string]*MongoMgrPool)
 )
 
 type MongoMgr struct {
@@ -28,6 +28,18 @@ type MongoMgr struct {
 	ticker     *time.Ticker
 	running    bool
 	restarting bool
+}
+
+type MongoMgrPool struct {
+	mgrs []*MongoMgr
+}
+
+func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
+	return pool.mgrs[idx%len(pool.mgrs)]
+}
+
+func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection)) {
+	pool.GetMgr(idx).DBAction(cb)
 }
 
 func (mongoMgr *MongoMgr) IsRunning() bool {
@@ -170,10 +182,12 @@ func (mongoMgr *MongoMgr) heartbeat() {
 	}
 }
 
-func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr string, passwd string, size int) MongoMgrPool {
+func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr string, passwd string, size int) *MongoMgrPool {
 	mgrs, ok := mongoMgrPools[name]
 	if !ok {
-		mgrs = make([]*MongoMgr, size)
+		mgrs = &MongoMgrPool{
+			mgrs: make([]*MongoMgr, size),
+		}
 		mgr := &MongoMgr{
 			tryCount:   0,
 			Session:    nil,
@@ -187,7 +201,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 			restarting: false,
 		}
 		mgr.Start()
-		mgrs[0] = mgr
+		mgrs.mgrs[0] = mgr
 		for i := 1; i < size; i++ {
 			mgrCopy := &MongoMgr{
 				tryCount:   0,
@@ -201,7 +215,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 				running:    false,
 				restarting: false,
 			}
-			mgrs[i] = mgrCopy
+			mgrs.mgrs[i] = mgrCopy
 		}
 		return mgrs
 	} else {
@@ -211,7 +225,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 	return nil
 }
 
-func GetMongoMgrPoolByName(name string) (MongoMgrPool, bool) {
+func GetMongoMgrPoolByName(name string) (*MongoMgrPool, bool) {
 	mgr, ok := mongoMgrPools[name]
 	return mgr, ok
 }
