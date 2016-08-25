@@ -6,19 +6,17 @@ import (
 
 type CmdType uint32
 
-/*
 type ClientIDType string
 
 const (
 	NullId = "Null"
 )
-*/
 
-type ClientIDType uint32
+/*type ClientIDType uint32
 
 const (
 	NullId = 0
-)
+)*/
 
 const (
 	PACK_HEAD_LEN = 8

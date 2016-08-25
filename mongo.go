@@ -35,12 +35,15 @@ type MongoMgrPool struct {
 }
 
 func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
-	Println("--", idx%len(pool.mgrs))
 	return pool.mgrs[idx%len(pool.mgrs)]
 }
 
 func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection)) {
 	pool.GetMgr(idx).DBAction(cb)
+}
+
+func (pool *MongoMgrPool) Collection(idx int) *mgo.Collection {
+	return pool.GetMgr(idx).Collection()
 }
 
 func (pool *MongoMgrPool) Stop() {
@@ -151,6 +154,10 @@ func (mongoMgr *MongoMgr) Stop() {
 			close(mongoMgr.chAction)
 		}*/
 	}
+}
+
+func (mongoMgr *MongoMgr) Collection() *mgo.Collection {
+	return mongoMgr.Session.DB(mongoMgr.database).C(mongoMgr.collection)
 }
 
 func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
