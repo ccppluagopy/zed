@@ -97,7 +97,6 @@ func (mongoMgr *MongoMgr) startHeartbeat() {
 
 func (mongoMgr *MongoMgr) Start() bool {
 	if !mongoMgr.IsRunning() {
-
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
 			Printf("MongoMgr Start err: %v .............\n", err)
@@ -133,16 +132,21 @@ func (mongoMgr *MongoMgr) Start() bool {
 }
 
 func (mongoMgr *MongoMgr) Restart() {
-	mongoMgr.Stop()
-	NewCoroutine(func() {
-		mongoMgr.Start()
-	})
+	mongoMgr.Lock()
+	defer mongoMgr.Unlock()
+
+	if !mongoMgr.restarting {
+		mongoMgr.restarting = true
+		NewCoroutine(func() {
+			mongoMgr.Stop()
+			mongoMgr.Start()
+		})
+	}
 }
 
 func (mongoMgr *MongoMgr) Stop() {
 	mongoMgr.Lock()
 	defer mongoMgr.Unlock()
-
 	if mongoMgr.running {
 		mongoMgr.running = false
 		mongoMgr.ticker.Stop()
@@ -168,12 +172,7 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
 	defer func() {
 		if err := recover(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
-			mongoMgr.RLock()
-			defer mongoMgr.Unlock()
-			if !mongoMgr.restarting {
-				mongoMgr.restarting = true
-				mongoMgr.Restart()
-			}
+			mongoMgr.Restart()
 		}
 	}()
 	session := mongoMgr.Session //.Clone()
