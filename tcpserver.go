@@ -72,6 +72,10 @@ func (server *TcpServer) startListener(addr string) {
 					defer server.Unlock()
 					delete(server.clients, client.Idx)
 				})
+
+				for cb := range server.newConnCBMap {
+					cb(client)
+				}
 			}
 		}
 	}
