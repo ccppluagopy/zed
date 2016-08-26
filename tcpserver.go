@@ -14,13 +14,14 @@ var (
 
 type TcpServer struct {
 	sync.RWMutex
-	running     bool
-	ClientNum   int
-	listener    *net.TCPListener
-	handlerMap  map[CmdType]MsgHandler
-	clients     map[int]*TcpClient
-	clientIdMap map[*TcpClient]ClientIDType
-	idClientMap map[ClientIDType]*TcpClient
+	running      bool
+	ClientNum    int
+	listener     *net.TCPListener
+	newConnCBMap map[string]func(client *TcpClient)
+	handlerMap   map[CmdType]MsgHandler
+	clients      map[int]*TcpClient
+	clientIdMap  map[*TcpClient]ClientIDType
+	idClientMap  map[ClientIDType]*TcpClient
 }
 
 func (server *TcpServer) startListener(addr string) {
@@ -121,6 +122,24 @@ func (server *TcpServer) Stop() {
 	server.listener.Close()
 }
 
+func (server *TcpServer) AddNewConnCB(name string, cb func(client *TcpClient)) {
+	server.Lock()
+	defer server.Unlock()
+
+	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddNewConnCB, name: %s", name)
+
+	server.newConnCBMap[name] = cb
+}
+
+func (server *TcpServer) RemoveNewConnCB(name string) {
+	server.Lock()
+	defer server.Unlock()
+
+	LogInfo(LOG_IDX, LOG_IDX, "TcpServer RemoveNewConnCB, name: %s", name)
+
+	delete(server.newConnCBMap, name)
+}
+
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
@@ -137,6 +156,8 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
+
+	LogInfo(LOG_IDX, LOG_IDX, "TcpServer RemoveMsgHandler, Cmd: %d", cmd)
 
 	delete(server.handlerMap, cmd)
 }
@@ -217,13 +238,14 @@ func NewTcpServer(name string) *TcpServer {
 	}
 
 	server := &TcpServer{
-		running:     false,
-		ClientNum:   0,
-		listener:    nil,
-		handlerMap:  make(map[CmdType]MsgHandler),
-		clients:     make(map[int]*TcpClient),
-		clientIdMap: make(map[*TcpClient]ClientIDType),
-		idClientMap: make(map[ClientIDType]*TcpClient),
+		running:      false,
+		ClientNum:    0,
+		listener:     nil,
+		newConnCBMap: make(map[string]func(client *TcpClient)),
+		handlerMap:   make(map[CmdType]MsgHandler),
+		clients:      make(map[int]*TcpClient),
+		clientIdMap:  make(map[*TcpClient]ClientIDType),
+		idClientMap:  make(map[ClientIDType]*TcpClient),
 	}
 
 	servers[name] = server

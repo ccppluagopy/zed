@@ -8,6 +8,8 @@ type CmdType uint32
 
 type ClientIDType string
 
+type NewConnCB func(client *TcpClient)
+
 const (
 	NullId = "Null"
 )
