@@ -73,7 +73,7 @@ func (server *TcpServer) startListener(addr string) {
 					delete(server.clients, client.Idx)
 				})
 
-				for cb := range server.newConnCBMap {
+				for _, cb := range server.newConnCBMap {
 					cb(client)
 				}
 			}
