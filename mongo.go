@@ -12,6 +12,7 @@ type MongoMgrs []*MongoMgr
 type MongoActionCB func(mongo *MongoMgr) bool
 
 var (
+	mongoMgrs     = make(map[string]*MongoMgr)
 	mongoMgrPools = make(map[string]*MongoMgrPool)
 )
 
@@ -67,24 +68,9 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 }
 
 func (mongoMgr *MongoMgr) startHeartbeat() {
-	/*var (
-		cb       MongoActionCB
-		ok       bool
-		chAction = mongoMgr.chAction
-	)*/
 	Printf("MongoMgr start heartbeat \n")
 	for {
 		select {
-		/*case cb, ok = <-chAction:
-		if ok && mongoMgr.IsRunning() {
-			if !cb(mongoMgr) {
-				NewCoroutine(func() {
-					mongoMgr.Restart()
-				})
-			}
-		} else {
-			break
-		}*/
 		case _, ok := <-mongoMgr.ticker.C:
 			if ok {
 				mongoMgr.heartbeat()
@@ -189,11 +175,41 @@ func (mongoMgr *MongoMgr) heartbeat() {
 	if mongoMgr.Session != nil {
 		if err := mongoMgr.Session.Ping(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "MongoMgr heartbeat err: %v!", err)
+			panic(err)
 			mongoMgr.Restart()
 		}
 	} else {
 
 	}
+}
+
+func NewMongoMgr(name string, addr string, dbname string, cname string, usr string, passwd string) *MongoMgr {
+	mgr, ok := mongoMgrs[name]
+	if !ok {
+		mgr = &MongoMgr{
+			tryCount:   0,
+			Session:    nil,
+			addr:       addr,
+			database:   dbname,
+			collection: cname,
+			usr:        usr,
+			passwd:     passwd,
+			//chAction: nil,
+			running:    false,
+			restarting: false,
+		}
+		ok := mgr.Start()
+		if !ok {
+			LogError(LOG_IDX, LOG_IDX, "NewMongoMgr %s mgr.Start() Error.!", name)
+			return nil
+		}
+
+		return mgr
+	} else {
+		LogError(LOG_IDX, LOG_IDX, "NewMongoMgr Error: %s has been exist!", name)
+	}
+
+	return nil
 }
 
 func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr string, passwd string, size int) *MongoMgrPool {
@@ -216,7 +232,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 		}
 		ok := mgr.Start()
 		if !ok {
-			LogError(LOG_IDX, LOG_IDX, "%s mgr.Start() Error.!", name)
+			LogError(LOG_IDX, LOG_IDX, "NewMongoMgr %s mgr.Start() Error.!", name)
 			return nil
 		}
 
@@ -242,12 +258,20 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 			mgrs.mgrs[i] = mgrCopy
 			//Println("mongo copy", i, mgr.Session, mgrs.mgrs[i].Session)
 		}
+
+		mongoMgrPools[name] = mgrs
+
 		return mgrs
 	} else {
-		LogError(LOG_IDX, LOG_IDX, "NewMongoMgr Error: %s has been exist!", name)
+		LogError(LOG_IDX, LOG_IDX, "NewMongoMgrPool Error: %s has been exist!", name)
 	}
 
 	return nil
+}
+
+func GetMongoMgrByName(name string) (*MongoMgr, bool) {
+	mgr, ok := mongoMgrs[name]
+	return mgr, ok
 }
 
 func GetMongoMgrPoolByName(name string) (*MongoMgrPool, bool) {

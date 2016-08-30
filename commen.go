@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	//"reflect"
 	"fmt"
+	_ "github.com/go-sql-driver/mysql"
 	"runtime"
 	"strings"
 )
@@ -20,8 +21,6 @@ type EventHandler func(event interface{}, args []interface{})
 type MsgHandler func(msg *NetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
-
-type MysqlActionCB func(mysql *MysqlMgr) bool
 
 func NewCoroutine(cb ClosureCB) {
 	go func() {

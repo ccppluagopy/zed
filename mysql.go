@@ -1,28 +1,54 @@
 package zed
 
 import (
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	/*"database/sql"
+	"github.com/go-sql-driver/mysql"*/
+	"github.com/ziutek/mymysql/mysql"
+	_ "github.com/ziutek/mymysql/native" // Native engine
 	"sync"
 	"time"
 )
 
 var (
-	mysqlMgrs = make(map[string]*MysqlMgr)
+	mysqlMgrs     = make(map[string]*MysqlMgr)
+	mysqlMgrPools = make(map[string]*MysqlMgrPool)
 )
 
 type MysqlMgr struct {
 	sync.RWMutex
-	//Session  *mgo.Session
-	DB       *sql.DB
-	tryCount int
-	addr     string
-	dbname   string
-	usr      string
-	passwd   string
-	chAction chan MysqlActionCB
-	ticker   *time.Ticker
-	running  bool
+	DB *mysql.Conn
+	//DB       *sql.DB
+	tryCount   int
+	addr       string
+	dbname     string
+	usr        string
+	passwd     string
+	ticker     *time.Ticker
+	running    bool
+	restarting bool
+}
+
+type MysqlMgrPool struct {
+	mgrs []*MysqlMgr
+}
+
+func (pool *MysqlMgrPool) GetMgr(idx int) *MysqlMgr {
+	//Println("MysqlMgrPool GetMgr: ", idx, len(pool.mgrs))
+	return pool.mgrs[idx%len(pool.mgrs)]
+}
+
+func (pool *MysqlMgrPool) DBAction(idx int, cb func(*mysql.Conn)) {
+	(*(pool.GetMgr(idx))).DBAction(cb)
+}
+
+func (pool *MysqlMgrPool) DB(idx int) *mysql.Conn {
+	return (pool.GetMgr(idx).DB)
+}
+
+func (pool *MysqlMgrPool) Stop() {
+	for i := 0; i < len(pool.mgrs); i++ {
+		pool.mgrs[i].Stop()
+	}
 }
 
 func (msqlMgr *MysqlMgr) IsRunning() bool {
@@ -39,6 +65,7 @@ func (msqlMgr *MysqlMgr) SetRunningState(running bool) {
 	msqlMgr.running = running
 }
 
+/*
 func (msqlMgr *MysqlMgr) handleAction() {
 	var (
 		cb       MysqlActionCB
@@ -62,22 +89,35 @@ func (msqlMgr *MysqlMgr) handleAction() {
 			msqlMgr.heartbeat()
 		}
 	}
+}*/
+
+func (mysqlMgr *MysqlMgr) startHeartbeat() {
+	Printf("MysqlMgr start heartbeat \n")
+	for {
+		select {
+		case _, ok := <-mysqlMgr.ticker.C:
+			if ok {
+				mysqlMgr.heartbeat()
+			} else {
+				break
+			}
+		}
+	}
 }
 
-func (msqlMgr *MysqlMgr) Start() {
+func (msqlMgr *MysqlMgr) Start() bool {
 	var err error
 
 	if !msqlMgr.IsRunning() {
-		//msqlMgr.Session, err = mgo.DialWithTimeout(msqlMgr.addr, DB_DIAL_TIMEOUT)
-		msqlMgr.DB, err = sql.Open("mysql", "user:password@/dbname")
+		err = (*(msqlMgr.DB)).Connect()
+		//msqlMgr.DB, err = msqlMgr.Session.Use()
 		if err != nil {
 			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
 				msqlMgr.tryCount = msqlMgr.tryCount + 1
-				msqlMgr.Start()
 
-				return
+				return msqlMgr.Start()
 			} else {
-				return
+				return false
 			}
 		}
 
@@ -89,60 +129,76 @@ func (msqlMgr *MysqlMgr) Start() {
 		msqlMgr.ticker = time.NewTicker(time.Hour)
 
 		msqlMgr.SetRunningState(true)
+		msqlMgr.restarting = false
 
 		NewCoroutine(func() {
-			msqlMgr.chAction = make(chan MysqlActionCB)
-			msqlMgr.handleAction()
+			/*msqlMgr.chAction = make(chan MysqlActionCB)
+			msqlMgr.handleAction()*/
+			msqlMgr.startHeartbeat()
 		})
+
+		Printf("MsqlMgr addr: %s dbname: %v Start() --->>>\n", msqlMgr.addr, msqlMgr.DB)
 	}
+	//Println("-----------------------------------")
+	return true
 }
 
 func (msqlMgr *MysqlMgr) Restart() {
-	msqlMgr.Stop()
-	msqlMgr.Start()
+	NewCoroutine(func() {
+		msqlMgr.RLock()
+		defer msqlMgr.RUnlock()
+
+		if !msqlMgr.restarting {
+			msqlMgr.restarting = true
+			NewCoroutine(func() {
+				msqlMgr.Stop()
+				msqlMgr.Start()
+			})
+		}
+	})
 }
 
 func (msqlMgr *MysqlMgr) Stop() {
 	msqlMgr.Lock()
 	defer msqlMgr.Unlock()
-
 	if msqlMgr.running {
 		msqlMgr.running = false
+		msqlMgr.ticker.Stop()
 		if msqlMgr.DB != nil {
-			msqlMgr.DB.Close()
+			(*(msqlMgr.DB)).Close()
 			msqlMgr.DB = nil
-		}
-		if msqlMgr.chAction != nil {
-			close(msqlMgr.chAction)
-		}
-		if msqlMgr.ticker != nil {
-			msqlMgr.ticker.Stop()
 		}
 	}
 }
 
-func (msqlMgr *MysqlMgr) DBAction(cb MysqlActionCB) {
+func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 	msqlMgr.Lock()
 	defer msqlMgr.Unlock()
 
-	if msqlMgr.running {
-		msqlMgr.chAction <- cb
-	} else {
-		cb(nil)
-	}
+	defer func() {
+		if err := recover(); err != nil {
+			LogError(LOG_IDX, LOG_IDX, "MysqlMgr DBAction err: %v!", err)
+			msqlMgr.Restart()
+		}
+	}()
+	//db := msqlMgr.DB
+	cb(msqlMgr.DB)
 }
 
 func (msqlMgr *MysqlMgr) heartbeat() {
-	msqlMgr.DBAction(func(msql *MysqlMgr) bool {
-		if msql.DB != nil {
-			if err := msql.DB.Ping(); err != nil {
+	msqlMgr.Lock()
+	defer msqlMgr.Unlock()
+
+	msqlMgr.DBAction(func(msql *mysql.Conn) {
+		if msql != nil {
+			if err := (*msql).Ping(); err != nil {
 				LogError(LOG_IDX, LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
-				return false
+				panic(err)
 			}
 		} else {
 
 		}
-		return true
+		return
 	})
 }
 
@@ -156,9 +212,17 @@ func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd str
 			dbname:   dbname,
 			usr:      usr,
 			passwd:   passwd,
-			chAction: nil,
-			ticker:   nil,
-			running:  false,
+			//chAction: nil,
+			ticker:  nil,
+			running: false,
+		}
+
+		m := mysql.New("tcp", "", addr, usr, passwd, dbname)
+		mgr.DB = &m
+		ok := mgr.Start()
+		if !ok {
+			LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
+			return nil
 		}
 
 		return mgr
@@ -171,5 +235,76 @@ func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd str
 
 func GetMysqlMgrByName(name string) (*MysqlMgr, bool) {
 	mgr, ok := mysqlMgrs[name]
+	return mgr, ok
+}
+
+func NewMysqlMgrPool(name string, addr string, dbname string, usr string, passwd string, size int) *MysqlMgrPool {
+	mgrs, ok := mysqlMgrPools[name]
+	if !ok {
+		mgrs = &MysqlMgrPool{
+			mgrs: make([]*MysqlMgr, size),
+		}
+
+		mgr := &MysqlMgr{
+			tryCount: 0,
+			DB:       nil,
+			//DB:       nil,
+			addr:   addr,
+			dbname: dbname,
+			usr:    usr,
+			passwd: passwd,
+			//chAction: nil,
+			ticker:     nil,
+			running:    false,
+			restarting: false,
+		}
+		m := mysql.New("tcp", "", addr, usr, passwd, dbname)
+		mgr.DB = &m
+		ok := mgr.Start()
+		if !ok {
+			LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
+			return nil
+		}
+
+		mgrs.mgrs[0] = mgr
+
+		for i := 1; i < size; i++ {
+			mgrCopy := &MysqlMgr{
+				tryCount: 0,
+				DB:       nil,
+				//DB:       nil,
+				addr:   addr,
+				dbname: dbname,
+				usr:    usr,
+				passwd: passwd,
+				//chAction: nil,
+				ticker:     nil,
+				running:    false,
+				restarting: false,
+			}
+			m2 := m.Clone()
+			mgrCopy.DB = &m2
+
+			ok := mgrCopy.Start()
+			if !ok {
+				LogError(LOG_IDX, LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
+				return nil
+			}
+			mgrs.mgrs[i] = mgrCopy
+			//Println("mongo copy", i, mgr.Session, mgrs.mgrs[i].Session)
+		}
+
+		mysqlMgrPools[name] = mgrs
+
+		return mgrs
+	} else {
+		LogError(LOG_IDX, LOG_IDX, "NewMysqlMgrPool Error: %s has been exist!", name)
+	}
+
+	return nil
+}
+
+func GetMysqlMgrPoolByName(name string) (*MysqlMgrPool, bool) {
+	mgr, ok := mysqlMgrPools[name]
 	return mgr, ok
 }

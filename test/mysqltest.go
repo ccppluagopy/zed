@@ -1,110 +1,65 @@
-/*package main
-
-import (
-	"fmt"
-	"github.com/yuin/gopher-lua"
-)
-
-func main() {
-	luaState := lua.NewState()
-	if err := luaState.DoFile("./tmap001.lua"); err != nil {
-		fmt.Println("Dofile err: ", err)
-		return
-	}
-
-	lv := luaState.Get(-1) // get the value at the top of the stack
-	if tbl, ok := lv.(*lua.LTable); ok {
-		// lv is LTable
-		fmt.Println(luaState.ObjLen(tb))
-	}
-}
-*/
-
 package main
 
 import (
+	"fmt"
+	"github.com/ccppluagopy/zed"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native" // Native engine
-	"os"
-	// _ "github.com/ziutek/mymysql/thrsafe" // Thread safe engine
-	"fmt"
+	"sync"
 	"time"
 )
 
-var (
-	MAX_INSERT = 10000
-	COR_NUM    = 80
+const (
+	COR_NUM    = 100
+	MYSQL_NUM  = 10
+	ACTION_NUM = 10000
 )
 
-func main() {
-
-	db := mysql.New("tcp", "", "127.0.0.1:3306", "root", "", "test")
-
-	err := db.Connect()
-	if err != nil {
-		panic(err)
-	}
-
-	//rows, res, err := db.Query("select * from xx where name = \"gaofeng\"")
-	/*	rows, res, err := db.Query("select * from xx")
-		fmt.Println("rows: ", rows)
-		fmt.Println("res: ", res)
-		fmt.Println("err: ", err)
-		if err != nil {
-			panic(err)
-		}
-
-		for i, row := range rows {
-			fmt.Println(fmt.Sprintf("%d: ", i), row.Str(0), row.Int(1))
-		}
-	*/
-	/*t1 := time.Now()
-	for i := 0; i < MAX_INSERT; i++ {
-		//rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", i+1, i%30+20)
-
-		//rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", n*(MAX_INSERT/COR_NUM)+(i+1), i%30+20)
-		//fmt.Println("insert ", i, rows, res, err)
-		db.Query("insert xx values(\"usr%d\", %d);", (i + 1), i%30+20)
-	}*/
-
-	ch := make(chan int)
-
-	dbs := make([]*mysql.Conn, COR_NUM)
-	for i := 0; i < COR_NUM; i++ {
-		newdb := db.Clone()
-		newdb.Connect()
-		dbs[i] = &newdb
-	}
-
-	t1 := time.Now()
-	for i := 0; i < COR_NUM; i++ {
-		go Insert(dbs[i], i, &ch)
-	}
-
-	n := 0
-	for {
-		_ = <-ch
-		n++
-		if n >= COR_NUM {
-			break
-		}
-	}
-	fmt.Println(fmt.Sprintf("%d insert time used: ", MAX_INSERT), time.Since(t1))
+type Student struct {
+	Name string
+	Age  int
 }
 
-func Insert(db_ *mysql.Conn, n int, ch *chan int) {
-	db := *db_
-	fmt.Println("Insert: ", n)
-	for i := 0; i < MAX_INSERT/COR_NUM; i++ {
-		//rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", i+1, i%30+20)
+func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-		rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", n*(MAX_INSERT/COR_NUM)+(i+1), i%30+20)
+	n := idx
+	idx = idx * ACTION_NUM * 10
+
+	for i := 0; i < ACTION_NUM/COR_NUM; i++ {
+		pool.DBAction(n, func(db *mysql.Conn) {
+			//rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", i, i%30+20)
+			_, _, err := (*db).Query("insert xx values(\"usr%d\", %d);", n*ACTION_NUM+(i+1), i%30+20)
+
+			if err != nil {
+				fmt.Println("insert err:", n, err)
+			}
+		})
+
+		/*_, _, err := (*pool.GetMgr(0).DB).Query("insert xx values(\"usr%d\", %d);", n*ACTION_NUM+(i+1), i%30+20)
 		if err != nil {
-			fmt.Println("insert ", i, rows, res, err)
+			fmt.Println("Insert: ", err)
 		}
-		//db.Query("insert xx values(\"usr%d\", %d);", n*10000+(i+1), i%30+20)
+		*/
+	}
+}
+
+func main() {
+	//ch := make(chan int)
+	//pool := zed.NewMysqlMgrPool("testmongopool", "127.0.0.1:27017", "test", "students", "usr", "passwd", MONGO_NUM)
+	pool := zed.NewMysqlMgrPool("testmysqlpool", "127.0.0.1:3306", "test", "root", "", MYSQL_NUM)
+	fmt.Println("pool: ", pool)
+	t1 := time.Now()
+
+	wg := new(sync.WaitGroup)
+	wg.Add(COR_NUM)
+	if pool != nil {
+		for i := 0; i < COR_NUM; i++ {
+			go MysqlInsert(i, pool, wg)
+		}
 	}
 
-	*ch <- n
-
+	wg.Wait()
+	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
+	pool.Stop()
 }
