@@ -47,16 +47,6 @@ type wtimer struct {
 
 type wheel map[interface{}]*wtimer
 
-type TimerWheel struct {
-	running bool
-	//chTicker  chan time.Time
-	chTimer chan *wtimer
-	//chStop    chan byte
-	ticker    *time.Ticker
-	currWheel int64
-	wheels    []wheel
-}
-
 func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loop bool) *wtimer {
 	timer := &wtimer{}
 	timer.key = key

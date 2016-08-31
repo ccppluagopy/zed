@@ -3,37 +3,16 @@ package zed
 import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
-	"sync"
+	//"sync"
 	"time"
 )
 
 type MongoMgrs []*MongoMgr
 
-type MongoActionCB func(mongo *MongoMgr) bool
-
 var (
 	mongoMgrs     = make(map[string]*MongoMgr)
 	mongoMgrPools = make(map[string]*MongoMgrPool)
 )
-
-type MongoMgr struct {
-	sync.RWMutex
-	Session    *mgo.Session
-	tryCount   int
-	addr       string
-	database   string
-	collection string
-	usr        string
-	passwd     string
-	//chAction chan MongoActionCB
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
-}
-
-type MongoMgrPool struct {
-	mgrs []*MongoMgr
-}
 
 func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
 	return pool.mgrs[idx%len(pool.mgrs)]

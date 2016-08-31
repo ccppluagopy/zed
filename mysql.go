@@ -5,7 +5,7 @@ import (
 	"github.com/go-sql-driver/mysql"*/
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native" // Native engine
-	"sync"
+	//"sync"
 	"time"
 )
 
@@ -13,24 +13,6 @@ var (
 	mysqlMgrs     = make(map[string]*MysqlMgr)
 	mysqlMgrPools = make(map[string]*MysqlMgrPool)
 )
-
-type MysqlMgr struct {
-	sync.RWMutex
-	DB *mysql.Conn
-	//DB       *sql.DB
-	tryCount   int
-	addr       string
-	dbname     string
-	usr        string
-	passwd     string
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
-}
-
-type MysqlMgrPool struct {
-	mgrs []*MysqlMgr
-}
 
 func (pool *MysqlMgrPool) GetMgr(idx int) *MysqlMgr {
 	//Println("MysqlMgrPool GetMgr: ", idx, len(pool.mgrs))

@@ -5,21 +5,9 @@ import (
 	//"fmt"
 	"io"
 	"net"
-	"sync"
+	//"sync"
 	"time"
 )
-
-type TcpClient struct {
-	sync.RWMutex
-	conn    *net.TCPConn
-	parent  *TcpServer
-	Id      ClientIDType
-	Idx     int
-	Addr    string
-	closeCB map[interface{}]ClientCloseCB
-	chSend  chan *NetMsg
-	running bool
-}
 
 func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
 	client.Lock()

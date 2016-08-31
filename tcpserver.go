@@ -4,25 +4,13 @@ import (
 	//"encoding/binary"
 	//"fmt"
 	"net"
-	"sync"
+	//"sync"
 	//"time"
 )
 
 var (
 	servers = make(map[string]*TcpServer)
 )
-
-type TcpServer struct {
-	sync.RWMutex
-	running      bool
-	ClientNum    int
-	listener     *net.TCPListener
-	newConnCBMap map[string]func(client *TcpClient)
-	handlerMap   map[CmdType]MsgHandler
-	clients      map[int]*TcpClient
-	clientIdMap  map[*TcpClient]ClientIDType
-	idClientMap  map[ClientIDType]*TcpClient
-}
 
 func (server *TcpServer) startListener(addr string) {
 	defer Println("TcpServer Stopped.")

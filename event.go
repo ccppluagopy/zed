@@ -5,13 +5,6 @@ import (
 	"sync"
 )
 
-type EventMgr struct {
-	listenerMap map[interface{}]interface{}
-	listeners   map[interface{}]map[interface{}]EventHandler
-	mutex       *sync.Mutex
-	valid       bool
-}
-
 var (
 	defaultInstance *EventMgr = nil
 	instanceMap     map[interface{}]*EventMgr

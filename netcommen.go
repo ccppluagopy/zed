@@ -4,16 +4,6 @@ import (
 	"time"
 )
 
-type CmdType uint32
-
-type ClientIDType string
-
-type NewConnCB func(client *TcpClient)
-
-const (
-	NullId = "Null"
-)
-
 /*type ClientIDType uint32
 
 const (
@@ -32,10 +22,3 @@ const (
 /*	DIAL_INTERNAL  = time.Second
 	MAX_DIAL_TIMES = 10*/
 )
-
-type NetMsg struct {
-	Cmd    CmdType
-	Len    uint32
-	Client *TcpClient
-	Data   []byte
-}
