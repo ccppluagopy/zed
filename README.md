@@ -4,6 +4,7 @@
 deps:
 	go get gopkg.in/mgo.v2
 	go get github.com/go-sql-driver/mysql
+	go get github.com/ziutek/mymysql/mysql
 
 setup:
 	go get github.com/ccppluagopy/zed
