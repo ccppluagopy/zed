@@ -109,7 +109,12 @@ func (msqlMgr *MysqlMgr) Start() bool {
 	var err error
 
 	if !msqlMgr.IsRunning() {
-		err = (*(msqlMgr.DB)).Connect()
+		if msqlMgr.restarting {
+			err = (*(msqlMgr.DB)).Reconnect()
+		} else {
+			err = (*(msqlMgr.DB)).Connect()
+		}
+
 		//msqlMgr.DB, err = msqlMgr.Session.Use()
 		if err != nil {
 			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
@@ -165,8 +170,8 @@ func (msqlMgr *MysqlMgr) Stop() {
 		msqlMgr.running = false
 		msqlMgr.ticker.Stop()
 		if msqlMgr.DB != nil {
-			(*(msqlMgr.DB)).Close()
-			msqlMgr.DB = nil
+			//(*(msqlMgr.DB)).Close()
+			//msqlMgr.DB = nil
 		}
 	}
 }

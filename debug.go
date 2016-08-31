@@ -2,7 +2,7 @@ package zed
 
 import (
 	"fmt"
-	"os"
+	//"os"
 	"runtime"
 	//"time"
 )
@@ -40,7 +40,7 @@ func PanicHandle(needLog bool, args ...interface{}) {
 		}
 
 		//time.Sleep(time.Second)
-		os.Exit(0)
+		//os.Exit(0)
 	}
 
 }
