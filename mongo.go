@@ -155,6 +155,7 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
 	defer mongoMgr.Unlock()
 	*/
 	//if mongoMgr.running {
+	Println("DBAction ....")
 	defer func() {
 		if err := recover(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
