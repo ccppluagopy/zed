@@ -1,5 +1,15 @@
 package main
 
+/*
+create database test;
+
+create table students
+(
+	Name char(16) not null,
+	Age tinyint unsigned not null,
+)
+*/
+
 import (
 	"fmt"
 	"github.com/ccppluagopy/zed"
