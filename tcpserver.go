@@ -185,8 +185,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s)", msg.Cmd, msg.Client.Id, msg.Client.Addr)
 	}
 
-	//Println("HandleMsg ==>>")
-	server.OnClientMsgError(msg)
+	//server.OnClientMsgError(msg)
 }
 
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
