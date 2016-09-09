@@ -142,7 +142,7 @@ func ZLog(format string, v ...interface{}) {
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	if infoEnabled {
 		if debug {
-			if tagstr, ok := tags[tag]; ok {
+			if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
 				loggerIdx = loggerIdx % infoLoggerNum
@@ -154,7 +154,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 			}
 		} else {
 			if tag < maxTagNum {
-				if tagstr, ok := tags[tag]; ok {
+				if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
 					loggerIdx = loggerIdx % infoLoggerNum
@@ -173,7 +173,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	//if warnEnabled && (tags[tag] == true) {
 	if warnEnabled {
 		if debug {
-			if tagstr, ok := tags[tag]; ok {
+			if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				warnCount++
 				loggerIdx = loggerIdx % warnLoggerNum
@@ -185,7 +185,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 			}
 		} else {
 			if tag < maxTagNum {
-				if tagstr, ok := tags[tag]; ok {
+				if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					warnCount++
 					loggerIdx = loggerIdx % warnLoggerNum
@@ -203,7 +203,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	if errorEnabled {
 		if debug {
-			if tagstr, ok := tags[tag]; ok {
+			if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % errorLoggerNum
@@ -215,7 +215,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 			}
 		} else {
 			if tag < maxTagNum {
-				if tagstr, ok := tags[tag]; ok {
+				if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % errorLoggerNum
@@ -233,7 +233,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 	if actionEnabled {
 		if debug {
-			if tagstr, ok := tags[tag]; ok {
+			if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 				loggerIdx = loggerIdx % actionLoggerNum
@@ -245,7 +245,7 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 			}
 		} else {
 			if tag < maxTagNum {
-				if tagstr, ok := tags[tag]; ok {
+				if tagstr, ok := tags[tag]; ok && (tagstr != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 					loggerIdx = loggerIdx % actionLoggerNum

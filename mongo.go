@@ -15,6 +15,7 @@ var (
 )
 
 func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
+	Println("-----------GetMgr: ", idx, len(pool.mgrs))
 	return pool.mgrs[idx%len(pool.mgrs)]
 }
 

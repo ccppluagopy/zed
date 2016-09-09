@@ -14,6 +14,8 @@ const (
 	LogFile
 
 	NullId = "Null"
+
+	TAG_NULL = ""
 )
 
 type CmdType uint32

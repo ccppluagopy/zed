@@ -40,7 +40,7 @@ func (server *TcpServer) startListener(addr string) {
 	server.running = true
 
 	ZLog("TcpServer Running on: %s", tcpAddr.String())
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer Running on: %s", tcpAddr.String())
+	//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Running on: %s", tcpAddr.String())
 	for {
 		conn, err := server.listener.AcceptTCP()
 
@@ -48,8 +48,8 @@ func (server *TcpServer) startListener(addr string) {
 			break
 		}
 		if err != nil {
-			LogInfo(LOG_IDX, LOG_IDX, "Accept error: %v\n", err)
-			ZLog("TcpServer Running on: %s", "Accept error: %v\n", err)
+			LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
+			ZLog("TcpServer Accept error: %v\n", err)
 		} else {
 			client = newTcpClient(server, conn)
 			if client.start() {
@@ -166,12 +166,16 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok {
-		defer func() {
+		/*defer func() {
 			if err := recover(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err: %v!", err)
+				LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err: %v!", msg.Client.Id, msg.Client.Addr, err)
 				msg.Client.Stop()
 			}
-		}()
+		}()*/
+		defer PanicHandle(true, func() {
+			LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err!", msg.Client.Id, msg.Client.Addr)
+			msg.Client.Stop()
+		})
 		if cb(msg) {
 			return
 		} else {
