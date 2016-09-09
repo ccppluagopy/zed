@@ -6,9 +6,9 @@ var (
 	worklogdir = "./log"
 )
 
-func Init(wdir string, ldir string) {
-	workdir = wdir
-	worklogdir = ldir
+func Init(workDir string, logDir string) {
+	workdir = workDir
+	worklogdir = logDir
 
 	MakeNewLogDir()
 
