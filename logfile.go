@@ -48,10 +48,10 @@ func (logf *logfile) NewFile() bool {
 		logsubdir = subdir
 		err = os.Mkdir(logdir+logsubdir, 0777)
 		if err != nil {
-			Printf("Error when Make Log Sub Dir: %s: %v\n", logdir+logsubdir, err)
+			ZLog("Error when Make Log Sub Dir: %s: %v", logdir+logsubdir, err)
 			return false
 		} else {
-			Printf("Make Log Sub Dir: %s Success\n", logdir+logsubdir)
+			ZLog("Make Log Sub Dir: %s Success", logdir+logsubdir)
 		}
 	}
 
@@ -61,11 +61,11 @@ func (logf *logfile) NewFile() bool {
 
 	if err != nil {
 		logf.file = nil
-		Printf("Error when Create logfile: %s: %v\n", logf.name, err)
+		ZLog("Error when Create logfile: %s: %v", logf.name, err)
 		return false
 	} else {
 		logf.size = 0
-		Printf("Create logfile: %s: Success\n", logf.name)
+		ZLog("Create logfile: %s: Success", logf.name)
 	}
 
 	return true
@@ -90,7 +90,7 @@ func (logf *logfile) Write(s *string) {
 
 	nWrite, err := logf.file.WriteString(*s)
 	if err != nil || nWrite != nLen {
-		Printf("Error when logfile %s Write, write len: %d err: %v\n", logf.name, err)
+		ZLog("Error when logfile %s Write, write len: %d err: %v", logf.name, err)
 	} else {
 		logf.size = logf.size + nLen
 	}
@@ -99,7 +99,7 @@ func (logf *logfile) Write(s *string) {
 func (logf *logfile) Save() {
 	if logf.file != nil {
 		if err := logf.file.Sync(); err != nil {
-			Printf("Error when logfile %s Save(): %v\n", logf.name, err)
+			ZLog("Error when logfile %s Save(): %v", logf.name, err)
 		}
 	}
 }
@@ -107,7 +107,7 @@ func (logf *logfile) Save() {
 func (logf *logfile) Close() {
 	if logf.file != nil {
 		if err := logf.file.Close(); err != nil {
-			Printf("Error when logfile %s Close(): %v\n", logf.name, err)
+			ZLog("Error when logfile %s Close(): %v", logf.name, err)
 		}
 	}
 }
@@ -116,9 +116,9 @@ func MakeNewLogDir() {
 	logdir = worklogdir + time.Now().Format("20060102-150405") + "/"
 	err := os.Mkdir(logdir, 0777)
 	if err != nil {
-		Printf("Error when MakeNewLogDir: %s: %v\n", logdir, err)
+		ZLog("Error when MakeNewLogDir: %s: %v", logdir, err)
 	} else {
-		Printf("MakeNewLogDir %s  %s Success\n", worklogdir, logdir)
+		ZLog("MakeNewLogDir %s  %s Success", worklogdir, logdir)
 	}
 
 	logdirInited = true

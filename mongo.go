@@ -15,7 +15,7 @@ var (
 )
 
 func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
-	Println("-----------GetMgr: ", idx, len(pool.mgrs))
+	//Println("-----------GetMgr: ", idx, len(pool.mgrs))
 	return pool.mgrs[idx%len(pool.mgrs)]
 }
 
@@ -48,7 +48,7 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 }
 
 func (mongoMgr *MongoMgr) startHeartbeat() {
-	Printf("MongoMgr start heartbeat \n")
+	ZLog("MongoMgr start heartbeat")
 	for {
 		select {
 		case _, ok := <-mongoMgr.ticker.C:
@@ -65,7 +65,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 	if !mongoMgr.IsRunning() {
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
-			Printf("MongoMgr Start err: %v .............\n", err)
+			ZLog("MongoMgr Start err: %v .............", err)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
 
@@ -91,7 +91,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 			mongoMgr.startHeartbeat()
 		})
 
-		Printf("MongoMgr addr: %s dbname: %s Start() --->>>\n", mongoMgr.addr, mongoMgr.database)
+		ZLog("MongoMgr addr: %s dbname: %s Start() --->>>", mongoMgr.addr, mongoMgr.database)
 	}
 
 	return true
@@ -135,7 +135,7 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
 	defer mongoMgr.Unlock()
 	*/
 	//if mongoMgr.running {
-	Println("DBAction ....")
+	//Println("DBAction ....")
 	defer func() {
 		if err := recover(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)

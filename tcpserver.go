@@ -22,7 +22,7 @@ func (server *TcpServer) startListener(addr string) {
 
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
 	if err != nil {
-		LogInfo(LOG_IDX, LOG_IDX, "ResolveTCPAddr error: %v", err)
+		//LogInfo(LOG_IDX, LOG_IDX, "ResolveTCPAddr error: %v", err)
 		ZLog("ResolveTCPAddr error: %v", err)
 		return
 	}
@@ -30,7 +30,7 @@ func (server *TcpServer) startListener(addr string) {
 	server.listener, err = net.ListenTCP("tcp", tcpAddr)
 
 	if err != nil {
-		LogError(LOG_IDX, LOG_IDX, "Listening error: %v", err)
+		//LogError(LOG_IDX, LOG_IDX, "Listening error: %v", err)
 		ZLog("Listening error: %v", err)
 		return
 	}
@@ -48,7 +48,7 @@ func (server *TcpServer) startListener(addr string) {
 			break
 		}
 		if err != nil {
-			LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
+			//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
 			ZLog("TcpServer Accept error: %v\n", err)
 		} else {
 			client = newTcpClient(server, conn)
@@ -118,7 +118,7 @@ func (server *TcpServer) AddNewConnCB(name string, cb func(client *TcpClient)) {
 	server.Lock()
 	defer server.Unlock()
 
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddNewConnCB, name: %s", name)
+	ZLog("TcpServer AddNewConnCB, name: %s", name)
 
 	server.newConnCBMap[name] = cb
 }
@@ -127,7 +127,7 @@ func (server *TcpServer) RemoveNewConnCB(name string) {
 	server.Lock()
 	defer server.Unlock()
 
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer RemoveNewConnCB, name: %s", name)
+	ZLog("TcpServer RemoveNewConnCB, name: %s", name)
 
 	delete(server.newConnCBMap, name)
 }
@@ -136,7 +136,7 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
 
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer AddMsgHandler, Cmd: %d", cmd)
+	ZLog("TcpServer AddMsgHandler, Cmd: %d", cmd)
 
 	/*server.handlerMap[cmd] = func(msg *NetMsg) bool {
 		defer PanicHandle(true)
@@ -149,7 +149,7 @@ func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
 
-	LogInfo(LOG_IDX, LOG_IDX, "TcpServer RemoveMsgHandler, Cmd: %d", cmd)
+	ZLog("TcpServer RemoveMsgHandler, Cmd: %d", cmd)
 
 	delete(server.handlerMap, cmd)
 }

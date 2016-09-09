@@ -74,7 +74,7 @@ func (msqlMgr *MysqlMgr) handleAction() {
 }*/
 
 func (mysqlMgr *MysqlMgr) startHeartbeat() {
-	Printf("MysqlMgr start heartbeat \n")
+	ZLog("MysqlMgr start heartbeat")
 	for {
 		select {
 		case _, ok := <-mysqlMgr.ticker.C:
@@ -124,7 +124,7 @@ func (msqlMgr *MysqlMgr) Start() bool {
 			msqlMgr.startHeartbeat()
 		})
 
-		Printf("MsqlMgr addr: %s dbname: %v Start() --->>>\n", msqlMgr.addr, msqlMgr.DB)
+		ZLog("MsqlMgr addr: %s dbname: %v Start() --->>>", msqlMgr.addr, msqlMgr.DB)
 	}
 	//Println("-----------------------------------")
 	return true
