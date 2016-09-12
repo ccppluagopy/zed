@@ -54,16 +54,11 @@ func (server *TcpServer) startListener(addr string) {
 			client = newTcpClient(server, conn)
 			if client.start() {
 				server.ClientNum = server.ClientNum + 1
-				server.clients[client.Idx] = client
-				client.AddCloseCB(0, func(client *TcpClient) {
-					server.Lock()
-					defer server.Unlock()
-					delete(server.clients, client.Idx)
-				})
 
-				for _, cb := range server.newConnCBMap {
+				server.onNewClient(client)
+				/*for _, cb := range server.newConnCBMap {
 					cb(client)
-				}
+				}*/
 			}
 		}
 	}
@@ -114,7 +109,7 @@ func (server *TcpServer) Stop() {
 	server.listener.Close()
 }
 
-func (server *TcpServer) AddNewConnCB(name string, cb func(client *TcpClient)) {
+/*func (server *TcpServer) AddNewConnCB(name string, cb func(client *TcpClient)) {
 	server.Lock()
 	defer server.Unlock()
 
@@ -131,7 +126,7 @@ func (server *TcpServer) RemoveNewConnCB(name string) {
 
 	delete(server.newConnCBMap, name)
 }
-
+*/
 func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
@@ -152,6 +147,20 @@ func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	ZLog("TcpServer RemoveMsgHandler, Cmd: %d", cmd)
 
 	delete(server.handlerMap, cmd)
+}
+
+func (server *TcpServer) onNewClient(client *TcpClient) {
+	server.Lock()
+	defer server.Unlock()
+
+	server.clients[client.Idx] = client
+}
+
+func (server *TcpServer) onClientStop(client *TcpClient) {
+	server.Lock()
+	defer server.Unlock()
+
+	delete(server.clients, client.Idx)
 }
 
 func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
@@ -233,14 +242,14 @@ func NewTcpServer(name string) *TcpServer {
 	}
 
 	server := &TcpServer{
-		running:      false,
-		ClientNum:    0,
-		listener:     nil,
-		newConnCBMap: make(map[string]func(client *TcpClient)),
-		handlerMap:   make(map[CmdType]MsgHandler),
-		clients:      make(map[int]*TcpClient),
-		clientIdMap:  make(map[*TcpClient]ClientIDType),
-		idClientMap:  make(map[ClientIDType]*TcpClient),
+		running:   false,
+		ClientNum: 0,
+		listener:  nil,
+		//newConnCBMap: make(map[string]func(client *TcpClient)),
+		handlerMap:  make(map[CmdType]MsgHandler),
+		clients:     make(map[int]*TcpClient),
+		clientIdMap: make(map[*TcpClient]ClientIDType),
+		idClientMap: make(map[ClientIDType]*TcpClient),
 	}
 
 	servers[name] = server

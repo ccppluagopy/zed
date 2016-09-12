@@ -74,14 +74,14 @@ type TcpClient struct {
 
 type TcpServer struct {
 	sync.RWMutex
-	running      bool
-	ClientNum    int
-	listener     *net.TCPListener
-	newConnCBMap map[string]func(client *TcpClient)
-	handlerMap   map[CmdType]MsgHandler
-	clients      map[int]*TcpClient
-	clientIdMap  map[*TcpClient]ClientIDType
-	idClientMap  map[ClientIDType]*TcpClient
+	running   bool
+	ClientNum int
+	listener  *net.TCPListener
+	//newConnCBMap map[string]func(client *TcpClient)
+	handlerMap  map[CmdType]MsgHandler
+	clients     map[int]*TcpClient
+	clientIdMap map[*TcpClient]ClientIDType
+	idClientMap map[ClientIDType]*TcpClient
 }
 
 type MysqlActionCB func(*mysql.Conn)

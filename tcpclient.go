@@ -31,6 +31,8 @@ func (client *TcpClient) Stop() {
 	defer client.Unlock()
 
 	if client.running {
+		client.parent.onClientStop(client)
+
 		client.running = false
 
 		client.conn.Close()
@@ -51,17 +53,17 @@ func (client *TcpClient) Stop() {
 }
 
 func (client *TcpClient) writer() {
-	var (
+	/*var (
 		writeLen = 0
 		buf      []byte
 		err      error
 		msg      *NetMsg = nil
 		ok       bool    = false
-	)
+	)*/
 
 	for {
-		if msg, ok = <-client.chSend; ok {
-			if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+		if msg, ok := <-client.chSend; ok {
+			/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
 				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", client.Id, client.Addr, err)
 				goto Exit
 			}
@@ -77,18 +79,51 @@ func (client *TcpClient) writer() {
 
 			if err != nil || writeLen != len(buf) {
 				goto Exit
-			}
+			}*/
+			client.SendMsg(msg)
 		} else {
 			break
 		}
 	}
-
-Exit:
-	client.Stop()
-	LogInfo(LOG_IDX, client.Idx, "writer Exit Client(Id: %s, Addr: %s)", client.Id, client.Addr)
+	/*
+	   Exit:
+	   	client.Stop()
+	   	LogInfo(LOG_IDX, client.Idx, "writer Exit Client(Id: %s, Addr: %s)", client.Id, client.Addr)*/
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
+	client.Lock()
+	defer client.Unlock()
+
+	var (
+		writeLen = 0
+		buf      []byte
+		err      error
+	)
+
+	if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+		LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", client.Id, client.Addr, err)
+		goto Exit
+	}
+
+	buf = make([]byte, PACK_HEAD_LEN+len(msg.Data))
+	binary.LittleEndian.PutUint32(buf, uint32(len(msg.Data)))
+	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+	copy(buf[PACK_HEAD_LEN:], msg.Data)
+
+	writeLen, err = client.conn.Write(buf)
+
+	LogInfo(LOG_IDX, client.Idx, "Send Msg Client(Id: %s, Addr: %s) Cmd: %d, Len: %d, Data: %s", client.Id, client.Addr, msg.Cmd, msg.Len, string(msg.Data))
+
+	if err == nil && writeLen == len(buf) {
+		return
+	}
+
+Exit:
+	client.Stop()
+}
+
+func (client *TcpClient) SendMsgAsync(msg *NetMsg) {
 	client.RLock()
 	defer client.RUnlock()
 
