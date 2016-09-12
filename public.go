@@ -68,7 +68,7 @@ type TcpClient struct {
 	Idx     int
 	Addr    string
 	closeCB map[interface{}]ClientCloseCB
-	chSend  chan *NetMsg
+	chSend  chan *AsyncMsg
 	running bool
 }
 

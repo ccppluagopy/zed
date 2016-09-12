@@ -9,6 +9,11 @@ import (
 	"time"
 )
 
+type AsyncMsg struct {
+	msg *NetMsg
+	cb  func()
+}
+
 func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
 	client.Lock()
 	defer client.Unlock()
@@ -62,7 +67,7 @@ func (client *TcpClient) writer() {
 	)*/
 
 	for {
-		if msg, ok := <-client.chSend; ok {
+		if asyncMsg, ok := <-client.chSend; ok {
 			/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
 				LogError(LOG_IDX, client.Idx, "Client(Id: %s, Addr: %s) SetWriteDeadline Err: %v.", client.Id, client.Addr, err)
 				goto Exit
@@ -80,7 +85,17 @@ func (client *TcpClient) writer() {
 			if err != nil || writeLen != len(buf) {
 				goto Exit
 			}*/
-			client.SendMsg(msg)
+			client.SendMsg(asyncMsg.msg)
+			if asyncMsg.cb != nil {
+				//if cb, ok := (asyncMsg.cb).(func()); ok {
+				func() {
+					defer func() {
+						recover()
+					}()
+					asyncMsg.cb()
+				}()
+				//}
+			}
 		} else {
 			break
 		}
@@ -123,12 +138,21 @@ Exit:
 	client.Stop()
 }
 
-func (client *TcpClient) SendMsgAsync(msg *NetMsg) {
+func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	client.RLock()
 	defer client.RUnlock()
 
 	if client.running {
-		client.chSend <- msg
+		asyncmsg := &AsyncMsg{
+			msg: msg,
+			cb:  nil,
+		}
+		if len(argv) > 0 {
+			if cb, ok := (argv[0]).(func()); ok {
+				asyncmsg.cb = cb
+			}
+		}
+		client.chSend <- asyncmsg
 	}
 }
 
@@ -222,7 +246,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
-		chSend:  make(chan *NetMsg, 10),
+		chSend:  make(chan *AsyncMsg, 10),
 		running: true,
 	}
 

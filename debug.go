@@ -42,12 +42,14 @@ func PanicHandle(needLog bool, args ...interface{}) {
 
 		//time.Sleep(time.Second)
 		//os.Exit(0)
-		Println(":::::::::::::", len(args))
+		//Println(":::::::::::::", len(args))
 		if len(args) > 0 {
-			Println(":::::::::::::", len(args), args[0])
+			//Println(":::::::::::::", len(args), args[0])
 			cb, ok := args[0].(func())
 			if ok {
-				defer recover()
+				defer func() {
+					recover()
+				}()
 				cb()
 			}
 		}
