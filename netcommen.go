@@ -7,7 +7,7 @@ import (
 /*type ClientIDType uint32
 
 const (
-	NullId = 0
+	NullID = 0
 )*/
 
 const (

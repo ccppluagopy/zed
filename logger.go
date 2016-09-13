@@ -266,7 +266,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	debug = isDebug
 	maxTagNum = maxTag
 	tags = logtags
-	tags[LOG_IDX] = LOG_TAG
+	//tags[LOG_IDX] = LOG_TAG
 
 	infoLoggerNum = infoLogNum
 	warnLoggerNum = warnLogNum
@@ -324,6 +324,30 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 	}
 
 	isLoggerStarted = true
+
+	Println("======================================================================")
+	Println("StartLogger")
+	Println("logConf:")
+	for k, v := range logConf {
+		str := "LogCmd"
+		if v == LogFile {
+			str = "LogFile"
+		}
+		Println("	", k, str)
+	}
+	Println("----------------------------------------------------------------------")
+	Println("tags:")
+	for i := 0; ; i++ {
+		if tag, ok := tags[i]; ok {
+			if tag == "" {
+				tag = "		not set, log of this tag will not be recorded!"
+			}
+			Println("	", i, tag)
+		} else {
+			break
+		}
+	}
+	Println("======================================================================")
 }
 
 func StopLogger() {

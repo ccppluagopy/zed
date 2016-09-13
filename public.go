@@ -13,14 +13,14 @@ const (
 	LogCmd = iota
 	LogFile
 
-	NullId = "Null"
+	NullID = 0
 
 	TAG_NULL = ""
 )
 
 type CmdType uint32
 
-type ClientIDType string
+type ClientIDType uint32
 
 type NewConnCB func(client *TcpClient)
 
@@ -64,7 +64,7 @@ type TcpClient struct {
 	sync.RWMutex
 	conn    *net.TCPConn
 	parent  *TcpServer
-	Id      ClientIDType
+	ID      ClientIDType
 	Idx     int
 	Addr    string
 	closeCB map[interface{}]ClientCloseCB

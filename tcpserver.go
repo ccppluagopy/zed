@@ -177,21 +177,21 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	if ok {
 		/*defer func() {
 			if err := recover(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err: %v!", msg.Client.Id, msg.Client.Addr, err)
+				LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err: %v!", msg.Client.Info(), err)
 				msg.Client.Stop()
 			}
 		}()*/
 		defer PanicHandle(true, func() {
-			LogError(LOG_IDX, LOG_IDX, "HandleMsg Client(Id: %s, Addr: %s) panic err!", msg.Client.Id, msg.Client.Addr)
+			LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err!", msg.Client.Info())
 			msg.Client.Stop()
 		})
 		if cb(msg) {
 			return
 		} else {
-			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, Client(Id: %s, Addr: %s) Msg Cmd: %d, Data: %v.", msg.Client.Id, msg.Client.Addr, msg.Cmd, msg.Data)
+			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
 		}
 	} else {
-		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From Client(Id: %s, Addr: %s)", msg.Cmd, msg.Client.Id, msg.Client.Addr)
+		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From %s", msg.Cmd, msg.Client.Info())
 	}
 
 	//server.OnClientMsgError(msg)
@@ -209,21 +209,21 @@ func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
 }
 
 func (server *TcpServer) AddClient(client *TcpClient) {
-	if client.Id != NullId {
+	if client.ID != NullID {
 		server.Lock()
 		defer server.Unlock()
 
-		server.idClientMap[client.Id] = client
-		server.clientIdMap[client] = client.Id
+		server.idClientMap[client.ID] = client
+		server.clientIdMap[client] = client.ID
 	}
 }
 
 func (server *TcpServer) RemoveClient(client *TcpClient) {
-	//if client.Id != NullId {
+	//if client.ID != NullID {
 	server.Lock()
 	defer server.Unlock()
 
-	delete(server.idClientMap, client.Id)
+	delete(server.idClientMap, client.ID)
 	delete(server.clientIdMap, client)
 	//}
 }
