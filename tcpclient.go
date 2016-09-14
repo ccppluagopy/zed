@@ -56,7 +56,7 @@ func (client *TcpClient) Stop() {
 			delete(client.closeCB, key)
 		}
 
-		LogInfo(LOG_IDX, client.Idx, "%s Stopped.", client.Info())
+		ZLog(fmt.Sprintf("[Stop] %s", client.Info()))
 	}
 	//})
 }
