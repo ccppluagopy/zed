@@ -48,7 +48,7 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 }
 
 func (mongoMgr *MongoMgr) startHeartbeat() {
-	ZLog("MongoMgr start heartbeat")
+	ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 	for {
 		select {
 		case _, ok := <-mongoMgr.ticker.C:
@@ -65,7 +65,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 	if !mongoMgr.IsRunning() {
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
-			ZLog("MongoMgr Start err: %v .............", err)
+			ZLog("MongoMgr Start err: %v addr: %s dbname: %s collection: %s", err, mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
 
@@ -92,7 +92,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 			mongoMgr.startHeartbeat()
 		})
 
-		ZLog("MongoMgr addr: %s dbname: %s Start() --->>>", mongoMgr.addr, mongoMgr.database)
+		ZLog("MongoMgr addr: %s dbname: %s collection: %s Start() --->>>", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 	}
 
 	return true
