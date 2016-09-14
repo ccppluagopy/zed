@@ -134,7 +134,10 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 
 	writeLen, err = client.conn.Write(buf)
 
-	LogInfo(LOG_IDX, client.Idx, "Send Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
+	if logDataOut {
+		ZLog(fmt.Sprintf("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data)))
+	}
+	//LogInfo(LOG_IDX, client.Idx, "%s Send Msg Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 
 	if err == nil && writeLen == len(buf) {
 		return
@@ -201,7 +204,10 @@ func (client *TcpClient) reader() {
 			}
 		}
 
-		LogInfo(LOG_IDX, client.Idx, "Recv Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
+		if logDataIn {
+			ZLog(fmt.Sprintf("[Recv] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data)))
+		}
+		//LogInfo(LOG_IDX, client.Idx, "Recv Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 
 		client.parent.HandleMsg(msg)
 	}
