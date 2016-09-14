@@ -48,7 +48,7 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 }
 
 func (mongoMgr *MongoMgr) startHeartbeat() {
-	ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
+	/*ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
 	for {
 		select {
 		case _, ok := <-mongoMgr.ticker.C:
@@ -91,6 +91,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 			//mongoMgr.chAction = make(chan MongoActionCB)
 			mongoMgr.startHeartbeat()
 		})
+		/*ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
 
 		ZLog("MongoMgr addr: %s dbname: %s collection: %s Start() --->>>", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 	}

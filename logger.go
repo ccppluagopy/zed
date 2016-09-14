@@ -335,7 +335,7 @@ func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[i
 		}
 		Println("	", k, str)
 	}
-	Println("----------------------------------------------------------------------")
+	Println(" - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -")
 	Println("tags:")
 	for i := 0; ; i++ {
 		if tag, ok := tags[i]; ok {
