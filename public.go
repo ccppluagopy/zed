@@ -109,6 +109,7 @@ type MongoActionCB func(mongo *MongoMgr) bool
 type MongoMgr struct {
 	sync.RWMutex
 	Session    *mgo.Session
+	Collection *mgo.Collection
 	tryCount   int
 	addr       string
 	database   string

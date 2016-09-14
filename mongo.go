@@ -19,12 +19,12 @@ func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
 	return pool.mgrs[idx%len(pool.mgrs)]
 }
 
-func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection)) {
-	pool.GetMgr(idx).DBAction(cb)
+func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection) bool) bool {
+	return pool.GetMgr(idx).DBAction(cb)
 }
 
 func (pool *MongoMgrPool) Collection(idx int) *mgo.Collection {
-	return pool.GetMgr(idx).Collection()
+	return pool.GetMgr(idx).Collection
 }
 
 func (pool *MongoMgrPool) Stop() {
@@ -76,6 +76,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 		}
 
 		mongoMgr.Session = session
+		mongoMgr.Collection = session.DB(mongoMgr.database).C(mongoMgr.collection)
 		//mongoMgr.Session.SetMode(mgo.Monotonic, true)
 		//mongoMgr.DB = mongoMgr.Session.DB(mongoMgr.dbname)
 
@@ -126,27 +127,27 @@ func (mongoMgr *MongoMgr) Stop() {
 	}
 }
 
-func (mongoMgr *MongoMgr) Collection() *mgo.Collection {
-	return mongoMgr.Session.DB(mongoMgr.database).C(mongoMgr.collection)
-}
+/*func (mongoMgr *MongoMgr) Collection() *mgo.Collection {
+	return mongoMgr.Collection
+}*/
 
-func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection)) {
-	/*mongoMgr.RLock()
-	defer mongoMgr.Unlock()
-	*/
-	//if mongoMgr.running {
-	//Println("DBAction ....")
+func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
+
 	defer func() {
 		if err := recover(); err != nil {
 			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
 			mongoMgr.Restart()
 		}
 	}()
-	session := mongoMgr.Session //.Clone()
-	cb(session.DB(mongoMgr.database).C(mongoMgr.collection))
-	/*} else {
-		cb(nil)
-	}*/
+
+	c := mongoMgr.Collection
+	if c != nil {
+		return cb(c)
+	} else {
+		return false
+	}
+
+	return true
 }
 
 func (mongoMgr *MongoMgr) heartbeat() {
