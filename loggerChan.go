@@ -1,14 +1,12 @@
 package zed
 
-import (
+/*import (
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 )
 
 type logtask struct {
-	sync.Mutex
 	idx     int
 	chMsg   chan *string
 	ticker  *time.Ticker
@@ -52,8 +50,6 @@ var (
 	actionLoggerNum int = 1
 	arrTaskAction   []*logtask
 
-	//zlogfile *logfile = nil
-
 	logSep = ""
 
 	Printf  = fmt.Printf
@@ -62,44 +58,35 @@ var (
 	isLoggerStarted = false
 )
 
-func (task *logtask) save() {
-	task.Lock()
-	defer task.Unlock()
-	task.logFile.Save()
-}
-
 func (task *logtask) start(taskType string, logType int) {
 	task.running = true
-	//task.chMsg = make(chan *string, 100)
+	task.chMsg = make(chan *string, 100)
 	task.logType = logType
 	if logType == LogFile {
 		task.ticker = time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL)
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
 			NewCoroutine(func() {
-				/*var (
+				var (
 					s  *string
 					ok = false
-				)*/
+				)
 				for {
 					select {
-					/*
-						case s, ok = <-task.chMsg:
-							if !ok {
-								return
-							}
-							task.logFile.Write(s)
-					*/
+					case s, ok = <-task.chMsg:
+						if !ok {
+							return
+						}
+						task.logFile.Write(s)
 					case <-task.ticker.C:
-						task.save()
+						task.logFile.Save()
 					}
 				}
 			})
 		} else {
 
 		}
-	}
-	/* else {
+	} else {
 		NewCoroutine(func() {
 			var (
 				s  *string
@@ -115,18 +102,19 @@ func (task *logtask) start(taskType string, logType int) {
 				}
 			}
 		})
-	}*/
+	}
+
 }
 
 func (task *logtask) stop() {
-	/*close(task.chMsg)
+	close(task.chMsg)
 	for msg := range task.chMsg {
 		if task.logType == LogFile {
 			task.logFile.Write(msg)
 		} else {
 			Printf(*msg)
 		}
-	}*/
+	}
 
 	if task.logType == LogFile {
 		task.ticker.Stop()
@@ -138,43 +126,19 @@ func (task *logtask) stop() {
 }
 
 func ZLog(format string, v ...interface{}) {
-	/*if zlogfile != nil {
-		s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
-		zlogfile.Write(&s)
-		zlogfile.Save()
-	}*/
 	s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 	Printf(s)
 }
 
-func LogInfoSave(tag int, loggerIdx int) {
-	loggerIdx = loggerIdx % infoLoggerNum
-
-	arrTaskInfo[loggerIdx].Lock()
-	defer arrTaskInfo[loggerIdx].Unlock()
-
-	arrTaskInfo[loggerIdx].logFile.Save()
-}
-
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	if infoEnabled {
-		loggerIdx = loggerIdx % infoLoggerNum
-
-		arrTaskInfo[loggerIdx].Lock()
-		defer arrTaskInfo[loggerIdx].Unlock()
-
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				infoCount++
-
+				loggerIdx = loggerIdx % infoLoggerNum
 				if arrTaskInfo[loggerIdx].running {
-					//arrTaskInfo[loggerIdx].chMsg <- &s
-					if arrTaskInfo[loggerIdx].logType == LogFile {
-						arrTaskInfo[loggerIdx].logFile.Write(&s)
-					} else {
-						Printf(s)
-					}
+					arrTaskInfo[loggerIdx].chMsg <- &s
 				} else {
 					ZLog("Error when LogInfo, Task runnign: fasle")
 				}
@@ -184,14 +148,9 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Info][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					infoCount++
-
+					loggerIdx = loggerIdx % infoLoggerNum
 					if arrTaskInfo[loggerIdx].running {
-						//arrTaskInfo[loggerIdx].chMsg <- &s
-						if arrTaskInfo[loggerIdx].logType == LogFile {
-							arrTaskInfo[loggerIdx].logFile.Write(&s)
-						} else {
-							Printf(s)
-						}
+						arrTaskInfo[loggerIdx].chMsg <- &s
 					} else {
 						ZLog("Error when LogInfo, Task runnign: fasle")
 					}
@@ -201,35 +160,15 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogWarnSave(tag int, loggerIdx int) {
-	loggerIdx = loggerIdx % warnLoggerNum
-
-	arrTaskWarn[loggerIdx].Lock()
-	defer arrTaskWarn[loggerIdx].Unlock()
-
-	arrTaskWarn[loggerIdx].logFile.Save()
-}
-
 func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
-	//if warnEnabled && (tags[tag] == true) {
 	if warnEnabled {
-		loggerIdx = loggerIdx % warnLoggerNum
-
-		arrTaskWarn[loggerIdx].Lock()
-		defer arrTaskWarn[loggerIdx].Unlock()
-
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				warnCount++
-
+				loggerIdx = loggerIdx % warnLoggerNum
 				if arrTaskWarn[loggerIdx].running {
-					//arrTaskWarn[loggerIdx].chMsg <- &s
-					if arrTaskWarn[loggerIdx].logType == LogFile {
-						arrTaskWarn[loggerIdx].logFile.Write(&s)
-					} else {
-						Printf(s)
-					}
+					arrTaskWarn[loggerIdx].chMsg <- &s
 				} else {
 					ZLog("Error when LogWarn, Task runnign: fasle")
 				}
@@ -239,14 +178,9 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					warnCount++
-
+					loggerIdx = loggerIdx % warnLoggerNum
 					if arrTaskWarn[loggerIdx].running {
-						//arrTaskWarn[loggerIdx].chMsg <- &s
-						if arrTaskWarn[loggerIdx].logType == LogFile {
-							arrTaskWarn[loggerIdx].logFile.Write(&s)
-						} else {
-							Printf(s)
-						}
+						arrTaskWarn[loggerIdx].chMsg <- &s
 					} else {
 						ZLog("Error when LogWarn, Task runnign: fasle")
 					}
@@ -256,34 +190,15 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogErrorSave(tag int, loggerIdx int) {
-	loggerIdx = loggerIdx % errorLoggerNum
-
-	arrTaskError[loggerIdx].Lock()
-	defer arrTaskError[loggerIdx].Unlock()
-
-	arrTaskError[loggerIdx].logFile.Save()
-}
-
 func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	if errorEnabled {
-		loggerIdx = loggerIdx % errorLoggerNum
-
-		arrTaskError[loggerIdx].Lock()
-		defer arrTaskError[loggerIdx].Unlock()
-
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
-
+				loggerIdx = loggerIdx % errorLoggerNum
 				if arrTaskError[loggerIdx].running {
-					//arrTaskError[loggerIdx].chMsg <- &s
-					if arrTaskError[loggerIdx].logType == LogFile {
-						arrTaskError[loggerIdx].logFile.Write(&s)
-					} else {
-						Printf(s)
-					}
+					arrTaskError[loggerIdx].chMsg <- &s
 				} else {
 					ZLog("Error when LogError, Task runnign: fasle")
 				}
@@ -293,14 +208,9 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
-
+					loggerIdx = loggerIdx % errorLoggerNum
 					if arrTaskError[loggerIdx].running {
-						//arrTaskError[loggerIdx].chMsg <- &s
-						if arrTaskError[loggerIdx].logType == LogFile {
-							arrTaskError[loggerIdx].logFile.Write(&s)
-						} else {
-							Printf(s)
-						}
+						arrTaskError[loggerIdx].chMsg <- &s
 					} else {
 						ZLog("Error when LogError, Task runnign: fasle")
 					}
@@ -310,34 +220,15 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogActionSave(tag int, loggerIdx int) {
-	loggerIdx = loggerIdx % errorLoggerNum
-
-	arrTaskAction[loggerIdx].Lock()
-	defer arrTaskAction[loggerIdx].Unlock()
-
-	arrTaskAction[loggerIdx].logFile.Save()
-}
-
 func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 	if actionEnabled {
-		loggerIdx = loggerIdx % actionLoggerNum
-
-		arrTaskAction[loggerIdx].Lock()
-		defer arrTaskAction[loggerIdx].Unlock()
-
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
-
+				loggerIdx = loggerIdx % actionLoggerNum
 				if arrTaskAction[loggerIdx].running {
-					//arrTaskAction[loggerIdx].chMsg <- &s
-					if arrTaskError[loggerIdx].logType == LogFile {
-						arrTaskError[loggerIdx].logFile.Write(&s)
-					} else {
-						Printf(s)
-					}
+					arrTaskAction[loggerIdx].chMsg <- &s
 				} else {
 					ZLog("Error when LogAction, Task runnign: fasle")
 				}
@@ -347,14 +238,9 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Action][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
-
+					loggerIdx = loggerIdx % actionLoggerNum
 					if arrTaskAction[loggerIdx].running {
-						//arrTaskAction[loggerIdx].chMsg <- &s
-						if arrTaskError[loggerIdx].logType == LogFile {
-							arrTaskAction[loggerIdx].logFile.Write(&s)
-						} else {
-							Printf(s)
-						}
+						arrTaskAction[loggerIdx].chMsg <- &s
 					} else {
 						ZLog("Error when LogAction, Task runnign: fasle")
 					}
@@ -364,7 +250,6 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-//func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int, actionLogNum int) {
 func StartLogger(logconf map[string]int, logtags map[int]string, isDebug bool) {
 	if logconf != nil {
 		logConf = logconf
@@ -397,9 +282,6 @@ func StartLogger(logconf map[string]int, logtags map[int]string, isDebug bool) {
 	}
 
 	debug = isDebug
-	//maxTagNum = maxTag
-
-	//tags[LOG_IDX] = LOG_TAG
 
 	var i int
 	arrTaskInfo = make([]*logtask, infoLoggerNum)
@@ -486,30 +368,6 @@ func StopLogger() {
 		task.stop()
 	}
 
-	/*	time.Sleep(time.Second / 10)
-
-		for _, task := range arrTaskInfo {
-			if task.running {
-				goto REP
-			}
-		}
-
-		for _, task := range arrTaskWarn {
-			if task.running {
-				goto REP
-			}
-		}
-
-		for _, task := range arrTaskError {
-			if task.running {
-				goto REP
-			}
-		}
-	*/
 	ZLog("[ShutDown] Logger Stopped!")
-	/*if zlogfile != nil {
-		zlogfile.Close()
-	}*/
-	/*	return
-		}*/
 }
+*/
