@@ -197,7 +197,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	//server.OnClientMsgError(msg)
 }
 
-func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
+func (server *TcpServer) GetClientById(id uint32) *TcpClient {
 	server.RLock()
 	defer server.RUnlock()
 
@@ -248,8 +248,8 @@ func NewTcpServer(name string) *TcpServer {
 		//newConnCBMap: make(map[string]func(client *TcpClient)),
 		handlerMap:  make(map[CmdType]MsgHandler),
 		clients:     make(map[int]*TcpClient),
-		clientIdMap: make(map[*TcpClient]ClientIDType),
-		idClientMap: make(map[ClientIDType]*TcpClient),
+		clientIdMap: make(map[*TcpClient]uint32),
+		idClientMap: make(map[uint32]*TcpClient),
 	}
 
 	servers[name] = server

@@ -62,11 +62,12 @@ type NetMsg struct {
 
 type TcpClient struct {
 	sync.RWMutex
-	conn    *net.TCPConn
-	parent  *TcpServer
-	ID      ClientIDType
-	Idx     int
-	Addr    string
+	conn   *net.TCPConn
+	parent *TcpServer
+	ID     uint32
+	Idx    int
+	Addr   string
+	//Data    interface{}
 	closeCB map[interface{}]ClientCloseCB
 	chSend  chan *AsyncMsg
 	running bool
@@ -80,8 +81,8 @@ type TcpServer struct {
 	//newConnCBMap map[string]func(client *TcpClient)
 	handlerMap  map[CmdType]MsgHandler
 	clients     map[int]*TcpClient
-	clientIdMap map[*TcpClient]ClientIDType
-	idClientMap map[ClientIDType]*TcpClient
+	clientIdMap map[*TcpClient]uint32
+	idClientMap map[uint32]*TcpClient
 }
 
 type MysqlActionCB func(*mysql.Conn)
