@@ -28,10 +28,10 @@ var (
 
 	debug         = true
 	maxTagNum     = 0
-	infoEnabled   = false
-	warnEnabled   = false
-	errorEnabled  = false
-	actionEnabled = false
+	infoEnabled   = true
+	warnEnabled   = true
+	errorEnabled  = true
+	actionEnabled = true
 
 	infoCount   = 0
 	warnCount   = 0
@@ -260,25 +260,42 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int, actionLogNum int) {
+//func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int, actionLogNum int) {
+func StartLogger(logconf map[string]int, logtags map[int]string, isDebug bool) {
 	if logconf != nil {
 		logConf = logconf
+		if n, ok := logconf["InfoNum"]; ok {
+			infoLoggerNum = n
+		}
+		if n, ok := logconf["InfoNum"]; ok {
+			warnLoggerNum = n
+		}
+		if n, ok := logconf["InfoNum"]; ok {
+			errorLoggerNum = n
+		}
+		if n, ok := logconf["InfoNum"]; ok {
+			actionLoggerNum = n
+		}
+		infoEnabled = (infoLoggerNum > 0)
+		warnEnabled = (warnLoggerNum > 0)
+		errorEnabled = (errorLoggerNum > 0)
+		actionEnabled = (actionLoggerNum > 0)
+	}
+	if logtags != nil {
+		tags = logtags
+		for i := 0; ; i++ {
+			if _, ok := logtags[i]; ok {
+				maxTagNum = i
+			} else {
+				break
+			}
+		}
 	}
 
 	debug = isDebug
-	maxTagNum = maxTag
-	tags = logtags
+	//maxTagNum = maxTag
+
 	//tags[LOG_IDX] = LOG_TAG
-
-	infoLoggerNum = infoLogNum
-	warnLoggerNum = warnLogNum
-	errorLoggerNum = errorLogNum
-	actionLoggerNum = actionLogNum
-
-	infoEnabled = (infoLogNum > 0)
-	warnEnabled = (warnLogNum > 0)
-	errorEnabled = (errorLogNum > 0)
-	actionEnabled = (actionLoggerNum > 0)
 
 	var i int
 	arrTaskInfo = make([]*logtask, infoLoggerNum)
