@@ -75,3 +75,7 @@ func GetStackInfo() string {
 
 	return errstr
 }
+
+func LogStackInfo() {
+	ZLog(GetStackInfo())
+}

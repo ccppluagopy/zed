@@ -261,7 +261,9 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 }
 
 func StartLogger(logconf map[string]int, isDebug bool, maxTag int, logtags map[int]string, infoLogNum int, warnLogNum int, errorLogNum int, actionLogNum int) {
-	logConf = logconf
+	if logconf != nil {
+		logConf = logconf
+	}
 
 	debug = isDebug
 	maxTagNum = maxTag
