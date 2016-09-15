@@ -23,12 +23,14 @@ func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
 	idx = idx * ACTION_NUM * 10
 	for i := 0; i < ACTION_NUM; i++ {
 		time.Sleep(time.Second * 3)
-		pool.DBAction(idx/10/ACTION_NUM, func(collection *mgo.Collection) {
+		pool.DBAction(idx/10/ACTION_NUM, func(collection *mgo.Collection) bool {
 			err := collection.Insert(&Student{fmt.Sprintf("stu_%d", idx+i), 20 + idx/10000})
 			fmt.Println("Insert err: ", err)
 			if err != nil {
 				panic(err)
 			}
+
+			return true
 		})
 	}
 
@@ -36,7 +38,7 @@ func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
 }
 
 func main() {
-	zed.Init("./", "./log")
+	zed.Init("./", "./log", true, true)
 	//zed.MakeNewLogDir("./")
 	const (
 		TagNull = iota
