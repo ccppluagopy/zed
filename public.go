@@ -15,7 +15,7 @@ const (
 
 	NullID = 0
 
-	TAG_NULL = ""
+	TAG_NULL = "--"
 )
 
 type CmdType uint32
