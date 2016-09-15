@@ -62,12 +62,6 @@ var (
 	isLoggerStarted = false
 )
 
-func (task *logtask) save() {
-	task.Lock()
-	defer task.Unlock()
-	task.logFile.Save()
-}
-
 func (task *logtask) start(taskType string, logType int) {
 	task.running = true
 	//task.chMsg = make(chan *string, 100)
@@ -119,6 +113,9 @@ func (task *logtask) start(taskType string, logType int) {
 }
 
 func (task *logtask) stop() {
+	task.Lock()
+	defer task.Unlock()
+
 	/*close(task.chMsg)
 	for msg := range task.chMsg {
 		if task.logType == LogFile {
@@ -135,6 +132,12 @@ func (task *logtask) stop() {
 
 	task.running = false
 	ZLog("logtask stopped, taskType: %d, idx: %d", task.logType, task.idx)
+}
+
+func (task *logtask) save() {
+	task.Lock()
+	defer task.Unlock()
+	task.logFile.Save()
 }
 
 func ZLog(format string, v ...interface{}) {
