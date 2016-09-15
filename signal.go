@@ -7,11 +7,11 @@ import (
 )
 
 var (
-	signalHandled = false
+	inited = false
 )
 
 func HandleSignal(maskAll bool) {
-	if !signalHandled {
+	if !inited {
 		NewCoroutine(func() {
 			var (
 				sig      os.Signal
@@ -52,7 +52,7 @@ func HandleSignal(maskAll bool) {
 				}
 			}
 		})
-		signalHandled = true
+		inited = true
 	}
 }
 
