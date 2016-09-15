@@ -32,29 +32,39 @@ func TestEventMgr() {
 }
 
 func TestLogger() {
-	zed.Init("./")
+	zed.Init("./", "./logs/", true, true)
 	//zed.MakeNewLogDir("./")
 	const (
-		TagNull = iota
-		Tag1
-		Tag2
-		Tag3
+		TagZed = iota
+		TagInit
+		TagDB
+		TagLogin
+		TagRoom
+		TagRoomMgr
 		TagMax
 	)
+
 	var LogTags = map[int]string{
-		TagNull: "zed",
-		Tag1:    "Tag1",
-		Tag2:    "Tag2",
-		Tag3:    "Tag3",
-	}
-	var LogConf = map[string]int{
-		"Info":   zed.LogFile,
-		"Warn":   zed.LogFile,
-		"Error":  zed.LogFile,
-		"Action": zed.LogFile,
+		TagZed:     "--zed", /*'--'开头则关闭*/
+		TagInit:    "Init",
+		TagDB:      "DB",
+		TagLogin:   "--Login",
+		TagRoom:    "Room",
+		TagRoomMgr: "RoomMgr",
 	}
 
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 3)
+	var LogConf = map[string]int{
+		"Info":         zed.LogCmd,
+		"Warn":         zed.LogCmd,
+		"Error":        zed.LogCmd,
+		"Action":       zed.LogCmd,
+		"InfoCorNum":   0,
+		"WarnCorNum":   1,
+		"ErrorCorNum":  1,
+		"ActionCorNum": 1,
+	}
+
+	zed.StartLogger(LogConf, LogTags, true)
 	for i := 0; i < 5; i++ {
 		zed.LogError(Tag1, i, "log test %d", i)
 	}

@@ -264,16 +264,16 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 func StartLogger(logconf map[string]int, logtags map[int]string, isDebug bool) {
 	if logconf != nil {
 		logConf = logconf
-		if n, ok := logconf["InfoNum"]; ok {
+		if n, ok := logconf["InfoCorNum"]; ok {
 			infoLoggerNum = n
 		}
-		if n, ok := logconf["InfoNum"]; ok {
+		if n, ok := logconf["WarnCorNum"]; ok {
 			warnLoggerNum = n
 		}
-		if n, ok := logconf["InfoNum"]; ok {
+		if n, ok := logconf["ErrorCorNum"]; ok {
 			errorLoggerNum = n
 		}
-		if n, ok := logconf["InfoNum"]; ok {
+		if n, ok := logconf["ActionCorNum"]; ok {
 			actionLoggerNum = n
 		}
 		infoEnabled = (infoLoggerNum > 0)
