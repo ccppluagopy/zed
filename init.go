@@ -9,6 +9,7 @@ var (
 )
 
 func Init(workDir string, logDir string, showDataIn bool, showDataOut bool) {
+	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", Log Data In:\"%v\", Log Data Out:\"%v\"", workDir, logDir, showDataIn, showDataOut)
 	workdir = workDir
 	worklogdir = logDir
 	logDataIn = showDataIn

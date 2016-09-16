@@ -57,6 +57,7 @@ var (
 	logSep = ""
 
 	Printf  = fmt.Printf
+	Sprintf = fmt.Sprintf
 	Println = fmt.Println
 
 	isLoggerStarted = false
