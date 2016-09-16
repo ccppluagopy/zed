@@ -14,7 +14,7 @@ const (
 	LogFile
 
 	//NullID = 0
-	NullID = ""
+	NullID = "NULL"
 
 	TAG_NULL = "--"
 )
