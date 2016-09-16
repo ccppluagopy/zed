@@ -98,12 +98,12 @@ func (server *TcpServer) Stop() {
 	for k, _ := range server.handlerMap {
 		delete(server.handlerMap, k)
 	}
-	for k, _ := range server.clientIdMap {
+	/*for k, _ := range server.clientIdMap {
 		delete(server.clientIdMap, k)
 	}
 	for k, _ := range server.idClientMap {
 		delete(server.idClientMap, k)
-	}
+	}*/
 
 	server.running = false
 	server.listener.Close()
@@ -164,7 +164,7 @@ func (server *TcpServer) onClientStop(client *TcpClient) {
 }
 
 func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
-	msg.Client.SendMsg(msg)
+
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
@@ -197,7 +197,8 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	//server.OnClientMsgError(msg)
 }
 
-func (server *TcpServer) GetClientById(id uint32) *TcpClient {
+/*
+func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
 	server.RLock()
 	defer server.RUnlock()
 
@@ -234,6 +235,7 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 
 	return len(server.clientIdMap), server.ClientNum
 }
+*/
 
 func NewTcpServer(name string) *TcpServer {
 	if _, ok := servers[name]; ok {
@@ -246,10 +248,10 @@ func NewTcpServer(name string) *TcpServer {
 		ClientNum: 0,
 		listener:  nil,
 		//newConnCBMap: make(map[string]func(client *TcpClient)),
-		handlerMap:  make(map[CmdType]MsgHandler),
-		clients:     make(map[int]*TcpClient),
-		clientIdMap: make(map[*TcpClient]uint32),
-		idClientMap: make(map[uint32]*TcpClient),
+		handlerMap: make(map[CmdType]MsgHandler),
+		clients:    make(map[int]*TcpClient),
+		//clientIdMap: make(map[*TcpClient]uint32),
+		//idClientMap: make(map[uint32]*TcpClient),
 	}
 
 	servers[name] = server

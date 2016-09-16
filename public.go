@@ -13,14 +13,16 @@ const (
 	LogCmd = iota
 	LogFile
 
-	NullID = 0
+	//NullID = 0
+	NullID = ""
 
 	TAG_NULL = "--"
 )
 
 type CmdType uint32
 
-type ClientIDType uint32
+//type ClientIDType uint32
+type ClientIDType string
 
 type NewConnCB func(client *TcpClient)
 
@@ -64,7 +66,7 @@ type TcpClient struct {
 	sync.RWMutex
 	conn   *net.TCPConn
 	parent *TcpServer
-	ID     uint32
+	ID     ClientIDType
 	Idx    int
 	Addr   string
 	//Data    interface{}
@@ -75,14 +77,13 @@ type TcpClient struct {
 
 type TcpServer struct {
 	sync.RWMutex
-	running   bool
-	ClientNum int
-	listener  *net.TCPListener
-	//newConnCBMap map[string]func(client *TcpClient)
-	handlerMap  map[CmdType]MsgHandler
-	clients     map[int]*TcpClient
-	clientIdMap map[*TcpClient]uint32
-	idClientMap map[uint32]*TcpClient
+	running    bool
+	ClientNum  int
+	listener   *net.TCPListener
+	handlerMap map[CmdType]MsgHandler
+	clients    map[int]*TcpClient
+	//clientIdMap map[*TcpClient]ClientIDType
+	//idClientMap map[ClientIDType]*TcpClient
 }
 
 type MysqlActionCB func(*mysql.Conn)
