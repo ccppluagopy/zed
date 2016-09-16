@@ -1,19 +1,17 @@
 package zed
 
 var (
-	workdir    = "./"
-	logdir     = ""
-	worklogdir = "./log"
-	logDataIn  = false
-	logDataOut = false
+	workdir        = "./"
+	logdir         = ""
+	worklogdir     = "./log"
+	showClientData = false
 )
 
-func Init(workDir string, logDir string, showDataIn bool, showDataOut bool) {
-	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", Log Data In:\"%v\", Log Data Out:\"%v\"", workDir, logDir, showDataIn, showDataOut)
+func Init(workDir string, logDir string, showClient bool) {
+	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", Log Data In:\"%v\", Log Data Out:\"%v\"", workDir, logDir, showClientData)
 	workdir = workDir
 	worklogdir = logDir
-	logDataIn = showDataIn
-	logDataOut = showDataOut
+	showClientData = showClient
 	MakeNewLogDir()
 
 	/*if zlogfile == nil {
