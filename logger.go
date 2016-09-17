@@ -224,7 +224,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
-				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				warnCount++
 
 				if arrTaskWarn[loggerIdx].running {
@@ -241,7 +241,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
-					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Warn][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 					warnCount++
 
 					if arrTaskWarn[loggerIdx].running {
@@ -278,7 +278,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 
 		if debug {
 			if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
-				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
+				s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Error][", tagstr, "] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 				errorCount++
 
 				if arrTaskError[loggerIdx].running {
@@ -295,7 +295,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 		} else {
 			if tag < maxTagNum {
 				if tagstr, ok := tags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
-					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().String()), "[Error][", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
+					s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[Error][", "] ", tagstr, fmt.Sprintf(format, v...), "\n"}, logSep)
 					errorCount++
 
 					if arrTaskError[loggerIdx].running {
