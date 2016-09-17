@@ -70,8 +70,9 @@ type TcpClient struct {
 	Idx    int
 	Addr   string
 	//Data    interface{}
-	closeCB map[interface{}]ClientCloseCB
 	chSend  chan *AsyncMsg
+	closeCB map[interface{}]ClientCloseCB
+	Valid   bool
 	running bool
 }
 
@@ -82,6 +83,7 @@ type TcpServer struct {
 	listener   *net.TCPListener
 	handlerMap map[CmdType]MsgHandler
 	clients    map[int]*TcpClient
+	msgFilter  func(*NetMsg) bool
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
 }

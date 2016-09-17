@@ -280,6 +280,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		closeCB: make(map[interface{}]ClientCloseCB),
 		chSend:  make(chan *AsyncMsg, 10),
 		//Data:    nil,
+		Valid:   false,
 		running: true,
 	}
 

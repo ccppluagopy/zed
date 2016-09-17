@@ -149,6 +149,10 @@ func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	delete(server.handlerMap, cmd)
 }
 
+func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
+	server.msgFilter = filter
+}
+
 func (server *TcpServer) onNewClient(client *TcpClient) {
 	server.Lock()
 	defer server.Unlock()
@@ -174,7 +178,9 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	//defer server.RUnlock()
 
 	cb, ok := server.handlerMap[msg.Cmd]
-	if ok {
+	if (!ok) || ((server.msgFilter != nil) && (!server.msgFilter(msg))) {
+		msg.Client.Stop()
+	} else {
 		/*defer func() {
 			if err := recover(); err != nil {
 				LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err: %v!", msg.Client.Info(), err)
@@ -190,9 +196,10 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 		} else {
 			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
 		}
-	} else {
+
+	} /*else {
 		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From %s", msg.Cmd, msg.Client.Info())
-	}
+	}*/
 
 	//server.OnClientMsgError(msg)
 }
@@ -252,6 +259,7 @@ func NewTcpServer(name string) *TcpServer {
 		clients:    make(map[int]*TcpClient),
 		//clientIdMap: make(map[*TcpClient]uint32),
 		//idClientMap: make(map[uint32]*TcpClient),
+		msgFilter: nil,
 	}
 
 	servers[name] = server
