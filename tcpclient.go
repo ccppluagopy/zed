@@ -128,7 +128,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	}
 
 	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
-	binary.LittleEndian.PutUint32(buf, msg.Len)
+	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
 	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
 	if msg.Len > 0 {
 		copy(buf[PACK_HEAD_LEN:], msg.Data)
@@ -199,7 +199,7 @@ func (client *TcpClient) reader() {
 
 		var msg = &NetMsg{
 			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-			Len:    binary.LittleEndian.Uint32(head[0:4]),
+			Len:    int(binary.LittleEndian.Uint32(head[0:4])),
 			Client: client,
 		}
 

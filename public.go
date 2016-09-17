@@ -57,7 +57,7 @@ type EventMgr struct {
 
 type NetMsg struct {
 	Cmd    CmdType
-	Len    uint32
+	Len    int
 	Client *TcpClient
 	Data   []byte
 }
