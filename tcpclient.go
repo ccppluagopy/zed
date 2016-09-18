@@ -138,8 +138,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 
 	if dataOutSupervisor != nil {
 		dataOutSupervisor(msg)
-	}
-	if showClientData {
+	} else if showClientData {
 		ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 	}
 
@@ -220,8 +219,7 @@ func (client *TcpClient) reader() {
 
 		if dataInSupervisor != nil {
 			dataInSupervisor(msg)
-		}
-		if showClientData {
+		} else if showClientData {
 			ZLog("[Recv] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 		}
 
