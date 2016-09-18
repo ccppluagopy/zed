@@ -178,15 +178,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	//defer server.RUnlock()
 
 	cb, ok := server.handlerMap[msg.Cmd]
-	if (!ok) || ((server.msgFilter != nil) && (!server.msgFilter(msg))) {
-		msg.Client.Stop()
-	} else {
-		/*defer func() {
-			if err := recover(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err: %v!", msg.Client.Info(), err)
-				msg.Client.Stop()
-			}
-		}()*/
+	if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
 		defer PanicHandle(true, func() {
 			LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err!", msg.Client.Info())
 			msg.Client.Stop()
@@ -202,6 +194,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	}*/
 
 	//server.OnClientMsgError(msg)
+	msg.Client.Stop()
 }
 
 /*
