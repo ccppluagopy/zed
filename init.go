@@ -10,7 +10,7 @@ var (
 )
 
 func Init(workDir string, logDir string, showClient bool, inSupervisor func(*NetMsg), outSupervisor func(*NetMsg)) {
-	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", Log Data In:\"%v\", Log Data Out:\"%v\"", workDir, logDir, showClientData)
+	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", showClient:\"%v\"", workDir, logDir, showClient)
 	workdir = workDir
 	worklogdir = logDir
 	showClientData = showClient
