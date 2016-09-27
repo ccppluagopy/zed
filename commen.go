@@ -6,6 +6,7 @@ import (
 	//"reflect"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"net"
 	"runtime"
 	"strings"
 )
@@ -87,3 +88,31 @@ func CheckSingleProc() {
 		os.Exit(0)
 	}
 }
+
+func GetLocalAddr() ([]string, error) {
+	var ret []string
+
+	addrs, err := net.InterfaceAddrs()
+
+	if err == nil {
+		for _, address := range addrs {
+			if ipnet, ok := address.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+				if ipnet.IP.To4() != nil {
+					ret = append(ret, ipnet.IP.String())
+				}
+			}
+		}
+	}
+
+	return ret, err
+}
+
+/*func GetPublicAddr() {
+	conn, err := net.Dial("udp", "www.baidu.com:80")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	defer conn.Close()
+	fmt.Println(conn.LocalAddr().String())
+}*/
