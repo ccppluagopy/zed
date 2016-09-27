@@ -36,7 +36,7 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 
 func (client *TcpClient) Stop() {
 	//NewCoroutine(func() {
-	ZLog("Stop stacks: %s", GetStackInfo())
+	//ZLog("Stop stacks: %s", GetStackInfo())
 	client.Lock()
 	defer client.Unlock()
 
