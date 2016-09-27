@@ -36,6 +36,7 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 
 func (client *TcpClient) Stop() {
 	//NewCoroutine(func() {
+	ZLog("Stop stacks: %s", GetStackInfo())
 	client.Lock()
 	defer client.Unlock()
 
@@ -187,9 +188,9 @@ func (client *TcpClient) reader() {
 
 		readLen, err = io.ReadFull(client.conn, head)
 		if err != nil || readLen < PACK_HEAD_LEN {
-			/*if showClientData {
-				ZLog("%s Read Head Err: %v.", client.Info(), err)
-			}*/
+			if showClientData {
+				ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
+			}
 			goto Exit
 		}
 
