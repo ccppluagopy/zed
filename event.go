@@ -44,6 +44,19 @@ func (eventMgr *EventMgr) DeleteListener(tag interface{}) {
 	}
 }
 
+func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool {
+	flag := false
+
+	if listeners, ok := eventMgr.listeners[event]; ok {
+		for _, listener := range listeners {
+			eventHandler(listener, event, args)
+			flag = true
+		}
+	}
+
+	return flag
+}
+
 func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
 	eventMgr.mutex.Lock()
 	defer eventMgr.mutex.Unlock()

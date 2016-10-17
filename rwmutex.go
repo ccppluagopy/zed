@@ -2,6 +2,7 @@ package zed
 
 import (
 	"encoding/binary"
+	//"fmt"
 	"io"
 	"net"
 	"sync"
@@ -30,197 +31,105 @@ const (
 )
 
 type RWMutexTeam struct {
-	items map[*TcpClient]*TcpClient
+	//events map[string]uint64
+	count uint64
 }
 
 type RWMutex struct {
 	sync.RWMutex
-	state  int
-	server *TcpServer
-	rmap   map[string]*RWMutexTeam
-	wmap   map[string]*RWMutexTeam
+	state      int
+	server     *TcpServer
+	mtxmap     map[string]map[*TcpClient]*TcpClient
+	mtxcurrmap map[string]*TcpClient
+}
+
+func (rwmtx *RWMutex) PublicR(key string) {
+	mtxmap, ok := rwmtx.mtxmap[key]
+	if ok {
+		for client, _ := range mtxmap {
+			rwmtx.mtxcurrmap[key] = client
+			Printf("[PublicR] %s\n", client.conn.RemoteAddr())
+			client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
+			delete(mtxmap, client)
+			return
+		}
+
+		rwmtx.mtxcurrmap[key] = nil
+	}
 }
 
 func NewRWMutexServer(name string, addr string) *RWMutex {
 	if rwmtx, ok := rwmutexs[name]; !ok {
 		rwmtx = &RWMutex{
-			state:  RWMUTEX_STATE_FREE,
-			server: NewTcpServer(name),
-			rmap:   make(map[string]*RWMutexTeam),
-			wmap:   make(map[string]*RWMutexTeam),
+			state:      RWMUTEX_STATE_FREE,
+			server:     NewTcpServer(name),
+			mtxmap:     make(map[string]map[*TcpClient]*TcpClient),
+			mtxcurrmap: make(map[string]*TcpClient),
 		}
+		/*nRLock := 0
+		nRUnLock := 0*/
 
-		handleRLock := func(msg *NetMsg) bool {
+		handleLock := func(msg *NetMsg) bool {
+			/*			nRLock = nRLock + 1
+						ZLog("handleRLock %d", nRLock)
+			*/
 			rwmtx.Lock()
 			defer rwmtx.Unlock()
 
 			key := string(msg.Data)
-			rteam, ok := rwmtx.rmap[key]
-			wteam, ok2 := rwmtx.rmap[key]
-
-			if msg.Len <= 0 {
+			mtxmap, ok := rwmtx.mtxmap[key]
+			if key == "" {
 				goto Err
 			}
 
 			if !ok {
-				rteam = &RWMutexTeam{
-					items: make(map[*TcpClient]*TcpClient),
-				}
-				rwmtx.rmap[key] = rteam
+				mtxmap = make(map[*TcpClient]*TcpClient)
+				rwmtx.mtxmap[key] = mtxmap
 			}
-			if _, ok := rteam.items[msg.Client]; !ok {
-				rteam.items[msg.Client] = msg.Client
-				ops, ok := rwmutexconnops[msg.Client]
-				if !ok {
-					ops = make(map[string]bool)
-					rwmutexconnops[msg.Client] = ops
-				}
-				if _, ok := ops[key]; ok {
-					goto Err
-				}
-				ops[key] = true
 
-				if !ok2 || len(wteam.items) == 0 {
-					if rwmtx.state != RWMUTEX_STATE_WRITING {
-						rwmtx.state = RWMUTEX_STATE_READING
-						msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK, Len: 0, Data: nil})
-					}
-				}
-			} else {
+			if _, ok2 := mtxmap[msg.Client]; ok2 {
 				goto Err
 			}
+
+			if len(mtxmap) == 1 {
+				rwmtx.mtxcurrmap[key] = msg.Client
+				Printf("[Lock] %s\n", msg.Client.conn.RemoteAddr())
+				msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
+			} else {
+				mtxmap[msg.Client] = msg.Client
+			}
+
 			return true
 		Err:
 			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK_ERR, Len: 0, Data: nil})
-			return false
-		}
-
-		handleRUnLock := func(msg *NetMsg) bool {
-			rwmtx.Lock()
-			defer rwmtx.Unlock()
-
-			key := string(msg.Data)
-			rteam, ok := rwmtx.rmap[key]
-			wteam, ok2 := rwmtx.wmap[key]
-			if msg.Len <= 0 || !ok {
-				goto Err
-			}
-
-			if _, ok := rteam.items[msg.Client]; !ok {
-				goto Err
-			} else {
-				if ok2 {
-					for _, cli := range wteam.items {
-						delete(wteam.items, cli)
-						cli.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-						rwmtx.state = RWMUTEX_STATE_WRITING
-						return true
-					}
-				}
-				for _, cli := range rteam.items {
-					delete(rteam.items, cli)
-					cli.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK, Len: 0, Data: nil})
-					return true
-				}
-
-				rwmtx.state = RWMUTEX_STATE_FREE
-			}
-
-		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RUNLOCK_ERR, Len: 0, Data: nil})
-			return false
-		}
-
-		handleLock := func(msg *NetMsg) bool {
-			rwmtx.Lock()
-			defer rwmtx.Unlock()
-
-			key := string(msg.Data)
-			wteam, ok := rwmtx.wmap[key]
-
-			if msg.Len <= 0 {
-				goto Err
-			}
-
-			if !ok {
-				wteam = &RWMutexTeam{
-					items: make(map[*TcpClient]*TcpClient),
-				}
-				rwmtx.wmap[key] = wteam
-			}
-			if _, ok := wteam.items[msg.Client]; !ok {
-				wteam.items[msg.Client] = msg.Client
-				ops, ok := rwmutexconnops[msg.Client]
-				if !ok {
-					ops = make(map[string]bool)
-					rwmutexconnops[msg.Client] = ops
-				}
-				if _, ok := ops[key]; ok {
-					goto Err
-				}
-				ops[key] = true
-
-				if rwmtx.state == RWMUTEX_STATE_FREE {
-					rwmtx.state = RWMUTEX_STATE_WRITING
-					msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-				}
-			} else {
-				goto Err
-			}
-			return true
-		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK_ERR, Len: 0, Data: nil})
 			return false
 		}
 
 		handleUnLock := func(msg *NetMsg) bool {
-			if msg.Len <= 0 {
-				goto Err
+			key := string(msg.Data)
+			if _, ok := rwmtx.mtxcurrmap[key]; ok {
+				rwmtx.PublicR(key)
+				return true
 			}
-
-			return true
-		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK_ERR, Len: 0, Data: nil})
 			return false
 		}
 
+		handleRLock := func(msg *NetMsg) bool {
+			return true
+		}
+
+		handleRUnLock := func(msg *NetMsg) bool {
+			return true
+		}
+
 		handleConnClose := func(client *TcpClient) {
-			ops := rwmutexconnops[client]
 
-			for key, _ := range ops {
-				rteam, ok1 := rwmtx.rmap[key]
-				wteam, ok2 := rwmtx.wmap[key]
-
-				if ok2 {
-					for _, cli := range wteam.items {
-						cli.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK, Len: 0, Data: nil})
-						rwmtx.state = RWMUTEX_STATE_WRITING
-						goto CLEAR
-					}
-				}
-				if ok1 {
-					for _, cli := range rteam.items {
-						cli.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-						rwmtx.state = RWMUTEX_STATE_READING
-						goto CLEAR
-					}
-				}
-			CLEAR:
-				if ok1 {
-					delete(rteam.items, client)
-				}
-				if ok2 {
-					delete(wteam.items, client)
-				}
-			}
-
-			delete(rwmutexconnops, client)
 		}
 		rwmtx.server.SetConnCloseCB(handleConnClose)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RLOCK, handleRLock)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RUNLOCK, handleRUnLock)
 		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_LOCK, handleLock)
 		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_UNLOCK, handleUnLock)
+		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RLOCK, handleRLock)
+		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RUNLOCK, handleRUnLock)
 
 		NewCoroutine(func() {
 			rwmtx.server.Start(addr)
@@ -240,9 +149,9 @@ func DeleRWMutex(name string) {
 }
 
 type RWMutexClient struct {
-	sync.RWMutex
-	addr string
-	conn *net.TCPConn
+	mutex sync.RWMutex
+	addr  string
+	conn  *net.TCPConn
 }
 
 func (client *RWMutexClient) SendMsg(msg *NetMsg) bool {
@@ -319,9 +228,9 @@ Exit:
 	return nil
 }
 
-func (client *RWMutexClient) RLock() bool {
-	client.Lock()
-	defer client.Unlock()
+func (client *RWMutexClient) Lock(key string) bool {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
 	/*
 	   const (
 	   	RWMUTEX_CMD_RLOCK = iota
@@ -334,8 +243,8 @@ func (client *RWMutexClient) RLock() bool {
 	   	RWMUTEX_CMD_UNLOCK_ERR
 	   )
 	*/
-	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK, Len: 0, Data: nil}) {
-		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_RLOCK {
+	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
+		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_LOCK {
 			return true
 		}
 	}
@@ -343,12 +252,12 @@ func (client *RWMutexClient) RLock() bool {
 	return false
 }
 
-func (client *RWMutexClient) RUnLock() bool {
-	client.Lock()
-	defer client.Unlock()
+func (client *RWMutexClient) UnLock(key string) bool {
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
 
-	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RUNLOCK, Len: 0, Data: nil}) {
-		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_RUNLOCK {
+	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
+		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_UNLOCK {
 			return true
 		}
 	}
@@ -364,8 +273,8 @@ func NewRWMutexClient(addr string) *RWMutexClient {
 }
 
 func DeleRWMutexClient(client *RWMutexClient) {
-	client.Lock()
-	defer client.Unlock()
+	client.mutex.Lock()
+	defer client.mutex.Unlock()
 
 	client.conn.Close()
 }
