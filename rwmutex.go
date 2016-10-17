@@ -227,3 +227,10 @@ func NewRWMutex(name string, addr string) *RWMutex {
 	}
 	return nil
 }
+
+func DeleRWMutex(name string) {
+	if rwmtx, ok := rwmutexs[name]; ok {
+		rwmtx.server.Stop()
+		delete(rwmutexs, name)
+	}
+}

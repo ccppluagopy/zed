@@ -47,7 +47,9 @@ func (client *TcpClient) Stop() {
 
 		client.conn.Close()
 
-		close(client.chSend)
+		if client.chSend != nil {
+			close(client.chSend)
+		}
 
 		for _, cb := range client.closeCB {
 			cb(client)
@@ -72,39 +74,40 @@ func (client *TcpClient) writer() {
 		msg      *NetMsg = nil
 		ok       bool    = false
 	)*/
+	if client.chSend != nil {
+		for {
+			if asyncMsg, ok := <-client.chSend; ok {
+				/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+					LogError(LOG_IDX, client.Idx, "%s SetWriteDeadline Err: %v.", client.Info(), err)
+					goto Exit
+				}
 
-	for {
-		if asyncMsg, ok := <-client.chSend; ok {
-			/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-				LogError(LOG_IDX, client.Idx, "%s SetWriteDeadline Err: %v.", client.Info(), err)
-				goto Exit
-			}
+				buf = make([]byte, PACK_HEAD_LEN+len(msg.Data))
+				binary.LittleEndian.PutUint32(buf, uint32(len(msg.Data)))
+				binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+				copy(buf[PACK_HEAD_LEN:], msg.Data)
 
-			buf = make([]byte, PACK_HEAD_LEN+len(msg.Data))
-			binary.LittleEndian.PutUint32(buf, uint32(len(msg.Data)))
-			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-			copy(buf[PACK_HEAD_LEN:], msg.Data)
+				writeLen, err = client.conn.Write(buf)
 
-			writeLen, err = client.conn.Write(buf)
+				LogInfo(LOG_IDX, client.Idx, "Send Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 
-			LogInfo(LOG_IDX, client.Idx, "Send Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-
-			if err != nil || writeLen != len(buf) {
-				goto Exit
-			}*/
-			client.SendMsg(asyncMsg.msg)
-			if asyncMsg.cb != nil {
-				//if cb, ok := (asyncMsg.cb).(func()); ok {
-				func() {
-					defer func() {
-						recover()
+				if err != nil || writeLen != len(buf) {
+					goto Exit
+				}*/
+				client.SendMsg(asyncMsg.msg)
+				if asyncMsg.cb != nil {
+					//if cb, ok := (asyncMsg.cb).(func()); ok {
+					func() {
+						defer func() {
+							recover()
+						}()
+						asyncMsg.cb()
 					}()
-					asyncMsg.cb()
-				}()
-				//}
+					//}
+				}
+			} else {
+				break
 			}
-		} else {
-			break
 		}
 	}
 	/*
@@ -156,6 +159,13 @@ Exit:
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	client.RLock()
 	defer client.RUnlock()
+
+	if client.chSend == nil {
+		client.chSend = make(chan *AsyncMsg, 10)
+		NewCoroutine(func() {
+			client.writer()
+		})
+	}
 
 	if client.running {
 		asyncmsg := &AsyncMsg{
@@ -320,9 +330,9 @@ func (client *TcpClient) start() bool {
 		return false
 	}
 
-	NewCoroutine(func() {
+	/*NewCoroutine(func() {
 		client.writer()
-	})
+	})*/
 
 	NewCoroutine(func() {
 		client.reader()
@@ -343,7 +353,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
-		chSend:  make(chan *AsyncMsg, 10),
+		chSend:  nil,
 		//Data:    nil,
 		Valid:   false,
 		running: true,
