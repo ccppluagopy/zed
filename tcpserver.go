@@ -195,13 +195,13 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	cb, ok := server.handlerMap[msg.Cmd]
 	if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
 		defer PanicHandle(true, func() {
-			LogError(LOG_IDX, LOG_IDX, "HandleMsg %s panic err!", msg.Client.Info())
+			ZLog("HandleMsg %s panic err!", msg.Client.Info())
 			msg.Client.Stop()
 		})
 		if cb(msg) {
 			return
 		} else {
-			LogError(LOG_IDX, msg.Client.Idx, "HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
 		}
 
 	} /*else {
