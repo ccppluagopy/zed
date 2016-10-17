@@ -127,7 +127,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	)
 
 	if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-		LogError(LOG_IDX, client.Idx, "%s SetWriteDeadline Err: %v.", client.Info(), err)
+		ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
 		goto Exit
 	}
 
@@ -162,9 +162,7 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 
 	if client.chSend == nil {
 		client.chSend = make(chan *AsyncMsg, 10)
-		NewCoroutine(func() {
-			client.writer()
-		})
+		client.StartWriter()
 	}
 
 	if client.running {
@@ -302,6 +300,29 @@ Exit:
 	//LogInfo(LOG_IDX, client.Idx, "reader Exit %s", client.Info())
 }
 
+/*func (client *TcpClient) ConnectTo(addr string) bool {
+	var err error
+	client.conn, err = net.Dial("tcp", addr)
+	if err != nil {
+		ZLog("[ConnectTo] %s Error: %v", client.Info(), err)
+		return false
+	}
+
+	return true
+}*/
+
+func (client *TcpClient) StartReader() {
+	NewCoroutine(func() {
+		client.reader()
+	})
+}
+
+func (client *TcpClient) StartWriter() {
+	NewCoroutine(func() {
+		client.writer()
+	})
+}
+
 func (client *TcpClient) start() bool {
 	if err := client.conn.SetKeepAlive(true); err != nil {
 		if showClientData {
@@ -334,9 +355,7 @@ func (client *TcpClient) start() bool {
 		client.writer()
 	})*/
 
-	NewCoroutine(func() {
-		client.reader()
-	})
+	client.StartReader()
 
 	if showClientData {
 		ZLog("New Client Start %s", client.Info())

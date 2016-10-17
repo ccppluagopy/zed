@@ -1,7 +1,11 @@
 package zed
 
 import (
+	"encoding/binary"
+	"io"
+	"net"
 	"sync"
+	"time"
 )
 
 var (
@@ -37,7 +41,7 @@ type RWMutex struct {
 	wmap   map[string]*RWMutexTeam
 }
 
-func NewRWMutex(name string, addr string) *RWMutex {
+func NewRWMutexServer(name string, addr string) *RWMutex {
 	if rwmtx, ok := rwmutexs[name]; !ok {
 		rwmtx = &RWMutex{
 			state:  RWMUTEX_STATE_FREE,
@@ -233,4 +237,135 @@ func DeleRWMutex(name string) {
 		rwmtx.server.Stop()
 		delete(rwmutexs, name)
 	}
+}
+
+type RWMutexClient struct {
+	sync.RWMutex
+	addr string
+	conn *net.TCPConn
+}
+
+func (client *RWMutexClient) SendMsg(msg *NetMsg) bool {
+	var (
+		writeLen = 0
+		buf      []byte
+		err      error
+	)
+
+	if client.conn == nil {
+		tcpaddr, err2 := net.ResolveTCPAddr("tcp", client.addr)
+		if err2 != nil {
+			return false
+		}
+
+		client.conn, err = net.DialTCP("tcp", nil, tcpaddr)
+		if err != nil {
+			return false
+		}
+	}
+
+	if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+		ZLog("RWMutexClient SetWriteDeadline Err: %v.", err)
+		goto Exit
+	}
+
+	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
+	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
+	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+
+	writeLen, err = client.conn.Write(buf)
+
+	if err == nil && writeLen == len(buf) {
+		return true
+	}
+
+Exit:
+	return false
+}
+
+func (client *RWMutexClient) ReadMsg() *NetMsg {
+	var (
+		head    = make([]byte, PACK_HEAD_LEN)
+		readLen = 0
+		err     error
+		msg     *NetMsg
+	)
+
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		ZLog("RWMutexClient SetReadDeadline Err: %v.", err)
+		goto Exit
+	}
+
+	readLen, err = io.ReadFull(client.conn, head)
+	if err != nil || readLen < PACK_HEAD_LEN {
+		ZLog("RWMutexClient Read Head Err: %v %d.", err, readLen)
+		goto Exit
+	}
+
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		ZLog("RWMutexClient SetReadDeadline Err: %v.", err)
+		goto Exit
+	}
+
+	msg = &NetMsg{
+		Cmd:  CmdType(binary.LittleEndian.Uint32(head[4:8])),
+		Len:  0,
+		Data: nil,
+	}
+
+	return msg
+
+Exit:
+	return nil
+}
+
+func (client *RWMutexClient) RLock() bool {
+	client.Lock()
+	defer client.Unlock()
+	/*
+	   const (
+	   	RWMUTEX_CMD_RLOCK = iota
+	   	RWMUTEX_CMD_RUNLOCK
+	   	RWMUTEX_CMD_RLOCK_ERR
+	   	RWMUTEX_CMD_RUNLOCK_ERR
+	   	RWMUTEX_CMD_LOCK
+	   	RWMUTEX_CMD_UNLOCK
+	   	RWMUTEX_CMD_LOCK_ERR
+	   	RWMUTEX_CMD_UNLOCK_ERR
+	   )
+	*/
+	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK, Len: 0, Data: nil}) {
+		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_RLOCK {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (client *RWMutexClient) RUnLock() bool {
+	client.Lock()
+	defer client.Unlock()
+
+	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RUNLOCK, Len: 0, Data: nil}) {
+		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_RUNLOCK {
+			return true
+		}
+	}
+
+	return false
+}
+
+func NewRWMutexClient(addr string) *RWMutexClient {
+	return &RWMutexClient{
+		addr: addr,
+		conn: nil,
+	}
+}
+
+func DeleRWMutexClient(client *RWMutexClient) {
+	client.Lock()
+	defer client.Unlock()
+
+	client.conn.Close()
 }
