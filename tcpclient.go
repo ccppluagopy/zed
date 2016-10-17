@@ -171,15 +171,69 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	}
 }
 
-func (client *TcpClient) reader() {
+func (client *TcpClient) ReadMsg() *NetMsg {
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
 		err     error
+		msg     *NetMsg
+	)
+
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		if showClientData {
+			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
+		}
+		goto Exit
+	}
+
+	readLen, err = io.ReadFull(client.conn, head)
+	if err != nil || readLen < PACK_HEAD_LEN {
+		if showClientData {
+			ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
+		}
+		goto Exit
+	}
+
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		if showClientData {
+			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
+		}
+		goto Exit
+	}
+
+	msg = &NetMsg{
+		Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
+		Len:    int(binary.LittleEndian.Uint32(head[0:4])),
+		Client: client,
+	}
+
+	if msg.Len > 0 {
+		msg.Data = make([]byte, msg.Len)
+		readLen, err := io.ReadFull(client.conn, msg.Data)
+		if err != nil || readLen != int(msg.Len) {
+			if showClientData {
+				ZLog("%s Read Body Err: %v.", client.Info(), err)
+			}
+			goto Exit
+		}
+	}
+
+	return msg
+
+Exit:
+	return nil
+}
+
+func (client *TcpClient) reader() {
+	var (
+		/*head    = make([]byte, PACK_HEAD_LEN)
+		readLen = 0
+		err     error*/
+		msg *NetMsg
 	)
 
 	for {
-		if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		/*if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
 			if showClientData {
 				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 			}
@@ -201,7 +255,7 @@ func (client *TcpClient) reader() {
 			goto Exit
 		}
 
-		var msg = &NetMsg{
+		msg = &NetMsg{
 			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
 			Len:    int(binary.LittleEndian.Uint32(head[0:4])),
 			Client: client,
@@ -216,6 +270,10 @@ func (client *TcpClient) reader() {
 				}
 				goto Exit
 			}
+		}*/
+		msg = client.ReadMsg()
+		if msg == nil {
+			goto Exit
 		}
 
 		if dataInSupervisor != nil {
