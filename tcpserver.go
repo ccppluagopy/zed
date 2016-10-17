@@ -56,6 +56,10 @@ func (server *TcpServer) startListener(addr string) {
 				server.ClientNum = server.ClientNum + 1
 
 				server.onNewClient(client)
+				if server.onNewConnCB != nil {
+					server.onNewConnCB(client)
+				}
+
 				/*for _, cb := range server.newConnCBMap {
 					cb(client)
 				}*/
@@ -153,6 +157,14 @@ func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
 	server.msgFilter = filter
 }
 
+func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
+	server.onNewConnCB = cb
+}
+
+func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
+	server.onConnCloseCB = cb
+}
+
 func (server *TcpServer) onNewClient(client *TcpClient) {
 	server.Lock()
 	defer server.Unlock()
@@ -165,6 +177,9 @@ func (server *TcpServer) onClientStop(client *TcpClient) {
 	defer server.Unlock()
 
 	delete(server.clients, client.Idx)
+	if server.onNewConnCB != nil {
+		server.onNewConnCB(client)
+	}
 }
 
 func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
@@ -252,7 +267,9 @@ func NewTcpServer(name string) *TcpServer {
 		clients:    make(map[int]*TcpClient),
 		//clientIdMap: make(map[*TcpClient]uint32),
 		//idClientMap: make(map[uint32]*TcpClient),
-		msgFilter: nil,
+		msgFilter:     nil,
+		onNewConnCB:   nil,
+		onConnCloseCB: nil,
 	}
 
 	servers[name] = server

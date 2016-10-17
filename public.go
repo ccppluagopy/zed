@@ -78,12 +78,14 @@ type TcpClient struct {
 
 type TcpServer struct {
 	sync.RWMutex
-	running    bool
-	ClientNum  int
-	listener   *net.TCPListener
-	handlerMap map[CmdType]MsgHandler
-	clients    map[int]*TcpClient
-	msgFilter  func(*NetMsg) bool
+	running       bool
+	ClientNum     int
+	listener      *net.TCPListener
+	handlerMap    map[CmdType]MsgHandler
+	clients       map[int]*TcpClient
+	msgFilter     func(*NetMsg) bool
+	onNewConnCB   func(client *TcpClient)
+	onConnCloseCB func(client *TcpClient)
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
 }
