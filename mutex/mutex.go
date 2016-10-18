@@ -16,11 +16,6 @@ var (
 )
 
 const (
-	MUTEX_STATE_FREE = iota
-	MUTEX_STATE_READING
-	MUTEX_STATE_WRITING
-)
-const (
 	MUTEX_CMD_LOCK = iota
 	MUTEX_CMD_UNLOCK
 	MUTEX_CMD_LOCK_ERR
@@ -37,7 +32,7 @@ const (
 
 type Mutex struct {
 	sync.Mutex
-	state        int
+	//state        int
 	server       *zed.TcpServer
 	mtxmap       map[string]map[*zed.TcpClient]*zed.TcpClient
 	mtxcurrmap   map[string]*zed.TcpClient
@@ -73,25 +68,25 @@ func (err *ZMutexErr) Error() string {
 	return "ZMutexError"
 }
 
-func (rwmtx *Mutex) PublicR(key string) {
-	mtxmap, ok := rwmtx.mtxmap[key]
+func (mtx *Mutex) PublicR(key string) {
+	mtxmap, ok := mtx.mtxmap[key]
 	if ok {
 		for client, _ := range mtxmap {
-			rwmtx.mtxcurrmap[key] = client
+			mtx.mtxcurrmap[key] = client
 			Printff("[PublicR] %s\n", client.GetConn().RemoteAddr())
 			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			//delete(mtxmap, client)
 			return
 		}
 
-		rwmtx.mtxcurrmap[key] = nil
+		mtx.mtxcurrmap[key] = nil
 	}
 }
 
 func NewMutexServer(name string, addr string) *Mutex {
 	if mtx, ok := mutexs[name]; !ok {
 		mtx = &Mutex{
-			state:        MUTEX_STATE_FREE,
+			//state:        MUTEX_STATE_FREE,
 			server:       zed.NewTcpServer(name),
 			mtxmap:       make(map[string]map[*zed.TcpClient]*zed.TcpClient),
 			mtxcurrmap:   make(map[string]*zed.TcpClient),
@@ -289,7 +284,7 @@ func (client *MutexClient) Lock(key string) {
 		}
 		switch msg.Cmd {
 		case MUTEX_CMD_LOCK:
-
+			return
 		case MUTEX_TWICE_LOCK_ERR:
 			panic(&ZMutexErr{errno: MUTEX_TWICE_LOCK_ERR})
 		case MUTEX_LOCK_EMPTY_KEY_ERR:
@@ -313,7 +308,7 @@ func (client *MutexClient) UnLock(key string) {
 		}
 		switch msg.Cmd {
 		case MUTEX_CMD_UNLOCK:
-
+			return
 		case MUTEX_INVALID_UNLOCK_ERR:
 			panic(&ZMutexErr{errno: MUTEX_INVALID_UNLOCK_ERR})
 		case MUTEX_UNLOCK_EMPTY_KEY_ERR:

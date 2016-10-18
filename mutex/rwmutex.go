@@ -1,99 +1,94 @@
 package mutex
 
-/*
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"github.com/ccppluagopy/zed"
-	"io"
-	"net"
+	//"io"
+	//"net"
 	"sync"
-	"time"
+	//"time"
 )
 
 var (
-	rwmutexs       = make(map[string]*Mutex)
-	rwmutexconnops = make(map[*zed.TcpClient]map[string]bool)
+	rwmutexs       = make(map[string]*RWMutex)
+	rwmutexconnops = make(map[*zed.TcpClient]map[string]int)
 )
 
 const (
-	MUTEX_STATE_FREE = iota
-	MUTEX_STATE_READING
-	MUTEX_STATE_WRITING
+	RWMUTEX_STATE_FREE = iota
+	RWMUTEX_STATE_READING
+	RWMUTEX_STATE_WRITING
 )
 const (
-	MUTEX_CMD_LOCK = iota
-	MUTEX_CMD_UNLOCK
-	MUTEX_CMD_LOCK_ERR
-	MUTEX_CMD_UNLOCK_ERR
+	RWMUTEX_CMD_LOCK = iota
+	RWMUTEX_CMD_UNLOCK
+	RWMUTEX_CMD_LOCK_ERR
+	RWMUTEX_CMD_UNLOCK_ERR
 
-	MUTEX_NET_ERR
-	MUTEX_LOCK_EMPTY_KEY_ERR
-	MUTEX_TWICE_LOCK_ERR
-	MUTEX_LOCK_RECV_INVALID_CMD_ERR
-	MUTEX_INVALID_UNLOCK_ERR
-	MUTEX_UNLOCK_EMPTY_KEY_ERR
-	MUTEX_UNLOCK_RECV_INVALID_CMD_ERR
+	RWMUTEX_NET_ERR
+	RWMUTEX_LOCK_EMPTY_KEY_ERR
+	RWMUTEX_TWICE_LOCK_ERR
+	RWMUTEX_LOCK_RECV_INVALID_CMD_ERR
+	RWMUTEX_INVALID_UNLOCK_ERR
+	RWMUTEX_UNLOCK_EMPTY_KEY_ERR
+	RWMUTEX_UNLOCK_RECV_INVALID_CMD_ERR
 )
 
-type Mutex struct {
+type RWMutex struct {
 	sync.Mutex
-	state      int
-	server     *zed.TcpServer
-	mtxmap     map[string]map[*zed.TcpClient]*zed.TcpClient
-	mtxcurrmap map[string]*zed.TcpClient
+	state        int
+	server       *zed.TcpServer
+	rwmtxmap     map[string]map[*zed.TcpClient]int
+	rwmtxcurrmap map[string]*zed.TcpClient
 }
 
-func Printff(fmt string, v ...interface{}) {
-
-}
-
-type ZMutexErr struct {
+type ZRWMutexErr struct {
 	errno int
 }
 
-func (err *ZMutexErr) Error() string {
+func (err *ZRWMutexErr) Error() string {
 	switch err.errno {
-	case MUTEX_NET_ERR:
-		return "Error: ZMutex Operation Net Unavailable."
-	case MUTEX_LOCK_EMPTY_KEY_ERR:
-		return "Error: ZMutex Lock key is empty."
-	case MUTEX_TWICE_LOCK_ERR:
-		return "Error: ZMutex Twice Lock."
-	case MUTEX_LOCK_RECV_INVALID_CMD_ERR:
-		return "Error: ZMutex Lock Recv Invalid Cmd."
-	case MUTEX_INVALID_UNLOCK_ERR:
-		return "Error: ZMutex Invalid UnLock Operation."
-	case MUTEX_UNLOCK_EMPTY_KEY_ERR:
-		return "Error: ZMutex UnLock key is empty."
-	case MUTEX_UNLOCK_RECV_INVALID_CMD_ERR:
-		return "Error: ZMutex UnLock Recv Invalid Cmd."
+	case RWMUTEX_NET_ERR:
+		return "Error: ZRWMutex Operation Net Unavailable."
+	case RWMUTEX_LOCK_EMPTY_KEY_ERR:
+		return "Error: ZRWMutex Lock key is empty."
+	case RWMUTEX_TWICE_LOCK_ERR:
+		return "Error: ZRWMutex Twice Lock."
+	case RWMUTEX_LOCK_RECV_INVALID_CMD_ERR:
+		return "Error: ZRWMutex Lock Recv Invalid Cmd."
+	case RWMUTEX_INVALID_UNLOCK_ERR:
+		return "Error: ZRWMutex Invalid UnLock Operation."
+	case RWMUTEX_UNLOCK_EMPTY_KEY_ERR:
+		return "Error: ZRWMutex UnLock key is empty."
+	case RWMUTEX_UNLOCK_RECV_INVALID_CMD_ERR:
+		return "Error: ZRWMutex UnLock Recv Invalid Cmd."
 	}
 
 	return "ZMutexError"
 }
 
-func (rwmtx *Mutex) PublicR(key string) {
-	mtxmap, ok := rwmtx.mtxmap[key]
+func (rwmtx *RWMutex) PublicR(key string) {
+	rwmtxmap, ok := rwmtx.rwmtxmap[key]
 	if ok {
-		for client, _ := range mtxmap {
-			rwmtx.mtxcurrmap[key] = client
+		for client, _ := range rwmtxmap {
+			rwmtx.rwmtxcurrmap[key] = client
 			Printff("[PublicR] %s\n", client.GetConn().RemoteAddr())
 			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
-			//delete(mtxmap, client)
+			//delete(rwmtxmap, client)
 			return
 		}
 
-		rwmtx.mtxcurrmap[key] = nil
+		rwmtx.rwmtxcurrmap[key] = nil
 	}
 }
 
-func NewMutexServer(name string, addr string) *Mutex {
+func NewRWMutexServer(name string, addr string) *RWMutex {
 	if rwmtx, ok := rwmutexs[name]; !ok {
-		rwmtx = &Mutex{
-			state:      MUTEX_STATE_FREE,
-			server:     zed.NewTcpServer(name),
-			mtxmap:     make(map[string]map[*zed.TcpClient]*zed.TcpClient),
-			mtxcurrmap: make(map[string]*zed.TcpClient),
+		rwmtx = &RWMutex{
+			state:        RWMUTEX_STATE_FREE,
+			server:       zed.NewTcpServer(name),
+			rwmtxmap:     make(map[string]map[*zed.TcpClient]int),
+			rwmtxcurrmap: make(map[string]*zed.TcpClient),
 		}
 
 		handleLock := func(msg *zed.NetMsg) bool {
@@ -101,24 +96,24 @@ func NewMutexServer(name string, addr string) *Mutex {
 			defer rwmtx.Unlock()
 
 			key := string(msg.Data)
-			mtxmap, ok := rwmtx.mtxmap[key]
+			rwmtxmap, ok := rwmtx.rwmtxmap[key]
 			if key == "" {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
 
 			if !ok {
-				mtxmap = make(map[*zed.TcpClient]*zed.TcpClient)
-				rwmtx.mtxmap[key] = mtxmap
+				rwmtxmap = make(map[*zed.TcpClient]int)
+				rwmtx.rwmtxmap[key] = rwmtxmap
 			}
 
-			if _, ok2 := mtxmap[msg.Client]; ok2 {
+			if _, ok2 := rwmtxmap[msg.Client]; ok2 {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_TWICE_LOCK_ERR, Len: 0, Data: nil})
 				return false
 			}
-			mtxmap[msg.Client] = msg.Client
-			if len(mtxmap) == 1 {
-				rwmtx.mtxcurrmap[key] = msg.Client
+			rwmtxmap[msg.Client] = RWMUTEX_STATE_WRITING
+			if len(rwmtxmap) == 1 {
+				rwmtx.rwmtxcurrmap[key] = msg.Client
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			}
 
@@ -131,8 +126,8 @@ func NewMutexServer(name string, addr string) *Mutex {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
-			if curr, ok := rwmtx.mtxcurrmap[key]; ok && curr == msg.Client {
-				delete(rwmtx.mtxmap[key], msg.Client)
+			if curr, ok := rwmtx.rwmtxcurrmap[key]; ok && curr == msg.Client {
+				delete(rwmtx.rwmtxmap[key], msg.Client)
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: 0, Data: nil})
 				rwmtx.PublicR(key)
 				return true
@@ -159,153 +154,84 @@ func NewMutexServer(name string, addr string) *Mutex {
 	return nil
 }
 
-func DeleMutex(name string) {
+func DeleRWMutex(name string) {
 	if rwmtx, ok := rwmutexs[name]; ok {
 		rwmtx.server.Stop()
 		delete(rwmutexs, name)
 	}
 }
 
-type MutexClient struct {
-	mutex sync.Mutex
-	addr  string
-	conn  *net.TCPConn
-	name  string
+type RWMutexClient struct {
+	MutexClient
 }
 
-func (client *MutexClient) SendMsg(msg *zed.NetMsg) bool {
-	var (
-		writeLen = 0
-		buf      []byte
-		err      error
-	)
-
-	if client.conn == nil {
-		tcpaddr, err2 := net.ResolveTCPAddr("tcp", client.addr)
-		if err2 != nil {
-			return false
-		}
-
-		client.conn, err = net.DialTCP("tcp", nil, tcpaddr)
-		if err != nil {
-			return false
-		}
-	}
-
-	if err := (*client.conn).SetWriteDeadline(time.Now().Add(zed.WRITE_BLOCK_TIME)); err != nil {
-		zed.ZLog("MutexClient SetWriteDeadline Err: %v.", err)
-		goto Exit
-	}
-
-	buf = make([]byte, zed.PACK_HEAD_LEN+msg.Len)
-	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-
-	writeLen, err = client.conn.Write(buf)
-
-	if err == nil && writeLen == len(buf) {
-		return true
-	}
-
-Exit:
-	return false
-}
-
-func (client *MutexClient) ReadMsg() *zed.NetMsg {
-	var (
-		head    = make([]byte, zed.PACK_HEAD_LEN)
-		readLen = 0
-		err     error
-		msg     *zed.NetMsg
-	)
-
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(zed.READ_BLOCK_TIME)); err != nil {
-		zed.ZLog("MutexClient SetReadDeadline Err: %v.", err)
-		goto Exit
-	}
-
-	readLen, err = io.ReadFull(client.conn, head)
-	if err != nil || readLen < zed.PACK_HEAD_LEN {
-		zed.ZLog("MutexClient Read Head Err: %v %d.", err, readLen)
-		goto Exit
-	}
-
-	msg = &zed.NetMsg{
-		Cmd:  zed.CmdType(binary.LittleEndian.Uint32(head[4:8])),
-		Len:  0,
-		Data: nil,
-	}
-
-	return msg
-
-Exit:
-	return nil
-}
-
-func (client *MutexClient) Lock(key string) {
+func (client *RWMutexClient) Lock(key string) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
 	if client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
 		msg := client.ReadMsg()
 		if msg == nil {
-			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_NET_ERR})
 		}
 		switch msg.Cmd {
 		case MUTEX_CMD_LOCK:
-
+			return
 		case MUTEX_TWICE_LOCK_ERR:
-			panic(&ZMutexErr{errno: MUTEX_TWICE_LOCK_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_TWICE_LOCK_ERR})
 		case MUTEX_LOCK_EMPTY_KEY_ERR:
-			panic(&ZMutexErr{errno: MUTEX_LOCK_EMPTY_KEY_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_LOCK_EMPTY_KEY_ERR})
 		default:
-			panic(&ZMutexErr{errno: MUTEX_LOCK_RECV_INVALID_CMD_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_LOCK_RECV_INVALID_CMD_ERR})
 		}
 	} else {
-		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
+		panic(&ZRWMutexErr{errno: MUTEX_NET_ERR})
 	}
 }
 
-func (client *MutexClient) UnLock(key string) {
+func (client *RWMutexClient) UnLock(key string) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
 	if client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
 		msg := client.ReadMsg()
 		if msg == nil {
-			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_NET_ERR})
 		}
 		switch msg.Cmd {
 		case MUTEX_CMD_UNLOCK:
 
 		case MUTEX_INVALID_UNLOCK_ERR:
-			panic(&ZMutexErr{errno: MUTEX_INVALID_UNLOCK_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_INVALID_UNLOCK_ERR})
 		case MUTEX_UNLOCK_EMPTY_KEY_ERR:
-			panic(&ZMutexErr{errno: MUTEX_UNLOCK_EMPTY_KEY_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_UNLOCK_EMPTY_KEY_ERR})
 		default:
-			panic(&ZMutexErr{errno: MUTEX_UNLOCK_RECV_INVALID_CMD_ERR})
+			panic(&ZRWMutexErr{errno: MUTEX_UNLOCK_RECV_INVALID_CMD_ERR})
 		}
 	} else {
-		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
+		panic(&ZRWMutexErr{errno: MUTEX_NET_ERR})
 	}
 }
 
-func NewMutexClient(name string, addr string) *MutexClient {
-	return &MutexClient{
-		addr: addr,
-		conn: nil,
-		name: name,
+func NewRWMutexClient(name string, addr string) *RWMutexClient {
+	return &RWMutexClient{
+		MutexClient: MutexClient{
+			addr: addr,
+			conn: nil,
+			name: name,
+		},
 	}
 }
 
-func DeleMutexClient(client *MutexClient) {
+func DeleRWMutexClient(client *RWMutexClient) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
 	client.conn.Close()
 }
 
-func TestMutex() {
+/*
+func TestRWMutex() {
 	const (
 		key  = "key"
 		addr = "127.0.0.1:33333"
