@@ -1,9 +1,9 @@
 package mutex
 
+/*
 import (
 	"encoding/binary"
 	"github.com/ccppluagopy/zed"
-	//"fmt"
 	"io"
 	"net"
 	"sync"
@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	mutexs = make(map[string]*Mutex)
-	//rwmutexconnops = make(map[*zed.TcpClient]map[string]bool)
+	rwmutexs       = make(map[string]*Mutex)
+	rwmutexconnops = make(map[*zed.TcpClient]map[string]bool)
 )
 
 const (
@@ -88,7 +88,7 @@ func (rwmtx *Mutex) PublicR(key string) {
 }
 
 func NewMutexServer(name string, addr string) *Mutex {
-	if rwmtx, ok := mutexs[name]; !ok {
+	if rwmtx, ok := rwmutexs[name]; !ok {
 		rwmtx = &Mutex{
 			state:      MUTEX_STATE_FREE,
 			server:     zed.NewTcpServer(name),
@@ -160,9 +160,9 @@ func NewMutexServer(name string, addr string) *Mutex {
 }
 
 func DeleMutex(name string) {
-	if rwmtx, ok := mutexs[name]; ok {
+	if rwmtx, ok := rwmutexs[name]; ok {
 		rwmtx.server.Stop()
-		delete(mutexs, name)
+		delete(rwmutexs, name)
 	}
 }
 
@@ -229,11 +229,6 @@ func (client *MutexClient) ReadMsg() *zed.NetMsg {
 		zed.ZLog("MutexClient Read Head Err: %v %d.", err, readLen)
 		goto Exit
 	}
-
-	/*if err = (*client.conn).SetReadDeadline(time.Now().Add(zed.READ_BLOCK_TIME)); err != nil {
-		zed.ZLog("MutexClient SetReadDeadline Err: %v.", err)
-		goto Exit
-	}*/
 
 	msg = &zed.NetMsg{
 		Cmd:  zed.CmdType(binary.LittleEndian.Uint32(head[4:8])),
@@ -360,3 +355,4 @@ func TestMutex() {
 
 	time.Sleep(time.Hour)
 }
+*/
