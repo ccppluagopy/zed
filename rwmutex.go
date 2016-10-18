@@ -43,14 +43,18 @@ type RWMutex struct {
 	mtxcurrmap map[string]*TcpClient
 }
 
+func Printff(fmt string, v ...interface{}) {
+
+}
+
 func (rwmtx *RWMutex) PublicR(key string) {
 	mtxmap, ok := rwmtx.mtxmap[key]
 	if ok {
 		for client, _ := range mtxmap {
 			rwmtx.mtxcurrmap[key] = client
-			Printf("[PublicR] %s\n", client.conn.RemoteAddr())
+			Printff("[PublicR] %s\n", client.conn.RemoteAddr())
 			client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-			delete(mtxmap, client)
+			//delete(mtxmap, client)
 			return
 		}
 
@@ -90,27 +94,34 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 			if _, ok2 := mtxmap[msg.Client]; ok2 {
 				goto Err
 			}
-
+			mtxmap[msg.Client] = msg.Client
 			if len(mtxmap) == 1 {
 				rwmtx.mtxcurrmap[key] = msg.Client
-				Printf("[Lock] %s\n", msg.Client.conn.RemoteAddr())
+				Printff("[HandleLock] %s\n", msg.Client.conn.RemoteAddr())
 				msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-			} else {
+			} /*else {
 				mtxmap[msg.Client] = msg.Client
-			}
+			}*/
 
 			return true
 		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_RLOCK_ERR, Len: 0, Data: nil})
+			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK_ERR, Len: 0, Data: nil})
 			return false
 		}
 
 		handleUnLock := func(msg *NetMsg) bool {
+			Printff("[HandleUnLock] %s\n", msg.Client.conn.RemoteAddr())
 			key := string(msg.Data)
-			if _, ok := rwmtx.mtxcurrmap[key]; ok {
+			if curr, ok := rwmtx.mtxcurrmap[key]; ok && curr == msg.Client {
+				delete(rwmtx.mtxmap[key], msg.Client)
+				msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: 0, Data: nil})
 				rwmtx.PublicR(key)
 				return true
+			} else {
+				goto Err
 			}
+		Err:
+			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK_ERR, Len: 0, Data: nil})
 			return false
 		}
 
@@ -152,6 +163,7 @@ type RWMutexClient struct {
 	mutex sync.RWMutex
 	addr  string
 	conn  *net.TCPConn
+	name  string
 }
 
 func (client *RWMutexClient) SendMsg(msg *NetMsg) bool {
@@ -229,6 +241,7 @@ Exit:
 }
 
 func (client *RWMutexClient) Lock(key string) bool {
+	Printff("[Lock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 	/*
@@ -243,32 +256,44 @@ func (client *RWMutexClient) Lock(key string) bool {
 	   	RWMUTEX_CMD_UNLOCK_ERR
 	   )
 	*/
+	Printff("[Lock] %s %s 222\n", client.name)
 	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
-		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_LOCK {
+		Printff("[Lock] %s %s 333\n", client.name, client.conn.LocalAddr())
+		msg := client.ReadMsg()
+		Printff("[Lock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
+		if msg != nil && msg.Cmd == RWMUTEX_CMD_LOCK {
+			Printff("[Lock] %s %s 555\n", client.name, client.conn.LocalAddr())
 			return true
 		}
 	}
-
+	Printff("[Lock] %s %s 666\n", client.name, client.conn.LocalAddr())
 	return false
 }
 
 func (client *RWMutexClient) UnLock(key string) bool {
+	Printff("[UnLock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
+	Printff("[UnLock] %s %s 222\n", client.name)
 	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
-		if msg := client.ReadMsg(); msg != nil && msg.Cmd == RWMUTEX_CMD_UNLOCK {
+		Printff("[UnLock] %s %s 333\n", client.name, client.conn.LocalAddr())
+		msg := client.ReadMsg()
+		Printff("[UnLock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
+		if msg != nil && msg.Cmd == RWMUTEX_CMD_UNLOCK {
+			Printff("[UnLock] %s %s 555\n", client.name, client.conn.LocalAddr())
 			return true
 		}
 	}
-
+	Printff("[UnLock] %s %s666\n", client.name, client.conn.LocalAddr())
 	return false
 }
 
-func NewRWMutexClient(addr string) *RWMutexClient {
+func NewRWMutexClient(name string, addr string) *RWMutexClient {
 	return &RWMutexClient{
 		addr: addr,
 		conn: nil,
+		name: name,
 	}
 }
 
