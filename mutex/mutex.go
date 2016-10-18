@@ -37,11 +37,11 @@ const (
 
 type Mutex struct {
 	sync.Mutex
-	state          int
-	server         *zed.TcpServer
-	mtxmap         map[string]map[*zed.TcpClient]*zed.TcpClient
-	mtxcurrmap     map[string]*zed.TcpClient
-	rwmutexconnops map[*zed.TcpClient]map[string]bool
+	state        int
+	server       *zed.TcpServer
+	mtxmap       map[string]map[*zed.TcpClient]*zed.TcpClient
+	mtxcurrmap   map[string]*zed.TcpClient
+	mutexconnops map[*zed.TcpClient]map[string]bool
 }
 
 func Printff(fmt string, v ...interface{}) {
@@ -91,11 +91,11 @@ func (rwmtx *Mutex) PublicR(key string) {
 func NewMutexServer(name string, addr string) *Mutex {
 	if mtx, ok := mutexs[name]; !ok {
 		mtx = &Mutex{
-			state:          MUTEX_STATE_FREE,
-			server:         zed.NewTcpServer(name),
-			mtxmap:         make(map[string]map[*zed.TcpClient]*zed.TcpClient),
-			mtxcurrmap:     make(map[string]*zed.TcpClient),
-			rwmutexconnops: make(map[*zed.TcpClient]map[string]bool),
+			state:        MUTEX_STATE_FREE,
+			server:       zed.NewTcpServer(name),
+			mtxmap:       make(map[string]map[*zed.TcpClient]*zed.TcpClient),
+			mtxcurrmap:   make(map[string]*zed.TcpClient),
+			mutexconnops: make(map[*zed.TcpClient]map[string]bool),
 		}
 
 		handleLock := func(msg *zed.NetMsg) bool {
@@ -124,10 +124,10 @@ func NewMutexServer(name string, addr string) *Mutex {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			}
 
-			clientOps, ok3 := mtx.rwmutexconnops[msg.Client]
+			clientOps, ok3 := mtx.mutexconnops[msg.Client]
 			if !ok3 {
 				clientOps = make(map[string]bool)
-				mtx.rwmutexconnops[msg.Client] = clientOps
+				mtx.mutexconnops[msg.Client] = clientOps
 			}
 			clientOps[key] = true
 			return true
@@ -144,7 +144,7 @@ func NewMutexServer(name string, addr string) *Mutex {
 			}
 			if curr, ok := mtx.mtxcurrmap[key]; ok && curr == msg.Client {
 				delete(mtx.mtxmap[key], msg.Client)
-				clientOps, ok3 := mtx.rwmutexconnops[msg.Client]
+				clientOps, ok3 := mtx.mutexconnops[msg.Client]
 				if ok3 {
 					delete(clientOps, key)
 				}
@@ -158,7 +158,7 @@ func NewMutexServer(name string, addr string) *Mutex {
 		}
 
 		handleConnClose := func(client *zed.TcpClient) {
-			clientOps, ok := mtx.rwmutexconnops[client]
+			clientOps, ok := mtx.mutexconnops[client]
 			if ok {
 				for key, _ := range clientOps {
 					curr, _ := mtx.mtxcurrmap[key]
@@ -173,7 +173,7 @@ func NewMutexServer(name string, addr string) *Mutex {
 						}
 					}
 				}
-				delete(mtx.rwmutexconnops, client)
+				delete(mtx.mutexconnops, client)
 			}
 		}
 		mtx.server.SetConnCloseCB(handleConnClose)
