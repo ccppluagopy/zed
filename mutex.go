@@ -10,33 +10,30 @@ import (
 )
 
 var (
-	rwmutexs       = make(map[string]*RWMutex)
+	rwmutexs       = make(map[string]*Mutex)
 	rwmutexconnops = make(map[*TcpClient]map[string]bool)
 )
 
 const (
-	RWMUTEX_STATE_FREE = iota
-	RWMUTEX_STATE_READING
-	RWMUTEX_STATE_WRITING
+	MUTEX_STATE_FREE = iota
+	MUTEX_STATE_READING
+	MUTEX_STATE_WRITING
 )
 const (
-	RWMUTEX_CMD_RLOCK = iota
-	RWMUTEX_CMD_RUNLOCK
-	RWMUTEX_CMD_RLOCK_ERR
-	RWMUTEX_CMD_RUNLOCK_ERR
-	RWMUTEX_CMD_LOCK
-	RWMUTEX_CMD_UNLOCK
-	RWMUTEX_CMD_LOCK_ERR
-	RWMUTEX_CMD_UNLOCK_ERR
+	MUTEX_CMD_LOCK = iota
+	MUTEX_CMD_UNLOCK
+	MUTEX_CMD_LOCK_ERR
+	MUTEX_CMD_UNLOCK_ERR
+
+	MUTEX_NET_ERR
+	MUTEX_LOCK_EMPTY_KEY_ERR
+	MUTEX_TWICE_LOCK_ERR
+	MUTEX_INVALID_UNLOCK_ERR
+	MUTEX_UNLOCK_EMPTY_KEY_ERR
 )
 
-type RWMutexTeam struct {
-	//events map[string]uint64
-	count uint64
-}
-
-type RWMutex struct {
-	sync.RWMutex
+type Mutex struct {
+	sync.Mutex
 	state      int
 	server     *TcpServer
 	mtxmap     map[string]map[*TcpClient]*TcpClient
@@ -47,13 +44,34 @@ func Printff(fmt string, v ...interface{}) {
 
 }
 
-func (rwmtx *RWMutex) PublicR(key string) {
+type ZMutexErr struct {
+	errno int
+}
+
+func (err *ZMutexErr) Error() string {
+	switch err.errno {
+	case MUTEX_NET_ERR:
+		return "Error: ZMutex Operation Net Unavailable."
+	case MUTEX_LOCK_EMPTY_KEY_ERR:
+		return "Error: ZMutex Lock key is empty."
+	case MUTEX_TWICE_LOCK_ERR:
+		return "Error: ZMutex Twice Lock."
+	case MUTEX_INVALID_UNLOCK_ERR:
+		return "Error: ZMutex Invalid UnLock Operation."
+	case MUTEX_UNLOCK_EMPTY_KEY_ERR:
+		return "Error: ZMutex UnLock key is empty."
+	}
+
+	return "ZMutexError"
+}
+
+func (rwmtx *Mutex) PublicR(key string) {
 	mtxmap, ok := rwmtx.mtxmap[key]
 	if ok {
 		for client, _ := range mtxmap {
 			rwmtx.mtxcurrmap[key] = client
 			Printff("[PublicR] %s\n", client.conn.RemoteAddr())
-			client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
+			client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			//delete(mtxmap, client)
 			return
 		}
@@ -62,10 +80,10 @@ func (rwmtx *RWMutex) PublicR(key string) {
 	}
 }
 
-func NewRWMutexServer(name string, addr string) *RWMutex {
+func NewMutexServer(name string, addr string) *Mutex {
 	if rwmtx, ok := rwmutexs[name]; !ok {
-		rwmtx = &RWMutex{
-			state:      RWMUTEX_STATE_FREE,
+		rwmtx = &Mutex{
+			state:      MUTEX_STATE_FREE,
 			server:     NewTcpServer(name),
 			mtxmap:     make(map[string]map[*TcpClient]*TcpClient),
 			mtxcurrmap: make(map[string]*TcpClient),
@@ -83,7 +101,8 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 			key := string(msg.Data)
 			mtxmap, ok := rwmtx.mtxmap[key]
 			if key == "" {
-				goto Err
+				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
+				return false
 			}
 
 			if !ok {
@@ -92,81 +111,69 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 			}
 
 			if _, ok2 := mtxmap[msg.Client]; ok2 {
-				goto Err
+				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_TWICE_LOCK_ERR, Len: 0, Data: nil})
+				return false
 			}
 			mtxmap[msg.Client] = msg.Client
 			if len(mtxmap) == 1 {
 				rwmtx.mtxcurrmap[key] = msg.Client
 				Printff("[HandleLock] %s\n", msg.Client.conn.RemoteAddr())
-				msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
-			} /*else {
-				mtxmap[msg.Client] = msg.Client
-			}*/
+				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
+			}
 
 			return true
-		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK_ERR, Len: 0, Data: nil})
-			return false
 		}
 
 		handleUnLock := func(msg *NetMsg) bool {
 			Printff("[HandleUnLock] %s\n", msg.Client.conn.RemoteAddr())
 			key := string(msg.Data)
+			if key == "" {
+				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
+				return false
+			}
 			if curr, ok := rwmtx.mtxcurrmap[key]; ok && curr == msg.Client {
 				delete(rwmtx.mtxmap[key], msg.Client)
-				msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: 0, Data: nil})
+				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: 0, Data: nil})
 				rwmtx.PublicR(key)
 				return true
-			} else {
-				goto Err
 			}
-		Err:
-			msg.Client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK_ERR, Len: 0, Data: nil})
+
+			msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_INVALID_UNLOCK_ERR, Len: 0, Data: nil})
 			return false
-		}
-
-		handleRLock := func(msg *NetMsg) bool {
-			return true
-		}
-
-		handleRUnLock := func(msg *NetMsg) bool {
-			return true
 		}
 
 		handleConnClose := func(client *TcpClient) {
 
 		}
 		rwmtx.server.SetConnCloseCB(handleConnClose)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_LOCK, handleLock)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_UNLOCK, handleUnLock)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RLOCK, handleRLock)
-		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_RUNLOCK, handleRUnLock)
+		rwmtx.server.AddMsgHandler(MUTEX_CMD_LOCK, handleLock)
+		rwmtx.server.AddMsgHandler(MUTEX_CMD_UNLOCK, handleUnLock)
 
 		NewCoroutine(func() {
 			rwmtx.server.Start(addr)
 		})
 		return rwmtx
 	} else {
-		ZLog("NewRWMutex Error: %s has been exist.", name)
+		ZLog("NewMutex Error: %s has been exist.", name)
 	}
 	return nil
 }
 
-func DeleRWMutex(name string) {
+func DeleMutex(name string) {
 	if rwmtx, ok := rwmutexs[name]; ok {
 		rwmtx.server.Stop()
 		delete(rwmutexs, name)
 	}
 }
 
-type RWMutexClient struct {
-	mutex sync.RWMutex
+type MutexClient struct {
+	mutex sync.Mutex
 	addr  string
 	conn  *net.TCPConn
 	name  string
 }
 
-func (client *RWMutexClient) SendMsg(msg *NetMsg) bool {
+func (client *MutexClient) SendMsg(msg *NetMsg) bool {
 	var (
 		writeLen = 0
 		buf      []byte
@@ -186,7 +193,7 @@ func (client *RWMutexClient) SendMsg(msg *NetMsg) bool {
 	}
 
 	if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
-		ZLog("RWMutexClient SetWriteDeadline Err: %v.", err)
+		ZLog("MutexClient SetWriteDeadline Err: %v.", err)
 		goto Exit
 	}
 
@@ -204,7 +211,7 @@ Exit:
 	return false
 }
 
-func (client *RWMutexClient) ReadMsg() *NetMsg {
+func (client *MutexClient) ReadMsg() *NetMsg {
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
@@ -213,18 +220,18 @@ func (client *RWMutexClient) ReadMsg() *NetMsg {
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
-		ZLog("RWMutexClient SetReadDeadline Err: %v.", err)
+		ZLog("MutexClient SetReadDeadline Err: %v.", err)
 		goto Exit
 	}
 
 	readLen, err = io.ReadFull(client.conn, head)
 	if err != nil || readLen < PACK_HEAD_LEN {
-		ZLog("RWMutexClient Read Head Err: %v %d.", err, readLen)
+		ZLog("MutexClient Read Head Err: %v %d.", err, readLen)
 		goto Exit
 	}
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
-		ZLog("RWMutexClient SetReadDeadline Err: %v.", err)
+		ZLog("MutexClient SetReadDeadline Err: %v.", err)
 		goto Exit
 	}
 
@@ -240,64 +247,66 @@ Exit:
 	return nil
 }
 
-func (client *RWMutexClient) Lock(key string) bool {
+func (client *MutexClient) Lock(key string) {
 	Printff("[Lock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
-	/*
-	   const (
-	   	RWMUTEX_CMD_RLOCK = iota
-	   	RWMUTEX_CMD_RUNLOCK
-	   	RWMUTEX_CMD_RLOCK_ERR
-	   	RWMUTEX_CMD_RUNLOCK_ERR
-	   	RWMUTEX_CMD_LOCK
-	   	RWMUTEX_CMD_UNLOCK
-	   	RWMUTEX_CMD_LOCK_ERR
-	   	RWMUTEX_CMD_UNLOCK_ERR
-	   )
-	*/
+
 	Printff("[Lock] %s %s 222\n", client.name)
-	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
+	if client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
 		Printff("[Lock] %s %s 333\n", client.name, client.conn.LocalAddr())
 		msg := client.ReadMsg()
-		Printff("[Lock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
-		if msg != nil && msg.Cmd == RWMUTEX_CMD_LOCK {
-			Printff("[Lock] %s %s 555\n", client.name, client.conn.LocalAddr())
-			return true
+		if msg == nil {
+			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 		}
+		switch msg.Cmd {
+		case MUTEX_TWICE_LOCK_ERR:
+			panic(&ZMutexErr{errno: MUTEX_TWICE_LOCK_ERR})
+		case MUTEX_LOCK_EMPTY_KEY_ERR:
+			panic(&ZMutexErr{errno: MUTEX_LOCK_EMPTY_KEY_ERR})
+		default:
+		}
+		Printff("[Lock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
+
+	} else {
+		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 	}
-	Printff("[Lock] %s %s 666\n", client.name, client.conn.LocalAddr())
-	return false
 }
 
-func (client *RWMutexClient) UnLock(key string) bool {
+func (client *MutexClient) UnLock(key string) {
 	Printff("[UnLock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
 	Printff("[UnLock] %s %s 222\n", client.name)
-	if client.SendMsg(&NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
+	if client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
 		Printff("[UnLock] %s %s 333\n", client.name, client.conn.LocalAddr())
 		msg := client.ReadMsg()
-		Printff("[UnLock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
-		if msg != nil && msg.Cmd == RWMUTEX_CMD_UNLOCK {
-			Printff("[UnLock] %s %s 555\n", client.name, client.conn.LocalAddr())
-			return true
+		if msg == nil {
+			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 		}
+		switch msg.Cmd {
+		case MUTEX_INVALID_UNLOCK_ERR:
+			panic(&ZMutexErr{errno: MUTEX_INVALID_UNLOCK_ERR})
+		case MUTEX_UNLOCK_EMPTY_KEY_ERR:
+			panic(&ZMutexErr{errno: MUTEX_UNLOCK_EMPTY_KEY_ERR})
+		default:
+		}
+		Printff("[UnLock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
+	} else {
+		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 	}
-	Printff("[UnLock] %s %s666\n", client.name, client.conn.LocalAddr())
-	return false
 }
 
-func NewRWMutexClient(name string, addr string) *RWMutexClient {
-	return &RWMutexClient{
+func NewMutexClient(name string, addr string) *MutexClient {
+	return &MutexClient{
 		addr: addr,
 		conn: nil,
 		name: name,
 	}
 }
 
-func DeleRWMutexClient(client *RWMutexClient) {
+func DeleMutexClient(client *MutexClient) {
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
