@@ -38,7 +38,8 @@ type RWMutex struct {
 	sync.Mutex
 	state        int
 	server       *zed.TcpServer
-	rwmtxmap     map[string]map[*zed.TcpClient]int
+	rwmtxrmap    map[string]map[*zed.TcpClient]int
+	rwmtxwmap    map[string]map[*zed.TcpClient]int
 	rwmtxcurrmap map[string]*zed.TcpClient
 }
 
@@ -67,17 +68,26 @@ func (err *ZRWMutexErr) Error() string {
 	return "ZMutexError"
 }
 
-func (rwmtx *RWMutex) PublicR(key string) {
-	rwmtxmap, ok := rwmtx.rwmtxmap[key]
+func (rwmtx *RWMutex) Public(key string) {
+	rwmtxwmap, ok := rwmtx.rwmtxwmap[key]
 	if ok {
-		for client, _ := range rwmtxmap {
+		for client, _ := range rwmtxwmap {
 			rwmtx.rwmtxcurrmap[key] = client
-			Printff("[PublicR] %s\n", client.GetConn().RemoteAddr())
+			Printff("[Public] %s\n", client.GetConn().RemoteAddr())
 			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
-			//delete(rwmtxmap, client)
+			rwmtx.state = RWMUTEX_STATE_WRITING
 			return
 		}
 
+		for client, _ := range rwmtx.rwmtxrmap[key] {
+			rwmtx.rwmtxcurrmap[key] = client
+			Printff("[Public] %s\n", client.GetConn().RemoteAddr())
+			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
+			rwmtx.state = RWMUTEX_STATE_READING
+			return
+		}
+
+		rwmtx.state = RWMUTEX_STATE_FREE
 		rwmtx.rwmtxcurrmap[key] = nil
 	}
 }
@@ -87,7 +97,8 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 		rwmtx = &RWMutex{
 			state:        RWMUTEX_STATE_FREE,
 			server:       zed.NewTcpServer(name),
-			rwmtxmap:     make(map[string]map[*zed.TcpClient]int),
+			rwmtxrmap:    make(map[string]map[*zed.TcpClient]int),
+			rwmtxwmap:    make(map[string]map[*zed.TcpClient]int),
 			rwmtxcurrmap: make(map[string]*zed.TcpClient),
 		}
 
@@ -96,44 +107,64 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 			defer rwmtx.Unlock()
 
 			key := string(msg.Data)
-			rwmtxmap, ok := rwmtx.rwmtxmap[key]
 			if key == "" {
-				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
+				msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
 
+			rwmtxwmap, ok := rwmtx.rwmtxwmap[key]
 			if !ok {
-				rwmtxmap = make(map[*zed.TcpClient]int)
-				rwmtx.rwmtxmap[key] = rwmtxmap
+				rwmtxwmap = make(map[*zed.TcpClient]int)
+				rwmtx.rwmtxwmap[key] = rwmtxwmap
 			}
 
-			if _, ok2 := rwmtxmap[msg.Client]; ok2 {
-				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_TWICE_LOCK_ERR, Len: 0, Data: nil})
+			if _, ok2 := rwmtxwmap[msg.Client]; ok2 {
+				msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_TWICE_LOCK_ERR, Len: 0, Data: nil})
 				return false
 			}
-			rwmtxmap[msg.Client] = RWMUTEX_STATE_WRITING
-			if len(rwmtxmap) == 1 {
-				rwmtx.rwmtxcurrmap[key] = msg.Client
-				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
+
+			rwmtxrmap, ok3 := rwmtx.rwmtxrmap[key]
+			if ok3 {
+				if _, ok4 := rwmtxrmap[msg.Client]; ok4 {
+					msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_TWICE_LOCK_ERR, Len: 0, Data: nil})
+					return false
+				}
+			}
+
+			rwmtxwmap[msg.Client] = RWMUTEX_STATE_WRITING
+
+			_, ok4 := rwmtx.rwmtxcurrmap[key]
+			if !ok4 {
+				if len(rwmtxrmap) == 0 {
+					rwmtx.rwmtxcurrmap[key] = msg.Client
+					msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_CMD_LOCK, Len: 0, Data: nil})
+				}
 			}
 
 			return true
 		}
 
 		handleUnLock := func(msg *zed.NetMsg) bool {
+			rwmtx.Lock()
+			defer rwmtx.Unlock()
+
 			key := string(msg.Data)
 			if key == "" {
-				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
+				msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
+
 			if curr, ok := rwmtx.rwmtxcurrmap[key]; ok && curr == msg.Client {
-				delete(rwmtx.rwmtxmap[key], msg.Client)
-				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: 0, Data: nil})
-				rwmtx.PublicR(key)
+				if rwmtxwmap, ok := rwmtx.rwmtxwmap[key]; ok {
+					delete(rwmtxwmap, msg.Client)
+				}
+
+				msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_CMD_UNLOCK, Len: 0, Data: nil})
+				rwmtx.Public(key)
 				return true
 			}
 
-			msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_INVALID_UNLOCK_ERR, Len: 0, Data: nil})
+			msg.Client.SendMsg(&zed.NetMsg{Cmd: RWMUTEX_INVALID_UNLOCK_ERR, Len: 0, Data: nil})
 			return false
 		}
 
@@ -141,8 +172,8 @@ func NewRWMutexServer(name string, addr string) *RWMutex {
 
 		}
 		rwmtx.server.SetConnCloseCB(handleConnClose)
-		rwmtx.server.AddMsgHandler(MUTEX_CMD_LOCK, handleLock)
-		rwmtx.server.AddMsgHandler(MUTEX_CMD_UNLOCK, handleUnLock)
+		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_LOCK, handleLock)
+		rwmtx.server.AddMsgHandler(RWMUTEX_CMD_UNLOCK, handleUnLock)
 
 		zed.NewCoroutine(func() {
 			rwmtx.server.Start(addr)

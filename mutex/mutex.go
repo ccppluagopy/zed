@@ -68,12 +68,12 @@ func (err *ZMutexErr) Error() string {
 	return "ZMutexError"
 }
 
-func (mtx *Mutex) PublicR(key string) {
+func (mtx *Mutex) Public(key string) {
 	mtxmap, ok := mtx.mtxmap[key]
 	if ok {
 		for client, _ := range mtxmap {
 			mtx.mtxcurrmap[key] = client
-			Printff("[PublicR] %s\n", client.GetConn().RemoteAddr())
+			//Printff("[Public] %s\n", client.GetConn().RemoteAddr())
 			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			//delete(mtxmap, client)
 			return
@@ -98,11 +98,12 @@ func NewMutexServer(name string, addr string) *Mutex {
 			defer mtx.Unlock()
 
 			key := string(msg.Data)
-			mtxmap, ok := mtx.mtxmap[key]
 			if key == "" {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
+
+			mtxmap, ok := mtx.mtxmap[key]
 
 			if !ok {
 				mtxmap = make(map[*zed.TcpClient]*zed.TcpClient)
@@ -137,14 +138,18 @@ func NewMutexServer(name string, addr string) *Mutex {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
+
 			if curr, ok := mtx.mtxcurrmap[key]; ok && curr == msg.Client {
-				delete(mtx.mtxmap[key], msg.Client)
+				mtxmap, ok := mtx.mtxmap[key]
+				if ok {
+					delete(mtxmap, msg.Client)
+				}
 				clientOps, ok3 := mtx.mutexconnops[msg.Client]
 				if ok3 {
 					delete(clientOps, key)
 				}
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: 0, Data: nil})
-				mtx.PublicR(key)
+				mtx.Public(key)
 				return true
 			}
 
@@ -164,7 +169,7 @@ func NewMutexServer(name string, addr string) *Mutex {
 							delete(mtxmap, client)
 						}
 						if c == curr {
-							mtx.PublicR(key)
+							mtx.Public(key)
 						}
 					}
 				}
