@@ -37,10 +37,11 @@ const (
 
 type Mutex struct {
 	sync.Mutex
-	state      int
-	server     *zed.TcpServer
-	mtxmap     map[string]map[*zed.TcpClient]*zed.TcpClient
-	mtxcurrmap map[string]*zed.TcpClient
+	state          int
+	server         *zed.TcpServer
+	mtxmap         map[string]map[*zed.TcpClient]*zed.TcpClient
+	mtxcurrmap     map[string]*zed.TcpClient
+	rwmutexconnops map[*zed.TcpClient]map[string]bool
 }
 
 func Printff(fmt string, v ...interface{}) {
@@ -88,20 +89,21 @@ func (rwmtx *Mutex) PublicR(key string) {
 }
 
 func NewMutexServer(name string, addr string) *Mutex {
-	if rwmtx, ok := mutexs[name]; !ok {
-		rwmtx = &Mutex{
-			state:      MUTEX_STATE_FREE,
-			server:     zed.NewTcpServer(name),
-			mtxmap:     make(map[string]map[*zed.TcpClient]*zed.TcpClient),
-			mtxcurrmap: make(map[string]*zed.TcpClient),
+	if mtx, ok := mutexs[name]; !ok {
+		mtx = &Mutex{
+			state:          MUTEX_STATE_FREE,
+			server:         zed.NewTcpServer(name),
+			mtxmap:         make(map[string]map[*zed.TcpClient]*zed.TcpClient),
+			mtxcurrmap:     make(map[string]*zed.TcpClient),
+			rwmutexconnops: make(map[*zed.TcpClient]map[string]bool),
 		}
 
 		handleLock := func(msg *zed.NetMsg) bool {
-			rwmtx.Lock()
-			defer rwmtx.Unlock()
+			mtx.Lock()
+			defer mtx.Unlock()
 
 			key := string(msg.Data)
-			mtxmap, ok := rwmtx.mtxmap[key]
+			mtxmap, ok := mtx.mtxmap[key]
 			if key == "" {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_LOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
@@ -109,7 +111,7 @@ func NewMutexServer(name string, addr string) *Mutex {
 
 			if !ok {
 				mtxmap = make(map[*zed.TcpClient]*zed.TcpClient)
-				rwmtx.mtxmap[key] = mtxmap
+				mtx.mtxmap[key] = mtxmap
 			}
 
 			if _, ok2 := mtxmap[msg.Client]; ok2 {
@@ -118,23 +120,36 @@ func NewMutexServer(name string, addr string) *Mutex {
 			}
 			mtxmap[msg.Client] = msg.Client
 			if len(mtxmap) == 1 {
-				rwmtx.mtxcurrmap[key] = msg.Client
+				mtx.mtxcurrmap[key] = msg.Client
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			}
 
+			clientOps, ok3 := mtx.rwmutexconnops[msg.Client]
+			if !ok3 {
+				clientOps = make(map[string]bool)
+				mtx.rwmutexconnops[msg.Client] = clientOps
+			}
+			clientOps[key] = true
 			return true
 		}
 
 		handleUnLock := func(msg *zed.NetMsg) bool {
+			mtx.Lock()
+			defer mtx.Unlock()
+
 			key := string(msg.Data)
 			if key == "" {
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
 				return false
 			}
-			if curr, ok := rwmtx.mtxcurrmap[key]; ok && curr == msg.Client {
-				delete(rwmtx.mtxmap[key], msg.Client)
+			if curr, ok := mtx.mtxcurrmap[key]; ok && curr == msg.Client {
+				delete(mtx.mtxmap[key], msg.Client)
+				clientOps, ok3 := mtx.rwmutexconnops[msg.Client]
+				if ok3 {
+					delete(clientOps, key)
+				}
 				msg.Client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: 0, Data: nil})
-				rwmtx.PublicR(key)
+				mtx.PublicR(key)
 				return true
 			}
 
@@ -143,16 +158,32 @@ func NewMutexServer(name string, addr string) *Mutex {
 		}
 
 		handleConnClose := func(client *zed.TcpClient) {
-
+			clientOps, ok := mtx.rwmutexconnops[client]
+			if ok {
+				for key, _ := range clientOps {
+					curr, _ := mtx.mtxcurrmap[key]
+					mtxmap, ok2 := mtx.mtxmap[key]
+					if ok2 {
+						c, ok3 := mtxmap[client]
+						if ok3 {
+							delete(mtxmap, client)
+						}
+						if c == curr {
+							mtx.PublicR(key)
+						}
+					}
+				}
+				delete(mtx.rwmutexconnops, client)
+			}
 		}
-		rwmtx.server.SetConnCloseCB(handleConnClose)
-		rwmtx.server.AddMsgHandler(MUTEX_CMD_LOCK, handleLock)
-		rwmtx.server.AddMsgHandler(MUTEX_CMD_UNLOCK, handleUnLock)
+		mtx.server.SetConnCloseCB(handleConnClose)
+		mtx.server.AddMsgHandler(MUTEX_CMD_LOCK, handleLock)
+		mtx.server.AddMsgHandler(MUTEX_CMD_UNLOCK, handleUnLock)
 
 		zed.NewCoroutine(func() {
-			rwmtx.server.Start(addr)
+			mtx.server.Start(addr)
 		})
-		return rwmtx
+		return mtx
 	} else {
 		zed.ZLog("NewMutex Error: %s has been exist.", name)
 	}
@@ -160,8 +191,8 @@ func NewMutexServer(name string, addr string) *Mutex {
 }
 
 func DeleMutex(name string) {
-	if rwmtx, ok := mutexs[name]; ok {
-		rwmtx.server.Stop()
+	if mtx, ok := mutexs[name]; ok {
+		mtx.server.Stop()
 		delete(mutexs, name)
 	}
 }
