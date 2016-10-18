@@ -1,10 +1,11 @@
-package main
+package test
+
+/*package main
 
 import (
 	"fmt"
 	"github.com/ccppluagopy/zed"
 	"gopkg.in/mgo.v2"
-	//"gopkg.in/mgo.v2/bson"
 	"time"
 )
 
@@ -39,7 +40,6 @@ func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
 
 func main() {
 	zed.Init("./", "./log", true, true)
-	//zed.MakeNewLogDir("./")
 	const (
 		TagNull = iota
 		Tag1
@@ -54,7 +54,6 @@ func main() {
 		Tag3:    "Tag3",
 	}
 	var LogConf = map[string]int{
-		//"Info":   zed.LogCmd,
 		"Info":   zed.LogFile,
 		"Warn":   zed.LogFile,
 		"Error":  zed.LogFile,
@@ -88,3 +87,4 @@ func main() {
 	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
 	pool.Stop()
 }
+*/

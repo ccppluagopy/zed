@@ -1,14 +1,6 @@
-package main
+package test
 
-/*
-create database test;
-
-create table students
-(
-	Name char(16) not null,
-	Age tinyint unsigned not null,
-)
-*/
+/*package main
 
 import (
 	"fmt"
@@ -39,7 +31,6 @@ func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
 	for i := 0; i < ACTION_NUM/COR_NUM; i++ {
 		time.Sleep(time.Second * 3)
 		pool.DBAction(n, func(db *mysql.Conn) {
-			//rows, res, err := db.Query("insert xx values(\"usr%d\", %d);", i, i%30+20)
 			_, _, err := (*db).Query("insert xx values(\"usr%d\", %d);", n*ACTION_NUM+(i+1), i%30+20)
 			fmt.Println("insert err:", n, err)
 			if err != nil {
@@ -49,11 +40,6 @@ func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
 
 		})
 
-		/*_, _, err := (*pool.GetMgr(0).DB).Query("insert xx values(\"usr%d\", %d);", n*ACTION_NUM+(i+1), i%30+20)
-		if err != nil {
-			fmt.Println("Insert: ", err)
-		}
-		*/
 	}
 }
 
@@ -74,7 +60,6 @@ func main() {
 		Tag3:    "Tag3",
 	}
 	var LogConf = map[string]int{
-		//"Info":   zed.LogCmd,
 		"Info":   zed.LogFile,
 		"Warn":   zed.LogFile,
 		"Error":  zed.LogFile,
@@ -83,8 +68,6 @@ func main() {
 
 	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 3)
 
-	//ch := make(chan int)
-	//pool := zed.NewMysqlMgrPool("testmongopool", "127.0.0.1:27017", "test", "students", "usr", "passwd", MONGO_NUM)
 	pool := zed.NewMysqlMgrPool("testmysqlpool", "127.0.0.1:3306", "test", "root", "", MYSQL_NUM)
 	fmt.Println("pool: ", pool)
 	t1 := time.Now()
@@ -101,3 +84,4 @@ func main() {
 	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
 	pool.Stop()
 }
+*/

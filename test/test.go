@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"github.com/ccppluagopy/zed"
+	"github.com/ccppluagopy/zed/mutex"
 	"io"
 	"net"
 	"time"
@@ -32,7 +33,7 @@ func TestEventMgr() {
 }
 
 func TestLogger() {
-	zed.Init("./", "./logs/", true, true)
+	zed.Init("./", "./logs/", true, nil, nil)
 	//zed.MakeNewLogDir("./")
 	const (
 		TagZed = iota
@@ -66,7 +67,7 @@ func TestLogger() {
 
 	zed.StartLogger(LogConf, LogTags, true)
 	for i := 0; i < 5; i++ {
-		zed.LogError(Tag1, i, "log test %d", i)
+		zed.LogError(TagDB, i, "log test %d", i)
 	}
 
 }
@@ -172,6 +173,57 @@ func TestEchoClientForTcpServer(addr string, clientNum int) {
 
 	var str string
 	fmt.Scanf("%s", &str)
+}
+
+func TestMutex() {
+	const (
+		key  = "key"
+		addr = "127.0.0.1:33333"
+	)
+
+	mutex1 := func() {
+		client := mutex.NewMutexClient("mutex1", addr)
+		for {
+			client.Lock("")
+			client.Lock(key)
+			time.Sleep(time.Second * 1)
+			client.UnLock(key)
+		}
+	}
+
+	mutex2 := func() {
+		time.Sleep(time.Second)
+		client := mutex.NewMutexClient("mutex2", addr)
+		n := 0
+		for {
+			client.Lock(key)
+			client.UnLock(key)
+			n = n + 1
+			zed.Println("mutex2 action .......", n)
+		}
+	}
+
+	mutex3 := func() {
+		time.Sleep(time.Second * 1)
+		client := mutex.NewMutexClient("mutex3", addr)
+		n := 0
+		for {
+			client.Lock(key)
+			client.UnLock(key)
+			n = n + 1
+			zed.Println("mutex3 action .......", n)
+			time.Sleep(time.Second * 1)
+		}
+	}
+
+	mutex.NewMutexServer("test", addr)
+	time.Sleep(time.Second)
+
+	go mutex1()
+	go mutex2()
+	go mutex3()
+
+	time.Sleep(time.Hour)
 }
 
 func TestBase() {
