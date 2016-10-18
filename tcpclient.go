@@ -26,6 +26,10 @@ func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
 	}
 }
 
+func (client *TcpClient) GetConn() *net.TCPConn {
+	return client.conn
+}
+
 func (client *TcpClient) RemoveCloseCB(key interface{}) {
 	client.Lock()
 	defer client.Unlock()
