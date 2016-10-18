@@ -88,13 +88,8 @@ func NewMutexServer(name string, addr string) *Mutex {
 			mtxmap:     make(map[string]map[*TcpClient]*TcpClient),
 			mtxcurrmap: make(map[string]*TcpClient),
 		}
-		/*nRLock := 0
-		nRUnLock := 0*/
 
 		handleLock := func(msg *NetMsg) bool {
-			/*			nRLock = nRLock + 1
-						ZLog("handleRLock %d", nRLock)
-			*/
 			rwmtx.Lock()
 			defer rwmtx.Unlock()
 
@@ -117,7 +112,6 @@ func NewMutexServer(name string, addr string) *Mutex {
 			mtxmap[msg.Client] = msg.Client
 			if len(mtxmap) == 1 {
 				rwmtx.mtxcurrmap[key] = msg.Client
-				Printff("[HandleLock] %s\n", msg.Client.conn.RemoteAddr())
 				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			}
 
@@ -125,7 +119,6 @@ func NewMutexServer(name string, addr string) *Mutex {
 		}
 
 		handleUnLock := func(msg *NetMsg) bool {
-			Printff("[HandleUnLock] %s\n", msg.Client.conn.RemoteAddr())
 			key := string(msg.Data)
 			if key == "" {
 				msg.Client.SendMsg(&NetMsg{Cmd: MUTEX_UNLOCK_EMPTY_KEY_ERR, Len: 0, Data: nil})
@@ -248,13 +241,10 @@ Exit:
 }
 
 func (client *MutexClient) Lock(key string) {
-	Printff("[Lock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
-	Printff("[Lock] %s %s 222\n", client.name)
 	if client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_LOCK, Len: len(key), Data: []byte(key)}) {
-		Printff("[Lock] %s %s 333\n", client.name, client.conn.LocalAddr())
 		msg := client.ReadMsg()
 		if msg == nil {
 			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
@@ -266,21 +256,16 @@ func (client *MutexClient) Lock(key string) {
 			panic(&ZMutexErr{errno: MUTEX_LOCK_EMPTY_KEY_ERR})
 		default:
 		}
-		Printff("[Lock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
-
 	} else {
 		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 	}
 }
 
 func (client *MutexClient) UnLock(key string) {
-	Printff("[UnLock] %s %s 111\n", client.name)
 	client.mutex.Lock()
 	defer client.mutex.Unlock()
 
-	Printff("[UnLock] %s %s 222\n", client.name)
 	if client.SendMsg(&NetMsg{Cmd: MUTEX_CMD_UNLOCK, Len: len(key), Data: []byte(key)}) {
-		Printff("[UnLock] %s %s 333\n", client.name, client.conn.LocalAddr())
 		msg := client.ReadMsg()
 		if msg == nil {
 			panic(&ZMutexErr{errno: MUTEX_NET_ERR})
@@ -292,7 +277,6 @@ func (client *MutexClient) UnLock(key string) {
 			panic(&ZMutexErr{errno: MUTEX_UNLOCK_EMPTY_KEY_ERR})
 		default:
 		}
-		Printff("[UnLock] %s %s 444 cmd: %d, data: %s\n", client.name, client.conn.LocalAddr(), msg.Cmd, string(msg.Data))
 	} else {
 		panic(&ZMutexErr{errno: MUTEX_NET_ERR})
 	}
