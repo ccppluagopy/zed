@@ -78,6 +78,11 @@ func (client *TcpClient) writer() {
 		msg      *NetMsg = nil
 		ok       bool    = false
 	)*/
+	/*if client.chSend == nil {
+		ZLog("SendMsgAsync %s 333 data: %v", client.Info())
+		client.chSend = make(chan *AsyncMsg, 10)
+		client.StartWriter()
+	}*/
 	if client.chSend != nil {
 		for {
 			if asyncMsg, ok := <-client.chSend; ok {
@@ -161,25 +166,30 @@ Exit:
 }
 
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
+	//ZLog("SendMsgAsync %s 111 data: %v", client.Info(), msg)
 	client.RLock()
 	defer client.RUnlock()
-
-	if client.chSend == nil {
+	//ZLog("SendMsgAsync %s 222 data: %v", client.Info())
+	/*if client.chSend == nil {
+		ZLog("SendMsgAsync %s 333 data: %v", client.Info())
 		client.chSend = make(chan *AsyncMsg, 10)
 		client.StartWriter()
-	}
-
+	}*/
+	//ZLog("SendMsgAsync %s 444 data: %v", client.Info())
 	if client.running {
+		//ZLog("SendMsgAsync %s 555 data: %v", client.Info())
 		asyncmsg := &AsyncMsg{
 			msg: msg,
 			cb:  nil,
 		}
+		//ZLog("SendMsgAsync %s 666 data: %v", client.Info())
 		if len(argv) > 0 {
 			if cb, ok := (argv[0]).(func()); ok {
 				asyncmsg.cb = cb
 			}
 		}
 		client.chSend <- asyncmsg
+		//ZLog("SendMsgAsync %s 777 data: %v", client.Info())
 	}
 }
 
@@ -358,7 +368,7 @@ func (client *TcpClient) start() bool {
 	/*NewCoroutine(func() {
 		client.writer()
 	})*/
-
+	client.StartWriter()
 	client.StartReader()
 
 	if showClientData {
@@ -376,7 +386,8 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
-		chSend:  nil,
+		chSend:  make(chan *AsyncMsg, 10),
+
 		//Data:    nil,
 		Valid:   false,
 		running: true,
