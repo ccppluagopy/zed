@@ -1,13 +1,11 @@
 package mutex
 
+/*
 import (
-	//"encoding/binary"
 	"github.com/ccppluagopy/zed"
-	//"io"
-	//"net"
 	"sync"
-	//"time"
 )
+
 
 var (
 	rwmutexs       = make(map[string]*RWMutex)
@@ -259,57 +257,5 @@ func DeleRWMutexClient(client *RWMutexClient) {
 	defer client.mutex.Unlock()
 
 	client.conn.Close()
-}
-
-/*
-func TestRWMutex() {
-	const (
-		key  = "key"
-		addr = "127.0.0.1:33333"
-	)
-
-	mutex1 := func() {
-		client := NewMutexClient("mutex1", addr)
-		for {
-			client.Lock("")
-			client.Lock(key)
-			time.Sleep(time.Second * 1)
-			client.UnLock(key)
-		}
-	}
-
-	mutex2 := func() {
-		time.Sleep(time.Second)
-		client := NewMutexClient("mutex2", addr)
-		n := 0
-		for {
-			client.Lock(key)
-			client.UnLock(key)
-			n = n + 1
-			zed.Println("mutex2 action .......", n)
-		}
-	}
-
-	mutex3 := func() {
-		time.Sleep(time.Second * 1)
-		client := NewMutexClient("mutex3", addr)
-		n := 0
-		for {
-			client.Lock(key)
-			client.UnLock(key)
-			n = n + 1
-			zed.Println("mutex3 action .......", n)
-			time.Sleep(time.Second * 1)
-		}
-	}
-
-	NewMutexServer("test", addr)
-	time.Sleep(time.Second)
-
-	go mutex1()
-	go mutex2()
-	go mutex3()
-
-	time.Sleep(time.Hour)
 }
 */
