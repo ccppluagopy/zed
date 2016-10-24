@@ -140,6 +140,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 		goto Exit
 	}
 
+	msg.Client = client
 	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
 	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
 	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
