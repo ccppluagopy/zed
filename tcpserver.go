@@ -204,9 +204,9 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 			ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
 		}
 
-	} /*else {
-		LogError(LOG_IDX, msg.Client.Idx, "No Handler For Cmd %d From %s", msg.Cmd, msg.Client.Info())
-	}*/
+	} else {
+		ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
+	}
 
 	//server.OnClientMsgError(msg)
 	msg.Client.Stop()
