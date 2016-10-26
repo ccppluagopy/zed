@@ -229,7 +229,10 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 		Len:    int(binary.LittleEndian.Uint32(head[0:4])),
 		Client: client,
 	}
-
+	if msg.Len > MAX_PACK_LEN {
+		ZLog("Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, MAX_PACK_LEN)
+		goto Exit
+	}
 	if msg.Len > 0 {
 		msg.Data = make([]byte, msg.Len)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
