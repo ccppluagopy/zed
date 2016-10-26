@@ -86,7 +86,7 @@ func (client *TcpClient) writer() {
 	if client.chSend != nil {
 		for {
 			if asyncMsg, ok := <-client.chSend; ok {
-				/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+				/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
 					LogError(LOG_IDX, client.Idx, "%s SetWriteDeadline Err: %v.", client.Info(), err)
 					goto Exit
 				}
@@ -135,7 +135,12 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 		err      error
 	)
 
-	if err := (*client.conn).SetWriteDeadline(time.Now().Add(WRITE_BLOCK_TIME)); err != nil {
+	if msg.Len > client.parent.maxPackLen {
+		ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
+		goto Exit
+	}
+
+	if err := (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
 		ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
 		goto Exit
 	}
@@ -202,7 +207,7 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 		msg     *NetMsg
 	)
 
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
 		if showClientData {
 			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 		}
@@ -217,7 +222,7 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 		goto Exit
 	}
 
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
 		if showClientData {
 			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 		}
@@ -229,8 +234,8 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 		Len:    int(binary.LittleEndian.Uint32(head[0:4])),
 		Client: client,
 	}
-	if msg.Len > MAX_PACK_LEN {
-		ZLog("Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, MAX_PACK_LEN)
+	if msg.Len > client.parent.maxPackLen {
+		ZLog("Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
 		goto Exit
 	}
 	if msg.Len > 0 {
@@ -259,7 +264,7 @@ func (client *TcpClient) reader() {
 	)
 
 	for {
-		/*if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		/*if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
 			if showClientData {
 				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 			}
@@ -274,7 +279,7 @@ func (client *TcpClient) reader() {
 			goto Exit
 		}
 
-		if err = (*client.conn).SetReadDeadline(time.Now().Add(READ_BLOCK_TIME)); err != nil {
+		if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
 			if showClientData {
 				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 			}
@@ -349,20 +354,20 @@ func (client *TcpClient) start() bool {
 		return false
 	}
 
-	if err := client.conn.SetKeepAlivePeriod(KEEP_ALIVE_TIME); err != nil {
+	if err := client.conn.SetKeepAlivePeriod(client.parent.aliveTime); err != nil {
 		if showClientData {
 			ZLog("%s SetKeepAlivePeriod Err: %v.", client.Info(), err)
 		}
 		return false
 	}
 
-	if err := (*client.conn).SetReadBuffer(RECV_BUF_LEN); err != nil {
+	if err := (*client.conn).SetReadBuffer(client.parent.recvBufLen); err != nil {
 		if showClientData {
 			ZLog("%s SetReadBuffer Err: %v.", client.Info(), err)
 		}
 		return false
 	}
-	if err := (*client.conn).SetWriteBuffer(SEND_BUF_LEN); err != nil {
+	if err := (*client.conn).SetWriteBuffer(client.parent.sendBufLen); err != nil {
 		if showClientData {
 			ZLog("%s SetWriteBuffer Err: %v.", client.Info(), err)
 		}

@@ -270,6 +270,12 @@ func NewTcpServer(name string) *TcpServer {
 		msgFilter:     nil,
 		onNewConnCB:   nil,
 		onConnCloseCB: nil,
+		recvBlockTime: RECV_BLOCK_TIME,
+		recvBufLen:    RECV_BUF_LEN,
+		sendBlockTime: SEND_BLOCK_TIME,
+		sendBufLen:    SEND_BUF_LEN,
+		maxPackLen:    DEFAULT_MAX_PACK_LEN,
+		aliveTime:     KEEP_ALIVE_TIME,
 	}
 
 	servers[name] = server

@@ -86,6 +86,12 @@ type TcpServer struct {
 	msgFilter     func(*NetMsg) bool
 	onNewConnCB   func(client *TcpClient)
 	onConnCloseCB func(client *TcpClient)
+	maxPackLen    int
+	recvBlockTime time.Duration
+	recvBufLen    int
+	sendBlockTime time.Duration
+	sendBufLen    int
+	aliveTime     time.Duration
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
 }
