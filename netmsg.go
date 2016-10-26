@@ -5,6 +5,6 @@ func (msg *NetMsg) Clone() *NetMsg {
 		Client: msg.Client,
 		Cmd:    msg.Cmd,
 		Len:    msg.Len,
-		Data:   append([]int{}, msg.Data...),
+		Data:   append([]byte{}, msg.Data...),
 	}
 }
