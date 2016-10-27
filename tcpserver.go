@@ -5,7 +5,7 @@ import (
 	//"fmt"
 	"net"
 	//"sync"
-	//"time"
+	"time"
 )
 
 var (
@@ -252,6 +252,32 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 }
 */
 
+func (server *TcpServer) SetIOBlockTime(recvBT time.Duration, sendBT time.Duration) {
+	server.RLock()
+	defer server.RUnlock()
+	server.recvBlockTime = recvBT
+	server.sendBlockTime = sendBT
+}
+
+func (server *TcpServer) SetIOBufLen(recvBL int, sendBL int) {
+	server.RLock()
+	defer server.RUnlock()
+	server.recvBufLen = recvBL
+	server.sendBufLen = sendBL
+}
+
+func (server *TcpServer) SetCientAliveTime(aliveT time.Duration) {
+	server.RLock()
+	defer server.RUnlock()
+	server.aliveTime = aliveT
+}
+
+func (server *TcpServer) SetMaxPackLen(maxPL int) {
+	server.RLock()
+	defer server.RUnlock()
+	server.maxPackLen = maxPL
+}
+
 func NewTcpServer(name string) *TcpServer {
 	if _, ok := servers[name]; ok {
 		ZLog("NewTcpServer Error: TcpServer %s already exists.", name)
@@ -270,12 +296,15 @@ func NewTcpServer(name string) *TcpServer {
 		msgFilter:     nil,
 		onNewConnCB:   nil,
 		onConnCloseCB: nil,
-		recvBlockTime: RECV_BLOCK_TIME,
-		recvBufLen:    RECV_BUF_LEN,
-		sendBlockTime: SEND_BLOCK_TIME,
-		sendBufLen:    SEND_BUF_LEN,
-		maxPackLen:    DEFAULT_MAX_PACK_LEN,
-		aliveTime:     KEEP_ALIVE_TIME,
+		recvBlockTime: DEFAULT_RECV_BLOCK_TIME,
+		sendBlockTime: DEFAULT_SEND_BLOCK_TIME,
+
+		aliveTime: DEFAULT_KEEP_ALIVE_TIME,
+
+		recvBufLen: DEFAULT_RECV_BUF_LEN,
+		sendBufLen: DEFAULT_SEND_BUF_LEN,
+
+		maxPackLen: DEFAULT_MAX_PACK_LEN,
 	}
 
 	servers[name] = server
