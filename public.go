@@ -92,6 +92,7 @@ type TcpServer struct {
 	sendBlockTime time.Duration
 	sendBufLen    int
 	aliveTime     time.Duration
+	delegate      ZServerDelegate
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
 }

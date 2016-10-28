@@ -1,13 +1,15 @@
 package zed
 
-/*
 import (
+	"encoding/binary"
+	"io"
 	"sync"
+	"time"
 )
 
 type ZServerDelegate interface {
 	RecvMsg(*TcpClient) *NetMsg
-	SendMsg(*TcpClient) *NetMsg
+	SendMsg(*NetMsg)
 	HandleMsg(*NetMsg)
 }
 
@@ -72,15 +74,16 @@ Exit:
 	return nil
 }
 
-func (dele *DefaultTSDelegate) SendMsg(client *TcpClient) {
-	client.Lock()
-	defer client.Unlock()
-
+func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) {
 	var (
 		writeLen = 0
 		buf      []byte
 		err      error
+		client   = msg.Client
 	)
+
+	client.Lock()
+	defer client.Unlock()
 
 	if msg.Len > client.parent.maxPackLen {
 		ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
@@ -92,7 +95,6 @@ func (dele *DefaultTSDelegate) SendMsg(client *TcpClient) {
 		goto Exit
 	}
 
-	msg.Client = client
 	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
 	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
 	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
@@ -120,7 +122,7 @@ func (dele *DefaultTSDelegate) MsgFilter(*NetMsg) bool {
 	return true
 }
 
-func (dele *DefaultTSDelegate) HandleMsg(*NetMsg) {
+func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
 	defer PanicHandle(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()
@@ -158,4 +160,3 @@ func (dele *DefaultTSDelegate) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 
 	delete(dele.handlerMap, cmd)
 }
-*/

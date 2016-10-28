@@ -305,6 +305,10 @@ func NewTcpServer(name string) *TcpServer {
 		sendBufLen: DEFAULT_SEND_BUF_LEN,
 
 		maxPackLen: DEFAULT_MAX_PACK_LEN,
+
+		delegate: &DefaultTSDelegate{
+			handlerMap: make(map[CmdType]MsgHandler),
+		},
 	}
 
 	servers[name] = server
