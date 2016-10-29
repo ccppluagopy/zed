@@ -78,21 +78,25 @@ type TcpClient struct {
 
 type TcpServer struct {
 	sync.RWMutex
-	running       bool
-	ClientNum     int
-	listener      *net.TCPListener
-	handlerMap    map[CmdType]MsgHandler
-	clients       map[int]*TcpClient
-	msgFilter     func(*NetMsg) bool
-	onNewConnCB   func(client *TcpClient)
-	onConnCloseCB func(client *TcpClient)
-	maxPackLen    int
-	recvBlockTime time.Duration
-	recvBufLen    int
-	sendBlockTime time.Duration
-	sendBufLen    int
-	aliveTime     time.Duration
-	delegate      ZServerDelegate
+	running           bool
+	showClientData    bool
+	ClientNum         int
+	listener          *net.TCPListener
+	handlerMap        map[CmdType]MsgHandler
+	clients           map[int]*TcpClient
+	msgFilter         func(*NetMsg) bool
+	onNewConnCB       func(client *TcpClient)
+	onConnCloseCB     func(client *TcpClient)
+	maxPackLen        int
+	recvBlockTime     time.Duration
+	recvBufLen        int
+	sendBlockTime     time.Duration
+	sendBufLen        int
+	aliveTime         time.Duration
+	delegate          ZServerDelegate
+	dataInSupervisor  func(*NetMsg)
+	dataOutSupervisor func(*NetMsg)
+
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
 }

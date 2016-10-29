@@ -1,21 +1,28 @@
 package zed
 
 var (
-	workdir                         = "./"
-	logdir                          = ""
-	worklogdir                      = "./log"
-	showClientData                  = false
-	dataInSupervisor  func(*NetMsg) = nil
-	dataOutSupervisor func(*NetMsg) = nil
+	workdir    = "./"
+	logdir     = ""
+	worklogdir = "./log"
+
+	/*
+		showClientData = false
+		dataInSupervisor  func(*NetMsg) = nil
+		dataOutSupervisor func(*NetMsg) = nil
+	*/
 )
 
-func Init(workDir string, logDir string, showClient bool, inSupervisor func(*NetMsg), outSupervisor func(*NetMsg)) {
-	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\", showClient:\"%v\"", workDir, logDir, showClient)
+func Init(workDir string, logDir string) {
+	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\"", workDir, logDir)
 	workdir = workDir
 	worklogdir = logDir
-	showClientData = showClient
-	dataInSupervisor = inSupervisor
-	dataOutSupervisor = outSupervisor
+
+	//showClientData = showClient
+	/*
+
+		dataInSupervisor = inSupervisor
+		dataOutSupervisor = outSupervisor
+	*/
 	MakeNewLogDir()
 
 	/*if zlogfile == nil {

@@ -278,6 +278,50 @@ func (server *TcpServer) SetMaxPackLen(maxPL int) {
 	server.maxPackLen = maxPL
 }
 
+func (server *TcpServer) SetDataInSupervisor(dataInSupervisor func(msg *NetMsg)) {
+	server.RLock()
+	defer server.RUnlock()
+	server.dataInSupervisor = dataInSupervisor
+}
+
+func (server *TcpServer) SetDataOutSupervisor(dataOutSupervisor func(msg *NetMsg)) {
+	server.RLock()
+	defer server.RUnlock()
+	server.dataOutSupervisor = dataOutSupervisor
+}
+
+func (server *TcpServer) SetShowClientData(show bool) {
+	server.RLock()
+	defer server.RUnlock()
+	server.showClientData = show
+}
+
+func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
+	if server.delegate != nil {
+		msg := server.delegate.RecvMsg(client)
+		if msg != nil {
+			if server.dataInSupervisor != nil {
+				server.dataInSupervisor(msg)
+			}
+		}
+		return msg
+	}
+	return nil
+}
+
+func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
+	if server.delegate != nil {
+		msg.Client = client
+		if server.delegate.SendMsg(msg) {
+			if server.dataOutSupervisor != nil {
+				server.dataOutSupervisor(msg)
+			}
+		} else {
+			ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
+		}
+	}
+}
+
 func NewTcpServer(name string) *TcpServer {
 	if _, ok := servers[name]; ok {
 		ZLog("NewTcpServer Error: TcpServer %s already exists.", name)
@@ -309,6 +353,10 @@ func NewTcpServer(name string) *TcpServer {
 		delegate: &DefaultTSDelegate{
 			handlerMap: make(map[CmdType]MsgHandler),
 		},
+
+		dataInSupervisor:  nil,
+		dataOutSupervisor: nil,
+		showClientData:    false,
 	}
 
 	servers[name] = server

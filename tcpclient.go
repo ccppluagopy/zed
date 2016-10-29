@@ -1,12 +1,12 @@
 package zed
 
 import (
-	"encoding/binary"
+	//"encoding/binary"
 	"fmt"
-	"io"
+	//"io"
 	"net"
 	//"sync"
-	"time"
+	//"time"
 )
 
 type AsyncMsg struct {
@@ -39,8 +39,6 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 }
 
 func (client *TcpClient) Stop() {
-	//NewCoroutine(func() {
-	//ZLog("Stop stacks: %s", GetStackInfo())
 	client.Lock()
 	defer client.Unlock()
 
@@ -63,7 +61,7 @@ func (client *TcpClient) Stop() {
 			delete(client.closeCB, key)
 		}
 
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("[Stop] %s", client.Info())
 		}
 	}
@@ -71,104 +69,71 @@ func (client *TcpClient) Stop() {
 }
 
 func (client *TcpClient) writer() {
-	/*var (
-		writeLen = 0
-		buf      []byte
-		err      error
-		msg      *NetMsg = nil
-		ok       bool    = false
-	)*/
-	/*if client.chSend == nil {
-		ZLog("SendMsgAsync %s 333 data: %v", client.Info())
-		client.chSend = make(chan *AsyncMsg, 10)
-		client.StartWriter()
-	}*/
+	parent := client.parent
 	if client.chSend != nil {
 		for {
 			if asyncMsg, ok := <-client.chSend; ok {
-				/*if err = (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
-					LogError(LOG_IDX, client.Idx, "%s SetWriteDeadline Err: %v.", client.Info(), err)
-					goto Exit
-				}
-
-				buf = make([]byte, PACK_HEAD_LEN+len(msg.Data))
-				binary.LittleEndian.PutUint32(buf, uint32(len(msg.Data)))
-				binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-				copy(buf[PACK_HEAD_LEN:], msg.Data)
-
-				writeLen, err = client.conn.Write(buf)
-
-				LogInfo(LOG_IDX, client.Idx, "Send Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-
-				if err != nil || writeLen != len(buf) {
-					goto Exit
-				}*/
-				client.SendMsg(asyncMsg.msg)
+				parent.SendMsg(client, asyncMsg.msg)
 				if asyncMsg.cb != nil {
-					//if cb, ok := (asyncMsg.cb).(func()); ok {
 					func() {
 						defer func() {
 							recover()
 						}()
 						asyncMsg.cb()
 					}()
-					//}
 				}
 			} else {
 				break
 			}
 		}
 	}
-	/*
-	   Exit:
-	   	client.Stop()
-	   	LogInfo(LOG_IDX, client.Idx, "writer Exit %s", client.Info())*/
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	client.Lock()
 	defer client.Unlock()
 
-	var (
-		writeLen = 0
-		buf      []byte
-		err      error
-	)
+	client.parent.SendMsg(client, msg)
+	/*
+			var (
+				writeLen = 0
+				buf      []byte
+				err      error
+			)
 
-	if msg.Len > client.parent.maxPackLen {
-		ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
-		goto Exit
-	}
+			if msg.Len > client.parent.maxPackLen {
+				ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
+				goto Exit
+			}
 
-	if err := (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
-		ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
-		goto Exit
-	}
+			if err := (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
+				ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
+				goto Exit
+			}
 
-	msg.Client = client
-	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
-	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-	if msg.Len > 0 {
-		copy(buf[PACK_HEAD_LEN:], msg.Data)
-	}
+			msg.Client = client
+			buf = make([]byte, PACK_HEAD_LEN+msg.Len)
+			binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
+			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+			if msg.Len > 0 {
+				copy(buf[PACK_HEAD_LEN:], msg.Data)
+			}
 
-	writeLen, err = client.conn.Write(buf)
+			writeLen, err = client.conn.Write(buf)
 
-	if dataOutSupervisor != nil {
-		dataOutSupervisor(msg)
-	} else if showClientData {
-		ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-	}
+			if dataOutSupervisor != nil {
+				dataOutSupervisor(msg)
+			} else if server.showClientData {
+				ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
+			}
 
-	//LogInfo(LOG_IDX, client.Idx, "%s Send Msg Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
+			if err == nil && writeLen == len(buf) {
+				return
+			}
 
-	if err == nil && writeLen == len(buf) {
-		return
-	}
+		Exit:
+			client.Stop()*/
 
-Exit:
-	client.Stop()
 }
 
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
@@ -199,6 +164,7 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	}
 }
 
+/*
 func (client *TcpClient) ReadMsg() *NetMsg {
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
@@ -208,7 +174,7 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -216,14 +182,14 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 
 	readLen, err = io.ReadFull(client.conn, head)
 	if err != nil || readLen < PACK_HEAD_LEN {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
 		}
 		goto Exit
 	}
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -242,7 +208,7 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 		msg.Data = make([]byte, msg.Len)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
 		if err != nil || readLen != int(msg.Len) {
-			if showClientData {
+			if client.parent.showClientData {
 				ZLog("%s Read Body Err: %v.", client.Info(), err)
 			}
 			goto Exit
@@ -254,18 +220,19 @@ func (client *TcpClient) ReadMsg() *NetMsg {
 Exit:
 	return nil
 }
-
+*/
 func (client *TcpClient) reader() {
 	var (
 		/*head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
 		err     error*/
-		msg *NetMsg
+		msg    *NetMsg
+		parent = client.parent
 	)
 
 	for {
 		/*if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-			if showClientData {
+			if client.parent.showClientData {
 				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 			}
 			goto Exit
@@ -273,14 +240,14 @@ func (client *TcpClient) reader() {
 
 		readLen, err = io.ReadFull(client.conn, head)
 		if err != nil || readLen < PACK_HEAD_LEN {
-			if showClientData {
+			if client.parent.showClientData {
 				ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
 			}
 			goto Exit
 		}
 
 		if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-			if showClientData {
+			if client.parent.showClientData {
 				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
 			}
 			goto Exit
@@ -296,26 +263,20 @@ func (client *TcpClient) reader() {
 			msg.Data = make([]byte, msg.Len)
 			readLen, err := io.ReadFull(client.conn, msg.Data)
 			if err != nil || readLen != int(msg.Len) {
-				if showClientData {
+				if client.parent.showClientData {
 					ZLog("%s Read Body Err: %v.", client.Info(), err)
 				}
 				goto Exit
 			}
 		}*/
-		msg = client.ReadMsg()
+		msg = parent.RecvMsg(client)
 		if msg == nil {
 			goto Exit
 		}
 
-		if dataInSupervisor != nil {
-			dataInSupervisor(msg)
-		} else if showClientData {
-			ZLog("[Recv] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-		}
-
 		//LogInfo(LOG_IDX, client.Idx, "Recv Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 
-		client.parent.HandleMsg(msg)
+		parent.HandleMsg(msg)
 	}
 
 Exit:
@@ -348,27 +309,27 @@ func (client *TcpClient) StartWriter() {
 
 func (client *TcpClient) start() bool {
 	if err := client.conn.SetKeepAlive(true); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetKeepAlive Err: %v.", client.Info())
 		}
 		return false
 	}
 
 	if err := client.conn.SetKeepAlivePeriod(client.parent.aliveTime); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetKeepAlivePeriod Err: %v.", client.Info(), err)
 		}
 		return false
 	}
 
 	if err := (*client.conn).SetReadBuffer(client.parent.recvBufLen); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetReadBuffer Err: %v.", client.Info(), err)
 		}
 		return false
 	}
 	if err := (*client.conn).SetWriteBuffer(client.parent.sendBufLen); err != nil {
-		if showClientData {
+		if client.parent.showClientData {
 			ZLog("%s SetWriteBuffer Err: %v.", client.Info(), err)
 		}
 		return false
@@ -380,7 +341,7 @@ func (client *TcpClient) start() bool {
 	client.StartWriter()
 	client.StartReader()
 
-	if showClientData {
+	if client.parent.showClientData {
 		ZLog("New Client Start %s", client.Info())
 	}
 

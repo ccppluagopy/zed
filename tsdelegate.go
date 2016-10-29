@@ -9,12 +9,14 @@ import (
 
 type ZServerDelegate interface {
 	RecvMsg(*TcpClient) *NetMsg
-	SendMsg(*NetMsg)
+	SendMsg(*NetMsg) bool
 	HandleMsg(*NetMsg)
+	SetServer(*TcpServer)
 }
 
 type DefaultTSDelegate struct {
 	sync.Mutex
+	server     *TcpServer
 	handlerMap map[CmdType]MsgHandler
 }
 
@@ -24,26 +26,27 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		readLen = 0
 		err     error
 		msg     *NetMsg
+		server  = dele.server
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if showClientData {
-			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
+		if server.showClientData {
+			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
 	}
 
 	readLen, err = io.ReadFull(client.conn, head)
 	if err != nil || readLen < PACK_HEAD_LEN {
-		if showClientData {
-			ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
+		if server.showClientData {
+			ZLog("RecvMsg %s Read Head Err: %v %d.", client.Info(), err, readLen)
 		}
 		goto Exit
 	}
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if showClientData {
-			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
+		if server.showClientData {
+			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
 	}
@@ -54,15 +57,15 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		Client: client,
 	}
 	if msg.Len > client.parent.maxPackLen {
-		ZLog("Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
+		ZLog("RecvMsg Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
 		goto Exit
 	}
 	if msg.Len > 0 {
 		msg.Data = make([]byte, msg.Len)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
 		if err != nil || readLen != int(msg.Len) {
-			if showClientData {
-				ZLog("%s Read Body Err: %v.", client.Info(), err)
+			if server.showClientData {
+				ZLog("RecvMsg %s Read Body Err: %v.", client.Info(), err)
 			}
 			goto Exit
 		}
@@ -74,7 +77,7 @@ Exit:
 	return nil
 }
 
-func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) {
+func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) bool {
 	var (
 		writeLen = 0
 		buf      []byte
@@ -82,8 +85,10 @@ func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) {
 		client   = msg.Client
 	)
 
-	client.Lock()
-	defer client.Unlock()
+	if msg.Len > 0 && (msg.Data == nil || msg.Len != len(msg.Data)) {
+		ZLog("SendMsg Err: msg.Len(%d) != len(Data)%v", msg.Len, msg.Data)
+		goto Exit
+	}
 
 	if msg.Len > client.parent.maxPackLen {
 		ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
@@ -104,18 +109,19 @@ func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) {
 
 	writeLen, err = client.conn.Write(buf)
 
-	if dataOutSupervisor != nil {
+	/*if dataOutSupervisor != nil {
 		dataOutSupervisor(msg)
-	} else if showClientData {
+	} else if server.showClientData {
 		ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-	}
+	}*/
 
 	if err == nil && writeLen == len(buf) {
-		return
+		return true
 	}
 
 Exit:
 	client.Stop()
+	return false
 }
 
 func (dele *DefaultTSDelegate) MsgFilter(*NetMsg) bool {
@@ -159,4 +165,8 @@ func (dele *DefaultTSDelegate) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
 	ZLog("TcpServer DefaultTSDelegate RemoveMsgHandler, Cmd: %d", cmd)
 
 	delete(dele.handlerMap, cmd)
+}
+
+func (dele *DefaultTSDelegate) SetServer(server *TcpServer) {
+	dele.server = server
 }
