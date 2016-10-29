@@ -1,13 +1,38 @@
-package zed
+package mongo
 
 import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
-	//"sync"
+	"github.com/ccppluagopy/zed"
+	"sync"
 	"time"
 )
 
-type MongoMgrs []*MongoMgr
+const (
+	DB_DIAL_TIMEOUT   = time.Second * 10
+	DB_DIAL_MAX_TIMES = 1000
+)
+
+type MongoActionCB func(mongo *MongoMgr) bool
+
+type MongoMgr struct {
+	sync.RWMutex
+	Session    *mgo.Session
+	Collection *mgo.Collection
+	tryCount   int
+	addr       string
+	database   string
+	collection string
+	usr        string
+	passwd     string
+	ticker     *time.Ticker
+	running    bool
+	restarting bool
+}
+
+type MongoMgrPool struct {
+	mgrs []*MongoMgr
+}
 
 var (
 	mongoMgrs     = make(map[string]*MongoMgr)
@@ -48,7 +73,7 @@ func (mongoMgr *MongoMgr) SetRunningState(running bool) {
 }
 
 func (mongoMgr *MongoMgr) startHeartbeat() {
-	/*ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
+	/*zed.ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
 	for {
 		select {
 		case _, ok := <-mongoMgr.ticker.C:
@@ -65,7 +90,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 	if !mongoMgr.IsRunning() {
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
-			ZLog("MongoMgr Start err: %v addr: %s dbname: %s collection: %s", err, mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
+			zed.ZLog("MongoMgr Start err: %v addr: %s dbname: %s collection: %s", err, mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
 
@@ -87,13 +112,13 @@ func (mongoMgr *MongoMgr) Start() bool {
 		mongoMgr.SetRunningState(true)
 		mongoMgr.restarting = false
 
-		NewCoroutine(func() {
+		zed.NewCoroutine(func() {
 			//mongoMgr.chAction = make(chan MongoActionCB)
 			mongoMgr.startHeartbeat()
 		})
-		/*ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
+		/*zed.ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
 
-		ZLog("MongoMgr addr: %s dbname: %s collection: %s Start() --->>>", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
+		zed.ZLog("MongoMgr addr: %s dbname: %s collection: %s Start() --->>>", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 	}
 
 	return true
@@ -105,7 +130,7 @@ func (mongoMgr *MongoMgr) Restart() {
 
 	if !mongoMgr.restarting {
 		mongoMgr.restarting = true
-		NewCoroutine(func() {
+		zed.NewCoroutine(func() {
 			mongoMgr.Stop()
 			mongoMgr.Start()
 		})
@@ -136,7 +161,7 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
 
 	defer func() {
 		if err := recover(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "MongoMgr DBAction err: %v!", err)
+			zed.ZLog("MongoMgr DBAction err: %v!", err)
 			mongoMgr.Restart()
 		}
 	}()
@@ -157,7 +182,7 @@ func (mongoMgr *MongoMgr) heartbeat() {
 
 	if mongoMgr.Session != nil {
 		if err := mongoMgr.Session.Ping(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "MongoMgr heartbeat err: %v!", err)
+			zed.ZLog("MongoMgr heartbeat err: %v!", err)
 			panic(err)
 			mongoMgr.Restart()
 		}
@@ -183,13 +208,13 @@ func NewMongoMgr(name string, addr string, dbname string, cname string, usr stri
 		}
 		ok := mgr.Start()
 		if !ok {
-			LogError(LOG_IDX, LOG_IDX, "NewMongoMgr %s mgr.Start() Error.!", name)
+			zed.ZLog("NewMongoMgr %s mgr.Start() Error.!", name)
 			return nil
 		}
 
 		return mgr
 	} else {
-		LogError(LOG_IDX, LOG_IDX, "NewMongoMgr Error: %s has been exist!", name)
+		zed.ZLog("NewMongoMgr Error: %s has been exist!", name)
 	}
 
 	return nil
@@ -215,7 +240,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 		}
 		ok := mgr.Start()
 		if !ok {
-			LogError(LOG_IDX, LOG_IDX, "NewMongoMgr %s mgr.Start() Error.!", name)
+			zed.ZLog("NewMongoMgr %s mgr.Start() Error.!", name)
 			return nil
 		}
 
@@ -235,7 +260,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 			}
 			ok := mgrCopy.Start()
 			if !ok {
-				LogError(LOG_IDX, LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
+				zed.ZLog("%s mgrCopy.Start() %d Error.!", name, i)
 				return nil
 			}
 			mgrs.mgrs[i] = mgrCopy
@@ -246,7 +271,7 @@ func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr 
 
 		return mgrs
 	} else {
-		LogError(LOG_IDX, LOG_IDX, "NewMongoMgrPool Error: %s has been exist!", name)
+		zed.ZLog("NewMongoMgrPool Error: %s has been exist!", name)
 	}
 
 	return nil

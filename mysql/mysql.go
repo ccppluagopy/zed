@@ -1,4 +1,4 @@
-package zed
+package mysql
 
 import (
 	/*"database/sql"
@@ -13,6 +13,31 @@ var (
 	mysqlMgrs     = make(map[string]*MysqlMgr)
 	mysqlMgrPools = make(map[string]*MysqlMgrPool)
 )
+
+const (
+	DB_DIAL_TIMEOUT   = time.Second * 10
+	DB_DIAL_MAX_TIMES = 1000
+)
+
+type MysqlActionCB func(*mysql.Conn)
+
+type MysqlMgr struct {
+	sync.RWMutex
+	DB *mysql.Conn
+	//DB       *sql.DB
+	tryCount   int
+	addr       string
+	dbname     string
+	usr        string
+	passwd     string
+	ticker     *time.Ticker
+	running    bool
+	restarting bool
+}
+
+type MysqlMgrPool struct {
+	mgrs []*MysqlMgr
+}
 
 func (pool *MysqlMgrPool) GetMgr(idx int) *MysqlMgr {
 	//Println("MysqlMgrPool GetMgr: ", idx, len(pool.mgrs))

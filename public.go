@@ -1,9 +1,9 @@
 package zed
 
 import (
-	"github.com/ziutek/mymysql/mysql"
+	/*"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
-	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2"*/
 	"net"
 	"sync"
 	"time"
@@ -99,45 +99,4 @@ type TcpServer struct {
 
 	//clientIdMap map[*TcpClient]ClientIDType
 	//idClientMap map[ClientIDType]*TcpClient
-}
-
-type MysqlActionCB func(*mysql.Conn)
-
-type MysqlMgr struct {
-	sync.RWMutex
-	DB *mysql.Conn
-	//DB       *sql.DB
-	tryCount   int
-	addr       string
-	dbname     string
-	usr        string
-	passwd     string
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
-}
-
-type MysqlMgrPool struct {
-	mgrs []*MysqlMgr
-}
-
-type MongoActionCB func(mongo *MongoMgr) bool
-
-type MongoMgr struct {
-	sync.RWMutex
-	Session    *mgo.Session
-	Collection *mgo.Collection
-	tryCount   int
-	addr       string
-	database   string
-	collection string
-	usr        string
-	passwd     string
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
-}
-
-type MongoMgrPool struct {
-	mgrs []*MongoMgr
 }
