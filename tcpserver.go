@@ -296,6 +296,12 @@ func (server *TcpServer) SetShowClientData(show bool) {
 	server.showClientData = show
 }
 
+func (server *TcpServer) SetDelegate(delegate ZServerDelegate) {
+	server.RLock()
+	defer server.RUnlock()
+	server.delegate = delegate
+}
+
 func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
 	if server.delegate != nil {
 		msg := server.delegate.RecvMsg(client)
@@ -350,14 +356,12 @@ func NewTcpServer(name string) *TcpServer {
 
 		maxPackLen: DEFAULT_MAX_PACK_LEN,
 
-		delegate: &DefaultTSDelegate{
-			handlerMap: make(map[CmdType]MsgHandler),
-		},
-
 		dataInSupervisor:  nil,
 		dataOutSupervisor: nil,
 		showClientData:    false,
 	}
+
+	server.SetDelegate(&DefaultTSDelegate{})
 
 	servers[name] = server
 

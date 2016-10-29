@@ -30,7 +30,7 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if server.showClientData {
+		if server != nil && server.showClientData {
 			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -38,14 +38,14 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 
 	readLen, err = io.ReadFull(client.conn, head)
 	if err != nil || readLen < PACK_HEAD_LEN {
-		if server.showClientData {
+		if server != nil && server.showClientData {
 			ZLog("RecvMsg %s Read Head Err: %v %d.", client.Info(), err, readLen)
 		}
 		goto Exit
 	}
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if server.showClientData {
+		if server != nil && server.showClientData {
 			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -64,7 +64,7 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		msg.Data = make([]byte, msg.Len)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
 		if err != nil || readLen != int(msg.Len) {
-			if server.showClientData {
+			if server != nil && server.showClientData {
 				ZLog("RecvMsg %s Read Body Err: %v.", client.Info(), err)
 			}
 			goto Exit
@@ -109,12 +109,6 @@ func (dele *DefaultTSDelegate) SendMsg(msg *NetMsg) bool {
 
 	writeLen, err = client.conn.Write(buf)
 
-	/*if dataOutSupervisor != nil {
-		dataOutSupervisor(msg)
-	} else if server.showClientData {
-		ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-	}*/
-
 	if err == nil && writeLen == len(buf) {
 		return true
 	}
@@ -154,7 +148,9 @@ func (dele *DefaultTSDelegate) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	defer dele.Unlock()
 
 	ZLog("TcpServer DefaultTSDelegate AddMsgHandler, Cmd: %d", cmd)
-
+	if dele.handlerMap == nil {
+		dele.handlerMap = make(map[CmdType]MsgHandler)
+	}
 	dele.handlerMap[cmd] = cb
 }
 

@@ -17,6 +17,14 @@ type logtask struct {
 	running bool
 }
 
+const (
+	LOG_LEVEL_INFO = iota
+	LOG_LEVEL_WARN
+	LOG_LEVEL_ERROR
+	LOG_LEVEL_ACTION
+	LOG_LEVEL_MAX
+)
+
 var (
 	tags = map[int]string{
 		LOG_IDX: LOG_TAG,
@@ -61,7 +69,17 @@ var (
 	Println = fmt.Println
 
 	isLoggerStarted = false
+
+	loglevel = LOG_LEVEL_INFO
 )
+
+func SetLogLevel(l int) {
+	if l >= LOG_LEVEL_INFO && l < LOG_LEVEL_MAX {
+		loglevel = l
+	} else {
+		ZLog("SetLogLevel Error: Invalid Level.")
+	}
+}
 
 func (task *logtask) start(taskType string, logType int) {
 	task.running = true
@@ -161,7 +179,7 @@ func LogInfoSave(tag int, loggerIdx int) {
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
-	if infoEnabled {
+	if infoEnabled && loglevel >= LOG_LEVEL_INFO {
 		loggerIdx = loggerIdx % infoLoggerNum
 
 		arrTaskInfo[loggerIdx].Lock()
@@ -216,7 +234,7 @@ func LogWarnSave(tag int, loggerIdx int) {
 
 func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	//if warnEnabled && (tags[tag] == true) {
-	if warnEnabled {
+	if warnEnabled && loglevel >= LOG_LEVEL_WARN {
 		loggerIdx = loggerIdx % warnLoggerNum
 
 		arrTaskWarn[loggerIdx].Lock()
@@ -270,7 +288,7 @@ func LogErrorSave(tag int, loggerIdx int) {
 }
 
 func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
-	if errorEnabled {
+	if errorEnabled && loglevel >= LOG_LEVEL_ERROR {
 		loggerIdx = loggerIdx % errorLoggerNum
 
 		arrTaskError[loggerIdx].Lock()
@@ -324,7 +342,7 @@ func LogActionSave(tag int, loggerIdx int) {
 }
 
 func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
-	if actionEnabled {
+	if actionEnabled && loglevel >= LOG_LEVEL_ACTION {
 		loggerIdx = loggerIdx % actionLoggerNum
 
 		arrTaskAction[loggerIdx].Lock()
