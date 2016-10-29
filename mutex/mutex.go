@@ -74,7 +74,7 @@ func (mtx *Mutex) Public(key string) {
 		for client, _ := range mtxmap {
 			mtx.mtxcurrmap[key] = client
 			//Printff("[Public] %s\n", client.GetConn().RemoteAddr())
-			client.SendMsg(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
+			client.SendMsgAsync(&zed.NetMsg{Cmd: MUTEX_CMD_LOCK, Len: 0, Data: nil})
 			//delete(mtxmap, client)
 			return
 		}
