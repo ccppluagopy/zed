@@ -223,7 +223,7 @@ func (client *MutexClient) SendMsg(msg *zed.NetMsg) bool {
 		}
 	}
 
-	if err := (*client.conn).SetWriteDeadline(time.Now().Add(zed.WRITE_BLOCK_TIME)); err != nil {
+	if err := (*client.conn).SetWriteDeadline(time.Now().Add(zed.DEFAULT_SEND_BLOCK_TIME)); err != nil {
 		zed.ZLog("MutexClient SetWriteDeadline Err: %v.", err)
 		goto Exit
 	}
@@ -250,7 +250,7 @@ func (client *MutexClient) ReadMsg() *zed.NetMsg {
 		msg     *zed.NetMsg
 	)
 
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(zed.READ_BLOCK_TIME)); err != nil {
+	if err = (*client.conn).SetReadDeadline(time.Now().Add(zed.DEFAULT_RECV_BLOCK_TIME)); err != nil {
 		zed.ZLog("MutexClient SetReadDeadline Err: %v.", err)
 		goto Exit
 	}

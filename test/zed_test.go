@@ -1,30 +1,31 @@
 package test
 
 import (
-	"encoding/binary"
-	"fmt"
+	//"encoding/binary"
+	//"fmt"
 	"github.com/ccppluagopy/zed"
-	"github.com/ccppluagopy/zed/mutex"
-	"io"
-	"net"
+	//"github.com/ccppluagopy/zed/mutex"
+	//"io"
+	//"net"
+	"testing"
 	"time"
 )
 
-func TestEventMgr() {
+func TestEventMgr(t *testing.T) {
 	mgr := zed.NewEventMgr("haha")
 	if emgr, ok := zed.GetEventMgrByTag("haha"); ok {
 
 		emgr.NewListener("listener_001", 3, func(e interface{}, args []interface{}) {
-			fmt.Println("--- event 001 : ", e, args[0])
+			t.Log("--- event 001 : ", e, args[0])
 		})
 		emgr.NewListener("listener_002", 3, func(e interface{}, args []interface{}) {
-			fmt.Println("--- event 002 : ", e, args[0], args[1])
+			t.Log("--- event 002 : ", e, args[0], args[1])
 		})
 		emgr.NewListener("listener_003", 3, func(e interface{}, args []interface{}) {
-			fmt.Println("--- event 003 : ", e, args[0], args[1], args[2], args[3])
+			t.Log("--- event 003 : ", e, args[0], args[1], args[2], args[3])
 		})
 		emgr.NewListener("listener_004", 3, func(e interface{}, args []interface{}) {
-			fmt.Println("--- event 004 : ", e, args[0], args[1])
+			t.Log("--- event 004 : ", e, args[0], args[1])
 		})
 
 		emgr.Dispatch(3, "ss", 10000)
@@ -32,8 +33,8 @@ func TestEventMgr() {
 	}
 }
 
-func TestLogger() {
-	zed.Init("./", "./logs/", true, nil, nil)
+func TestLogger(t *testing.T) {
+	zed.Init("./", "./logs/")
 	//zed.MakeNewLogDir("./")
 	const (
 		TagZed = iota
@@ -67,53 +68,56 @@ func TestLogger() {
 
 	zed.StartLogger(LogConf, LogTags, true)
 	for i := 0; i < 5; i++ {
-		zed.LogError(TagDB, i, "log test %d", i)
+		t.Log("log test ", i)
 	}
 
 }
 
-func TestTimerMgr() {
+func TestTimerMgr(t *testing.T) {
 	timerMgr := zed.NewTimerMgr(int64(3))
 
 	cb1 := func() {
-		fmt.Println("cb1")
+		t.Log("cb1")
 	}
 	cb2 := func() {
-		fmt.Println("cb2")
+		t.Log("cb2")
 	}
 
 	timerMgr.NewTimer("cb1", int64(time.Second), int64(time.Second), cb1, true)
 	timerMgr.NewTimer("cb2", int64(time.Second), int64(time.Second*2), cb2, true)
+	time.Sleep(time.Second * 10)
 }
 
-func TestTimerWheel() {
+func TestTimerWheel(t *testing.T) {
 	timerWheel := zed.NewTimerWheel(int64(5), int64(time.Second), 2)
 
 	cb1 := func() {
-		fmt.Println("cb1")
+		t.Log("cb1")
 	}
 	cb2 := func() {
-		fmt.Println("cb2")
+		t.Log("cb2")
 	}
 
 	timerWheel.NewTimer("cb1", 0, cb1, true)
 	time.Sleep(time.Second * 1)
 	timerWheel.NewTimer("cb2", 0, cb2, true)
+	time.Sleep(time.Second * 10)
 }
 
-func TestTcpServer(addr string) {
+/*
+func TestTcpServer() {
+	addr := "127.0.0.1:9999"
 	zed.HandleSignal(true)
 	server := zed.NewTcpServer("testserver")
 
-	/*go func() {
-		time.Sleep(time.Second * 3)
-		server.Stop()
-	}()*/
+
 
 	server.Start(addr)
 }
 
-func TestEchoClientForTcpServer(addr string, clientNum int) {
+func TestEchoClientForTcpServer() {
+	addr := "127.0.0.1:8888"
+	clientNum := 10
 	zed.HandleSignal(true)
 
 	var (
@@ -149,7 +153,6 @@ func TestEchoClientForTcpServer(addr string, clientNum int) {
 				checkError(err)
 				break
 			}
-			//time.Sleep(time.Second)
 		}
 	}
 
@@ -199,7 +202,7 @@ func TestMutex() {
 			client.Lock(key)
 			client.UnLock(key)
 			n = n + 1
-			zed.Println("mutex2 action .......", n)
+			fmt.Println("mutex2 action .......", n)
 		}
 	}
 
@@ -211,7 +214,7 @@ func TestMutex() {
 			client.Lock(key)
 			client.UnLock(key)
 			n = n + 1
-			zed.Println("mutex3 action .......", n)
+			fmt.Println("mutex3 action .......", n)
 			time.Sleep(time.Second * 1)
 		}
 	}
@@ -246,5 +249,5 @@ func TestBase() {
 	})
 
 	server.Start(addr)
-	//TestTcpServer(addr)
 }
+*/
