@@ -1,6 +1,5 @@
 package observer
 
-/*
 import (
 	"encoding/binary"
 	"github.com/ccppluagopy/zed"
@@ -28,14 +27,16 @@ type ObserverServer struct {
 }
 
 type ObserverClient struct {
-	mutex sync.Mutex
-	addr  string
-	name  string
+	mutex  sync.Mutex
+	addr   string
+	name   string
+	client *zed.TcpClient
 }
 
 const (
 	ERR_REGIST_EMPTY_KEY = iota
 	ERR_UNREGIST_EMPTY_KEY
+	ERR_UNREGIST_INVALID_KEY
 	ERR_PUBLIC_EMPTY_KEY
 	ERR_PUBLIC_EMPTY_KEY_DATA
 )
@@ -77,6 +78,7 @@ var (
 	errconfig = make(map[int]string{
 		ERR_REGIST_EMPTY_KEY:      "ERR_REGIST_EMPTY_KEY",
 		ERR_UNREGIST_EMPTY_KEY:    "ERR_UNREGIST_EMPTY_KEY",
+		ERR_UNREGIST_INVALID_KEY:  "ERR_UNREGIST_INVALID_KEY",
 		ERR_PUBLIC_EMPTY_KEY:      "ERR_PUBLIC_EMPTY_KEY",
 		ERR_PUBLIC_EMPTY_KEY_DATA: "ERR_PUBLIC_EMPTY_KEY_DATA",
 	})
@@ -138,6 +140,9 @@ func (err *ZObserverServerErr) Error() string {
 }
 
 func (observer *ObserverServer) Public(msg *MsgPublic, args ...interface{}) {
+	observer.Lock()
+	defer observer.Unlock()
+
 	obs, ok := observer.events[msg.Key]
 	if ok {
 		if len(args) == 1 {
@@ -179,7 +184,7 @@ func NewObserverServer(name string, addr string) *ObserverServer {
 			if err := json.Unmarshal(msg.Data, req); err == nil {
 				if req.Key == "" {
 					SendError(msg.Client, OBS_CMD_REGIST_RSP, ERR_REGIST_EMPTY_KEY)
-					return false
+					return true
 				} else {
 					obs, ok := observer.events[msg.Key]
 					if !ok {
@@ -187,6 +192,10 @@ func NewObserverServer(name string, addr string) *ObserverServer {
 						observer.events[msg.Key] = obs
 					}
 					obs[msg.Client] = true
+					msg.Client.AddCloseCB(zed.Spritf("rme%s", req.Key), func(c *zed.TcpClient) {
+						delete(obs, msg.Client)
+					})
+					msg.Client.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_REGIST_RSP})
 				}
 			}
 			return true
@@ -204,14 +213,16 @@ func NewObserverServer(name string, addr string) *ObserverServer {
 			if err := json.Unmarshal(msg.Data, req); err == nil {
 				if req.Key == "" {
 					SendError(msg.Client, OBS_CMD_UNREGIST_RSP, ERR_UNREGIST_EMPTY_KEY)
-					return false
+					return true
 				} else {
 					obs, ok := observer.events[msg.Key]
 					if !ok {
-						obs = make(map[*zed.TcpClient]bool)
-						observer.events[msg.Key] = obs
+						SendError(msg.Client, OBS_CMD_UNREGIST_RSP, ERR_UNREGIST_INVALID_KEY)
+					} else {
+						delete(obs, msg.Client)
+						msg.Client.RemoveCloseCB(zed.Spritf("rme%s", req.Key))
+						msg.Client.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_UNREGIST_RSP})
 					}
-					obs[msg.Client] = true
 				}
 			}
 			return true
@@ -226,7 +237,7 @@ func NewObserverServer(name string, addr string) *ObserverServer {
 			if err := json.Unmarshal(msg.Data, req); err == nil {
 				if req.Key == "" {
 					SendError(msg.Client, OBS_CMD_PUBLIC_RSP, ERR_PUBLIC_EMPTY_KEY)
-					return false
+					return true
 				} else {
 					observer.Lock()
 					defer observer.Unlock()
@@ -267,81 +278,32 @@ func DeleObserverServer(name string) {
 	observers.DeleServer(name)
 }
 
-func (client *ObserverClient) SendMsg(msg *zed.NetMsg) bool {
-	var (
-		writeLen = 0
-		buf      []byte
-		err      error
-	)
+func NewOBClient(name string, addr string) *ObserverClient {
 
-	if client.conn == nil {
-		tcpaddr, err2 := net.ResolveTCPAddr("tcp", client.addr)
-		if err2 != nil {
-			return false
-		}
-
-		client.conn, err = net.DialTCP("tcp", nil, tcpaddr)
-		if err != nil {
-			return false
-		}
+	client := &zed.TcpClient{
+		conn:    conn,
+		parent:  parent,
+		ID:      NullID,
+		Idx:     parent.ClientNum,
+		Addr:    addr,
+		closeCB: make(map[interface{}]ClientCloseCB),
+		chSend:  make(chan *AsyncMsg, 10),
+		Valid:   false,
+		running: true,
 	}
 
-	if err := (*client.conn).SetWriteDeadline(time.Now().Add(zed.DEFAULT_SEND_BLOCK_TIME)); err != nil {
-		zed.ZLog("MutexClient SetWriteDeadline Err: %v.", err)
-		goto Exit
+	conn, err := net.Dial("tcp", serverAddr)
+	if err != nil {
+		return nil
 	}
 
-	buf = make([]byte, zed.PACK_HEAD_LEN+msg.Len)
-	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
+	client.StartReader()
+	client.StartWriter()
 
-	writeLen, err = client.conn.Write(buf)
-
-	if err == nil && writeLen == len(buf) {
-		return true
-	}
-
-Exit:
-	return false
-}
-
-func (client *ObserverClient) ReadMsg() *zed.NetMsg {
-	var (
-		head    = make([]byte, zed.PACK_HEAD_LEN)
-		readLen = 0
-		err     error
-		msg     *zed.NetMsg
-	)
-
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(zed.DEFAULT_RECV_BLOCK_TIME)); err != nil {
-		zed.ZLog("MutexClient SetReadDeadline Err: %v.", err)
-		goto Exit
-	}
-
-	readLen, err = io.ReadFull(client.conn, head)
-	if err != nil || readLen < zed.PACK_HEAD_LEN {
-		zed.ZLog("MutexClient Read Head Err: %v %d.", err, readLen)
-		goto Exit
-	}
-
-
-	msg = &zed.NetMsg{
-		Cmd:  zed.CmdType(binary.LittleEndian.Uint32(head[4:8])),
-		Len:  0,
-		Data: nil,
-	}
-
-	return msg
-
-Exit:
-	return nil
-}
-
-func NewOBClient(name string, addr string) *MutexClient {
-	return &MutexClient{
-		addr: addr,
-		conn: nil,
-		name: name,
+	observer := &ObserverClient{
+		addr:   addr,
+		client: client,
+		name:   name,
 	}
 }
 
@@ -351,4 +313,3 @@ func DeleOBClient(client *MutexClient) {
 
 	client.conn.Close()
 }
-*/
