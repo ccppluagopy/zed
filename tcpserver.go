@@ -189,10 +189,19 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
-	//Println("TcpServer HandleMsg 1111")
-	if server.delegate != nil {
+	if server.msgFilter != nil {
+		defer PanicHandle(true, func() {
+			ZLog("HandleMsg %s panic err!", msg.Client.Info())
+			msg.Client.Stop()
+		})
 
-		server.delegate.HandleMsg(msg)
+		if server.msgFilter(msg) {
+			if server.delegate != nil {
+				server.delegate.HandleMsg(msg)
+			}
+		} else {
+			msg.Client.Stop()
+		}
 	}
 	/*
 		cb, ok := server.handlerMap[msg.Cmd]

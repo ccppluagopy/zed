@@ -127,6 +127,7 @@ Exit:
 	return false
 }
 
+/*
 func (dele *DefaultTSDelegate) MsgFilter(msg *NetMsg) bool {
 	Println("DefaultTSDelegate MsgFilter 00000000000000000000000")
 	server := dele.Server
@@ -135,6 +136,7 @@ func (dele *DefaultTSDelegate) MsgFilter(msg *NetMsg) bool {
 	}
 	return true
 }
+*/
 
 func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
 	//Println("DefaultTSDelegate HandleMsg 2222")
@@ -144,8 +146,7 @@ func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
 	})
 
 	cb, ok := dele.HandlerMap[msg.Cmd]
-	if ok && dele.MsgFilter(msg) {
-
+	if ok {
 		if cb(msg) {
 			return
 		} else {
