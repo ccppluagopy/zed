@@ -179,8 +179,8 @@ func (server *TcpServer) onClientStop(client *TcpClient) {
 	defer server.Unlock()
 
 	delete(server.clients, client.Idx)
-	if server.onNewConnCB != nil {
-		server.onNewConnCB(client)
+	if server.onConnCloseCB != nil {
+		server.onConnCloseCB(client)
 	}
 }
 
@@ -189,7 +189,9 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
+	//Println("TcpServer HandleMsg 1111")
 	if server.delegate != nil {
+
 		server.delegate.HandleMsg(msg)
 	}
 	/*

@@ -14,6 +14,13 @@ type ZServerDelegate interface {
 	SetServer(*TcpServer)
 	AddMsgHandler(cmd CmdType, cb MsgHandler)
 	RemoveMsgHandler(cmd CmdType)
+	/*SetShowClientData(bool)
+	SetDataInSupervisor(func(msg *NetMsg))
+	SetDataOutSupervisor(func(msg *NetMsg))
+	SetIOBlockTime(time.Duration, time.Duration)
+	SetIOBufLen(int, int)
+	SetCientAliveTime(time.Duration)
+	SetMaxPackLen(int)*/
 }
 
 type DefaultTSDelegate struct {
@@ -120,11 +127,17 @@ Exit:
 	return false
 }
 
-func (dele *DefaultTSDelegate) MsgFilter(*NetMsg) bool {
+func (dele *DefaultTSDelegate) MsgFilter(msg *NetMsg) bool {
+	Println("DefaultTSDelegate MsgFilter 00000000000000000000000")
+	server := dele.Server
+	if server != nil && server.msgFilter != nil {
+		return server.msgFilter(msg)
+	}
 	return true
 }
 
 func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
+	//Println("DefaultTSDelegate HandleMsg 2222")
 	defer PanicHandle(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()
