@@ -12,12 +12,14 @@ type ZServerDelegate interface {
 	SendMsg(*NetMsg) bool
 	HandleMsg(*NetMsg)
 	SetServer(*TcpServer)
+	AddMsgHandler(cmd CmdType, cb MsgHandler)
+	RemoveMsgHandler(cmd CmdType)
 }
 
 type DefaultTSDelegate struct {
 	sync.Mutex
-	server     *TcpServer
-	handlerMap map[CmdType]MsgHandler
+	Server     *TcpServer
+	HandlerMap map[CmdType]MsgHandler
 }
 
 func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
@@ -26,7 +28,7 @@ func (dele *DefaultTSDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		readLen = 0
 		err     error
 		msg     *NetMsg
-		server  = dele.server
+		server  = dele.Server
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
@@ -128,7 +130,7 @@ func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
 		msg.Client.Stop()
 	})
 
-	cb, ok := dele.handlerMap[msg.Cmd]
+	cb, ok := dele.HandlerMap[msg.Cmd]
 	if ok && dele.MsgFilter(msg) {
 
 		if cb(msg) {
@@ -148,21 +150,21 @@ func (dele *DefaultTSDelegate) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	defer dele.Unlock()
 
 	ZLog("TcpServer DefaultTSDelegate AddMsgHandler, Cmd: %d", cmd)
-	if dele.handlerMap == nil {
-		dele.handlerMap = make(map[CmdType]MsgHandler)
+	if dele.HandlerMap == nil {
+		dele.HandlerMap = make(map[CmdType]MsgHandler)
 	}
-	dele.handlerMap[cmd] = cb
+	dele.HandlerMap[cmd] = cb
 }
 
-func (dele *DefaultTSDelegate) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
+func (dele *DefaultTSDelegate) RemoveMsgHandler(cmd CmdType) {
 	dele.Lock()
 	defer dele.Unlock()
 
 	ZLog("TcpServer DefaultTSDelegate RemoveMsgHandler, Cmd: %d", cmd)
 
-	delete(dele.handlerMap, cmd)
+	delete(dele.HandlerMap, cmd)
 }
 
 func (dele *DefaultTSDelegate) SetServer(server *TcpServer) {
-	dele.server = server
+	dele.Server = server
 }

@@ -137,20 +137,22 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 
 	ZLog("TcpServer AddMsgHandler, Cmd: %d", cmd)
 
-	/*server.handlerMap[cmd] = func(msg *NetMsg) bool {
-		defer PanicHandle(true)
-		return cb(msg)
-	}*/
-	server.handlerMap[cmd] = cb
+	//server.handlerMap[cmd] = cb
+	if server.delegate != nil {
+		server.delegate.AddMsgHandler(cmd, cb)
+	}
 }
 
-func (server *TcpServer) RemoveMsgHandler(cmd CmdType, cb MsgHandler) {
+func (server *TcpServer) RemoveMsgHandler(cmd CmdType) {
 	server.Lock()
 	defer server.Unlock()
 
 	ZLog("TcpServer RemoveMsgHandler, Cmd: %d", cmd)
 
-	delete(server.handlerMap, cmd)
+	//delete(server.handlerMap, cmd)
+	if server.delegate != nil {
+		server.delegate.RemoveMsgHandler(cmd)
+	}
 }
 
 func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
@@ -187,29 +189,28 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 }
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
-	//defer PanicHandle(true)
+	if server.delegate != nil {
+		server.delegate.HandleMsg(msg)
+	}
+	/*
+		cb, ok := server.handlerMap[msg.Cmd]
+		if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
+			defer PanicHandle(true, func() {
+				ZLog("HandleMsg %s panic err!", msg.Client.Info())
+				msg.Client.Stop()
+			})
+			if cb(msg) {
+				return
+			} else {
+				ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			}
 
-	//server.RLock()
-	//defer server.RUnlock()
-
-	cb, ok := server.handlerMap[msg.Cmd]
-	if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
-		defer PanicHandle(true, func() {
-			ZLog("HandleMsg %s panic err!", msg.Client.Info())
-			msg.Client.Stop()
-		})
-		if cb(msg) {
-			return
 		} else {
-			ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
 		}
 
-	} else {
-		ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
-	}
-
-	//server.OnClientMsgError(msg)
-	msg.Client.Stop()
+		msg.Client.Stop()
+	*/
 }
 
 /*
