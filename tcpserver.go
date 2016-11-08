@@ -373,7 +373,9 @@ func NewTcpServer(name string) *TcpServer {
 		showClientData:    false,
 	}
 
-	server.SetDelegate(&DefaultTSDelegate{})
+	server.SetDelegate(&DefaultTSDelegate{
+		Server: server,
+	})
 
 	servers[name] = server
 

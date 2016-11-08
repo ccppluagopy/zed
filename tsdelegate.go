@@ -139,11 +139,10 @@ func (dele *DefaultTSDelegate) MsgFilter(msg *NetMsg) bool {
 */
 
 func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
-	//Println("DefaultTSDelegate HandleMsg 2222")
-	defer PanicHandle(true, func() {
+	/*defer PanicHandle(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()
-	})
+	})*/
 
 	cb, ok := dele.HandlerMap[msg.Cmd]
 	if ok {
@@ -151,12 +150,11 @@ func (dele *DefaultTSDelegate) HandleMsg(msg *NetMsg) {
 			return
 		} else {
 			ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			msg.Client.Stop()
 		}
 	} else {
 		ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
 	}
-
-	msg.Client.Stop()
 }
 
 func (dele *DefaultTSDelegate) AddMsgHandler(cmd CmdType, cb MsgHandler) {

@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	LogCmd = iota
-	LogFile
+	LogCmd  = 1
+	LogFile = 2
 
 	//NullID = 0
 	NullID = "NULL"
