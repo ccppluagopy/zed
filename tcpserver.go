@@ -312,6 +312,7 @@ func (server *TcpServer) SetDelegate(delegate ZServerDelegate) {
 	server.RLock()
 	defer server.RUnlock()
 	server.delegate = delegate
+	delegate.SetServer(server)
 }
 
 func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
