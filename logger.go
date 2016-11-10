@@ -179,7 +179,7 @@ func LogInfoSave(tag int, loggerIdx int) {
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
-	if infoEnabled && loglevel >= LOG_LEVEL_INFO {
+	if infoEnabled && LOG_LEVEL_INFO >= loglevel {
 		loggerIdx = loggerIdx % infoLoggerNum
 
 		arrTaskInfo[loggerIdx].Lock()
@@ -234,7 +234,7 @@ func LogWarnSave(tag int, loggerIdx int) {
 
 func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	//if warnEnabled && (tags[tag] == true) {
-	if warnEnabled && loglevel >= LOG_LEVEL_WARN {
+	if warnEnabled && LOG_LEVEL_WARN >= loglevel {
 		loggerIdx = loggerIdx % warnLoggerNum
 
 		arrTaskWarn[loggerIdx].Lock()
@@ -288,7 +288,7 @@ func LogErrorSave(tag int, loggerIdx int) {
 }
 
 func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
-	if errorEnabled && loglevel >= LOG_LEVEL_ERROR {
+	if errorEnabled && LOG_LEVEL_ERROR >= loglevel {
 		loggerIdx = loggerIdx % errorLoggerNum
 
 		arrTaskError[loggerIdx].Lock()
@@ -342,7 +342,7 @@ func LogActionSave(tag int, loggerIdx int) {
 }
 
 func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
-	if actionEnabled && loglevel >= LOG_LEVEL_ACTION {
+	if actionEnabled && LOG_LEVEL_ACTION >= loglevel {
 		loggerIdx = loggerIdx % actionLoggerNum
 
 		arrTaskAction[loggerIdx].Lock()
