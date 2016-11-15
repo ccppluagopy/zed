@@ -3,9 +3,10 @@ package mysql
 import (
 	/*"database/sql"
 	"github.com/go-sql-driver/mysql"*/
+	"github.com/ccppluagopy/zed"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native" // Native engine
-	//"sync"
+	"sync"
 	"time"
 )
 
@@ -99,7 +100,7 @@ func (msqlMgr *MysqlMgr) handleAction() {
 }*/
 
 func (mysqlMgr *MysqlMgr) startHeartbeat() {
-	ZLog("MysqlMgr start heartbeat")
+	zed.ZLog("MysqlMgr start heartbeat")
 	for {
 		select {
 		case _, ok := <-mysqlMgr.ticker.C:
@@ -143,26 +144,26 @@ func (msqlMgr *MysqlMgr) Start() bool {
 		msqlMgr.SetRunningState(true)
 		msqlMgr.restarting = false
 
-		NewCoroutine(func() {
+		zed.NewCoroutine(func() {
 			/*msqlMgr.chAction = make(chan MysqlActionCB)
 			msqlMgr.handleAction()*/
 			msqlMgr.startHeartbeat()
 		})
 
-		ZLog("MsqlMgr addr: %s dbname: %v Start() --->>>", msqlMgr.addr, msqlMgr.DB)
+		zed.ZLog("MsqlMgr addr: %s dbname: %v Start() --->>>", msqlMgr.addr, msqlMgr.DB)
 	}
 	//Println("-----------------------------------")
 	return true
 }
 
 func (msqlMgr *MysqlMgr) Restart() {
-	NewCoroutine(func() {
+	zed.NewCoroutine(func() {
 		msqlMgr.RLock()
 		defer msqlMgr.RUnlock()
 
 		if !msqlMgr.restarting {
 			msqlMgr.restarting = true
-			NewCoroutine(func() {
+			zed.NewCoroutine(func() {
 				msqlMgr.Stop()
 				msqlMgr.Start()
 			})
@@ -189,7 +190,7 @@ func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			LogError(LOG_IDX, LOG_IDX, "MysqlMgr DBAction err: %v!", err)
+			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr DBAction err: %v!", err)
 			msqlMgr.Restart()
 		}
 	}()
@@ -204,7 +205,7 @@ func (msqlMgr *MysqlMgr) heartbeat() {
 	msqlMgr.DBAction(func(msql *mysql.Conn) {
 		if msql != nil {
 			if err := (*msql).Ping(); err != nil {
-				LogError(LOG_IDX, LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
+				zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
 				panic(err)
 			}
 		} else {
@@ -233,13 +234,13 @@ func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd str
 		mgr.DB = &m
 		ok := mgr.Start()
 		if !ok {
-			LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
+			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
 			return nil
 		}
 
 		return mgr
 	} else {
-		LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr Error: %s has been exist!", name)
+		zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr Error: %s has been exist!", name)
 	}
 
 	return mgr
@@ -274,7 +275,7 @@ func NewMysqlMgrPool(name string, addr string, dbname string, usr string, passwd
 		mgr.DB = &m
 		ok := mgr.Start()
 		if !ok {
-			LogError(LOG_IDX, LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
+			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
 			return nil
 		}
 
@@ -299,7 +300,7 @@ func NewMysqlMgrPool(name string, addr string, dbname string, usr string, passwd
 
 			ok := mgrCopy.Start()
 			if !ok {
-				LogError(LOG_IDX, LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
+				zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
 				return nil
 			}
 			mgrs.mgrs[i] = mgrCopy
@@ -310,7 +311,7 @@ func NewMysqlMgrPool(name string, addr string, dbname string, usr string, passwd
 
 		return mgrs
 	} else {
-		LogError(LOG_IDX, LOG_IDX, "NewMysqlMgrPool Error: %s has been exist!", name)
+		zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgrPool Error: %s has been exist!", name)
 	}
 
 	return nil
