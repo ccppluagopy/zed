@@ -36,7 +36,7 @@ func timerHandler(handler TimerCallBack) {
 	handler()
 }
 
-type wtimer struct {
+type WTimer struct {
 	key      interface{}
 	active   bool
 	delay    int64
@@ -45,10 +45,10 @@ type wtimer struct {
 	callback TimerCallBack
 }
 
-type wheel map[interface{}]*wtimer
+type wheel map[interface{}]*WTimer
 
-func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loop bool) *wtimer {
-	timer := &wtimer{}
+func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loop bool) *WTimer {
+	timer := &WTimer{}
 	timer.key = key
 	timer.delay = delay
 	timer.callback = callback
@@ -59,7 +59,7 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback Ti
 	return timer
 }
 
-func (timerWheel *TimerWheel) DeleteTimer(timer *wtimer) {
+func (timerWheel *TimerWheel) DeleteTimer(timer *WTimer) {
 	timer.active = false
 	timerWheel.chTimer <- timer
 }
@@ -88,14 +88,14 @@ func (timerWheel *TimerWheel) IsRunning() bool {
 func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var timerWheel TimerWheel
 
-	timerWheel.chTimer = make(chan *wtimer)
+	timerWheel.chTimer = make(chan *WTimer)
 	timerWheel.currWheel = -1
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(time.Duration(internal))
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
-		timerWheel.wheels[i] = make(map[interface{}]*wtimer)
+		timerWheel.wheels[i] = make(map[interface{}]*WTimer)
 	}
 	timerWheel.running = true
 
@@ -104,7 +104,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var currTick int64 = 0
 	var wheelIdx int64 = 0
 	var loopTime int64
-	var timer *wtimer
+	var timer *WTimer
 	var ok bool = false
 
 	lastTick = time.Now().UnixNano()

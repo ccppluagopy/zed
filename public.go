@@ -39,7 +39,7 @@ type ClientCloseCB func(client *TcpClient)
 type TimerWheel struct {
 	running bool
 	//chTicker  chan time.Time
-	chTimer chan *wtimer
+	chTimer chan *WTimer
 	//chStop    chan byte
 	ticker    *time.Ticker
 	currWheel int64
