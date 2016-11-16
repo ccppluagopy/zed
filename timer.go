@@ -47,12 +47,12 @@ type WTimer struct {
 
 type wheel map[interface{}]*WTimer
 
-func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loopInternal int64) *WTimer {
+func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, callback TimerCallBack, loopInternal time.Duration) *WTimer {
 	timer := &WTimer{}
 	timer.key = key
-	timer.delay = delay
+	timer.delay = int64(delay)
 	timer.callback = callback
-	timer.loop = loopInternal
+	timer.loop = int64(loopInternal)
 	timer.active = true
 	timerWheel.chTimer <- timer
 
