@@ -42,6 +42,7 @@ type WTimer struct {
 	delay    int64
 	loop     int64
 	wheelIdx int64
+	start    int64
 	callback TimerCallBack
 }
 
@@ -88,7 +89,7 @@ func (timerWheel *TimerWheel) IsRunning() bool {
 func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var timerWheel TimerWheel
 
-	timerWheel.chTimer = make(chan *WTimer)
+	timerWheel.chTimer = make(chan *WTimer, 10)
 	timerWheel.currWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(time.Duration(internal))
@@ -123,6 +124,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 				if (*timer).active {
 					//wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
 					//if timer.loop > 0 {
+					timer.start = time.Now().UnixNano()
 					wheelIdx = (timerWheel.currWheel + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
 					timer.wheelIdx = wheelIdx
 					timerWheel.wheels[wheelIdx][timer.key] = timer
@@ -144,13 +146,34 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 						wl := timerWheel.wheels[timerWheel.currWheel]
 
 						for _, timer := range wl {
-							timerHandler((timer).callback)
-							delete(wl, (timer).key)
-							if timer.loop > 0 {
-								wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
-								timer.wheelIdx = wheelIdx
-								timerWheel.wheels[wheelIdx][timer.key] = timer
+							if timer.delay > 0 {
+								if currTick-timer.start >= timer.delay {
+									timerHandler((timer).callback)
+									timer.delay = 0
+
+									delete(wl, (timer).key)
+									if timer.loop > 0 {
+										timer.start = currTick
+										timer.wheelIdx = wheelIdx
+										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
+										timerWheel.wheels[wheelIdx][timer.key] = timer
+									}
+								}
+							} else {
+								if currTick-timer.start >= timer.loop {
+									timerHandler((timer).callback)
+
+									delete(wl, (timer).key)
+									if timer.loop > 0 {
+										timer.start = currTick
+										timer.wheelIdx = wheelIdx
+										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
+										timerWheel.wheels[wheelIdx][timer.key] = timer
+
+									}
+								}
 							}
+
 						}
 					}
 				}
