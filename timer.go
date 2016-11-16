@@ -40,19 +40,19 @@ type WTimer struct {
 	key      interface{}
 	active   bool
 	delay    int64
-	loop     bool
+	loop     int64
 	wheelIdx int64
 	callback TimerCallBack
 }
 
 type wheel map[interface{}]*WTimer
 
-func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loop bool) *WTimer {
+func (timerWheel *TimerWheel) NewTimer(key interface{}, delay int64, callback TimerCallBack, loopInternal int64) *WTimer {
 	timer := &WTimer{}
 	timer.key = key
 	timer.delay = delay
 	timer.callback = callback
-	timer.loop = loop
+	timer.loop = loopInternal
 	timer.active = true
 	timerWheel.chTimer <- timer
 
@@ -89,7 +89,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var timerWheel TimerWheel
 
 	timerWheel.chTimer = make(chan *WTimer)
-	timerWheel.currWheel = -1
+	timerWheel.currWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(time.Duration(internal))
 
@@ -121,9 +121,12 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 					return
 				}
 				if (*timer).active {
-					wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
+					//wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
+					//if timer.loop > 0 {
+					wheelIdx = (timerWheel.currWheel + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
 					timer.wheelIdx = wheelIdx
 					timerWheel.wheels[wheelIdx][timer.key] = timer
+					//}
 				} else {
 					delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
 				}
@@ -142,8 +145,11 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 
 						for _, timer := range wl {
 							timerHandler((timer).callback)
-							if !timer.loop {
-								delete(wl, (timer).key)
+							delete(wl, (timer).key)
+							if timer.loop > 0 {
+								wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
+								timer.wheelIdx = wheelIdx
+								timerWheel.wheels[wheelIdx][timer.key] = timer
 							}
 						}
 					}
