@@ -49,20 +49,33 @@ type WTimer struct {
 type wheel map[interface{}]*WTimer
 
 func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, callback TimerCallBack, loopInternal time.Duration) *WTimer {
+	timerWheel.Lock()
+	defer timerWheel.Unlock()
+
 	timer := &WTimer{}
 	timer.key = key
 	timer.delay = int64(delay)
 	timer.callback = callback
 	timer.loop = int64(loopInternal)
 	timer.active = true
-	timerWheel.chTimer <- timer
+	timer.start = time.Now().UnixNano()
+	//timerWheel.chTimer <- timer
+
+	timer.wheelIdx = (timerWheel.currWheel + (timerWheel.tickSum+timerWheel.internal/2)/timerWheel.internal + (*timer).delay) % timerWheel.wheelNum
+	//timer.wheelIdx = wheelIdx
+	timerWheel.wheels[timer.wheelIdx][key] = timer
 
 	return timer
 }
 
 func (timerWheel *TimerWheel) DeleteTimer(timer *WTimer) {
-	timer.active = false
-	timerWheel.chTimer <- timer
+	timerWheel.Lock()
+	defer timerWheel.Unlock()
+	/*
+		timer.active = false
+		timerWheel.chTimer <- timer
+	*/
+	delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
 }
 
 func (timerWheel *TimerWheel) DeleteTimerByKey(key interface{}) {
@@ -93,6 +106,9 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	timerWheel.currWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(time.Duration(internal))
+	timerWheel.internal = internal
+	timerWheel.wheelNum = wheelNum
+	timerWheel.tickSum = 0
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
@@ -100,13 +116,13 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	}
 	timerWheel.running = true
 
-	var tickSum int64 = 0
+	//var tickSum int64 = 0
 	var lastTick int64 = 0
 	var currTick int64 = 0
 	var wheelIdx int64 = 0
 	var loopTime int64
-	var timer *WTimer
-	var ok bool = false
+	/*var timer *WTimer
+	var ok bool = false*/
 
 	lastTick = time.Now().UnixNano()
 	var halfInternal = internal / 2
@@ -117,29 +133,27 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 			}
 
 			select {
-			case timer, ok = <-timerWheel.chTimer:
-				if !ok {
-					return
-				}
-				if (*timer).active {
-					//wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
-					//if timer.loop > 0 {
-					timer.start = time.Now().UnixNano()
-					wheelIdx = (timerWheel.currWheel + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
-					timer.wheelIdx = wheelIdx
-					timerWheel.wheels[wheelIdx][timer.key] = timer
-					//}
-				} else {
-					delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
-				}
-
+			/*case timer, ok = <-timerWheel.chTimer:
+			if !ok {
+				return
+			}
+			if (*timer).active {
+				timer.start = time.Now().UnixNano()
+				wheelIdx = (timerWheel.currWheel + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
+				timer.wheelIdx = wheelIdx
+				timerWheel.wheels[wheelIdx][timer.key] = timer
+			} else {
+				delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
+			}
+			*/
 			case <-timerWheel.ticker.C:
 				currTick = time.Now().UnixNano()
-				tickSum += (currTick - lastTick)
+				timerWheel.tickSum += (currTick - lastTick)
 				lastTick = currTick
-				if tickSum >= internal {
-					loopTime = (tickSum / internal)
-					tickSum -= loopTime * internal
+				if timerWheel.tickSum >= internal {
+
+					loopTime = (timerWheel.tickSum / internal)
+					timerWheel.tickSum -= loopTime * internal
 					for i = 1; i <= loopTime; i++ {
 						timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
 
@@ -155,7 +169,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 									if timer.loop > 0 {
 										timer.start = currTick
 										timer.wheelIdx = wheelIdx
-										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
+										wheelIdx = (timerWheel.currWheel + wheelNum + (timerWheel.tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
 										timerWheel.wheels[wheelIdx][timer.key] = timer
 									}
 								}
@@ -167,7 +181,7 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 									if timer.loop > 0 {
 										timer.start = currTick
 										timer.wheelIdx = wheelIdx
-										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
+										wheelIdx = (timerWheel.currWheel + wheelNum + (timerWheel.tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
 										timerWheel.wheels[wheelIdx][timer.key] = timer
 
 									}

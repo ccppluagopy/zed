@@ -37,12 +37,16 @@ type MsgHandler func(msg *NetMsg) bool
 type ClientCloseCB func(client *TcpClient)
 
 type TimerWheel struct {
+	sync.Mutex
 	running bool
 	//chTicker  chan time.Time
 	chTimer chan *WTimer
 	//chStop    chan byte
 	ticker    *time.Ticker
 	currWheel int64
+	tickSum   int64
+	internal  int64
+	wheelNum  int64
 	wheels    []wheel
 }
 
