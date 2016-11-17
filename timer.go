@@ -87,13 +87,13 @@ func (timerWheel *TimerWheel) IsRunning() bool {
 	return timerWheel.running
 }
 
-func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
+func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 	var timerWheel TimerWheel
 
 	timerWheel.chTimer = make(chan *WTimer, 10)
 	timerWheel.currWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
-	timerWheel.ticker = time.NewTicker(time.Duration(internal))
+	timerWheel.ticker = time.NewTicker(tickTime)
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
@@ -105,12 +105,15 @@ func NewTimerWheel(tickTime int64, internal int64, wheelNum int64) *TimerWheel {
 	var lastTick int64 = 0
 	var currTick int64 = 0
 	var wheelIdx int64 = 0
+	var internal int64 = int64(wheelInternal)
+	var halfInternal = internal / 2
+
 	var loopTime int64
 	var timer *WTimer
 	var ok bool = false
 
 	lastTick = time.Now().UnixNano()
-	var halfInternal = internal / 2
+
 	timerfunc := func() {
 		for {
 			if !timerWheel.running {
