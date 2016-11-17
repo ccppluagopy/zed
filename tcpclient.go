@@ -41,6 +41,7 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 func (client *TcpClient) Stop() {
 	client.Lock()
 	defer client.Unlock()
+	LogStackInfo()
 
 	if client.running {
 		client.parent.onClientStop(client)
@@ -92,7 +93,7 @@ func (client *TcpClient) writer() {
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	client.Lock()
 	defer client.Unlock()
-
+	zed.ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	client.parent.SendMsg(client, msg)
 	/*
 			var (
@@ -140,6 +141,8 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	//ZLog("SendMsgAsync %s 111 data: %v", client.Info(), msg)
 	client.RLock()
 	defer client.RUnlock()
+
+	zed.ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	//ZLog("SendMsgAsync %s 222 data: %v", client.Info())
 	/*if client.chSend == nil {
 		ZLog("SendMsgAsync %s 333 data: %v", client.Info())
