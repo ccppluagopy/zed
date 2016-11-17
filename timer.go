@@ -160,8 +160,8 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 										delete(wl, (timer).key)
 										if timer.loop > 0 {
 											timer.start = currTick
+											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
 											timer.wheelIdx = wheelIdx
-											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
 											timerWheel.wheels[wheelIdx][timer.key] = timer
 										}
 									}
@@ -172,9 +172,9 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 										delete(wl, (timer).key)
 										if timer.loop > 0 {
 											timer.start = currTick
-											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + timer.loop/internal) % wheelNum
-											timerWheel.wheels[wheelIdx][timer.key] = timer
+											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
 											timer.wheelIdx = wheelIdx
+											timerWheel.wheels[wheelIdx][timer.key] = timer
 										}
 									}
 								}
