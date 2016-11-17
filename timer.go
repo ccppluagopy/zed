@@ -55,6 +55,7 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 	timer.callback = callback
 	timer.loop = int64(loopInternal)
 	timer.active = true
+	timer.start = time.Now().UnixNano()
 	timerWheel.chTimer <- timer
 
 	return timer
@@ -128,8 +129,8 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 				if (*timer).active {
 					//wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
 					//if timer.loop > 0 {
-					timer.start = time.Now().UnixNano()
-					wheelIdx = (timerWheel.currWheel + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
+					//timer.start = time.Now().UnixNano()
+					wheelIdx = (timerWheel.currWheel + (lastTick - timer.start + halfInternal + timer.delay)) / internal % wheelNum
 					timer.wheelIdx = wheelIdx
 					timerWheel.wheels[wheelIdx][timer.key] = timer
 					//}
