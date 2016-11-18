@@ -153,7 +153,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 
 							for _, timer := range wl {
 								if timer.delay > 0 {
-									if currTick-timer.start >= timer.delay {
+									if currTick-timer.start+halfInternal >= timer.delay {
 										timerHandler((timer).callback)
 										timer.delay = 0
 
@@ -166,7 +166,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 										}
 									}
 								} else {
-									if currTick-timer.start >= timer.loop {
+									if currTick-timer.start+halfInternal >= timer.loop {
 										timerHandler((timer).callback)
 
 										delete(wl, (timer).key)
