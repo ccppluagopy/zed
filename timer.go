@@ -46,6 +46,10 @@ type WTimer struct {
 	callback TimerCallBack
 }
 
+func (timer *WTimer) Stop() {
+	timer.loop = 0
+}
+
 type wheel map[interface{}]*WTimer
 
 func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, callback TimerCallBack, loopInternal time.Duration) *WTimer {
@@ -139,48 +143,50 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 				}
 
 			case <-timerWheel.ticker.C:
+				xx := 0
 				for {
 					currTick = time.Now().UnixNano()
 					tickSum += (currTick - lastTick)
 					lastTick = currTick
 					if tickSum >= internal {
+						xx |= 0x01
 						loopTime = (tickSum / internal)
 						tickSum -= loopTime * internal
-						for i = 1; i <= loopTime; i++ {
-							timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
+						//for i = 1; i <= loopTime; i++ {
+						timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
 
-							wl := timerWheel.wheels[timerWheel.currWheel]
+						wl := timerWheel.wheels[timerWheel.currWheel]
 
-							for _, timer := range wl {
-								if timer.delay > 0 {
-									if currTick-timer.start+halfInternal >= timer.delay {
-										timerHandler((timer).callback)
-										timer.delay = 0
+						for _, timer := range wl {
+							if timer.delay > 0 {
+								if currTick-timer.start+halfInternal >= timer.delay {
+									timerHandler((timer).callback)
+									timer.delay = 0
 
-										delete(wl, (timer).key)
-										if timer.loop > 0 {
-											timer.start = currTick
-											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
-											timer.wheelIdx = wheelIdx
-											timerWheel.wheels[wheelIdx][timer.key] = timer
-										}
-									}
-								} else {
-									if currTick-timer.start+halfInternal >= timer.loop {
-										timerHandler((timer).callback)
-
-										delete(wl, (timer).key)
-										if timer.loop > 0 {
-											timer.start = currTick
-											wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
-											timer.wheelIdx = wheelIdx
-											timerWheel.wheels[wheelIdx][timer.key] = timer
-										}
+									delete(wl, (timer).key)
+									if timer.loop > 0 {
+										timer.start = currTick
+										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
+										timer.wheelIdx = wheelIdx
+										timerWheel.wheels[wheelIdx][timer.key] = timer
 									}
 								}
+							} else {
+								if currTick-timer.start+halfInternal >= timer.loop {
+									timerHandler((timer).callback)
 
+									delete(wl, (timer).key)
+									if timer.loop > 0 {
+										timer.start = currTick
+										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
+										timer.wheelIdx = wheelIdx
+										timerWheel.wheels[wheelIdx][timer.key] = timer
+									}
+								}
 							}
+
 						}
+						//}
 					} else {
 						break
 					}
