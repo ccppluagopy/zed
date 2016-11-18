@@ -62,7 +62,7 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 }
 
 func (timerWheel *TimerWheel) DeleteTimer(timer *WTimer) {
-	Println("DeleteTimer 111: ", timer.key)
+	//Println("DeleteTimer 111: ", timer.key)
 	timer.active = false
 	timerWheel.chTimer <- timer
 }
