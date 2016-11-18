@@ -29,6 +29,7 @@ type NewConnCB func(client *TcpClient)
 type ClosureCB func()
 
 type TimerCallBack func()
+type WTimerCallBack func(timer *WTimer)
 
 //type DBErrorHandler func()
 

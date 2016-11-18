@@ -31,6 +31,11 @@ timerMgr.NewTimer("cb1", int64(time.Second), cb1, true)
 timerMgr.NewTimer("cb2", int64(time.Second*2), cb2, true)
 */
 
+func wtimerHandler(handler WTimerCallBack, timer *WTimer) {
+	defer PanicHandle(true)
+	handler(timer)
+}
+
 func timerHandler(handler TimerCallBack) {
 	defer PanicHandle(true)
 	handler()
@@ -43,7 +48,7 @@ type WTimer struct {
 	loop     int64
 	wheelIdx int64
 	start    int64
-	callback TimerCallBack
+	callback WTimerCallBack
 }
 
 func (timer *WTimer) Stop() {
@@ -52,7 +57,7 @@ func (timer *WTimer) Stop() {
 
 type wheel map[interface{}]*WTimer
 
-func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, callback TimerCallBack, loopInternal time.Duration) *WTimer {
+func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, callback WTimerCallBack, loopInternal time.Duration) *WTimer {
 	timer := &WTimer{}
 	timer.key = key
 	timer.delay = int64(delay)
@@ -160,7 +165,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 						for _, timer := range wl {
 							if timer.delay > 0 {
 								if currTick-timer.start+halfInternal >= timer.delay {
-									timerHandler((timer).callback)
+									wtimerHandler((timer).callback, timer)
 									timer.delay = 0
 
 									delete(wl, (timer).key)
@@ -173,7 +178,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 								}
 							} else {
 								if currTick-timer.start+halfInternal >= timer.loop {
-									timerHandler((timer).callback)
+									wtimerHandler((timer).callback, timer)
 
 									delete(wl, (timer).key)
 									if timer.loop > 0 {
