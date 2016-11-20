@@ -55,7 +55,7 @@ func (server *TcpServer) startListener(addr string) {
 			if client.start() {
 				server.ClientNum = server.ClientNum + 1
 
-				server.onNewClient(client)
+				//server.onNewClient(client)
 				if server.onNewConnCB != nil {
 					server.onNewConnCB(client)
 				}
@@ -92,16 +92,17 @@ func (server *TcpServer) Stop() {
 	if !server.running {
 		return
 	}
+	server.listener.Close()
+	server.running = false
 
-	for idx, client := range server.clients {
-		client.Stop()
-		delete(server.clients, idx)
-	}
-	//server.stopHandlers()
-	//server.stopSenders()
 	for k, _ := range server.handlerMap {
 		delete(server.handlerMap, k)
 	}
+
+	if server.onStopCB != nil {
+		server.onStopCB()
+	}
+
 	/*for k, _ := range server.clientIdMap {
 		delete(server.clientIdMap, k)
 	}
@@ -109,8 +110,6 @@ func (server *TcpServer) Stop() {
 		delete(server.idClientMap, k)
 	}*/
 
-	server.running = false
-	server.listener.Close()
 }
 
 /*func (server *TcpServer) AddNewConnCB(name string, cb func(client *TcpClient)) {
@@ -163,25 +162,21 @@ func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
 	server.onNewConnCB = cb
 }
 
-func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
+/*func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
 	server.onConnCloseCB = cb
 }
-
+*/
 func (server *TcpServer) onNewClient(client *TcpClient) {
-	server.Lock()
+	/*server.Lock()
 	defer server.Unlock()
 
-	server.clients[client.Idx] = client
+	server.clients[client] = client*/
 }
 
-func (server *TcpServer) onClientStop(client *TcpClient) {
+func (server *TcpServer) SetServerStopCB(cb func()) {
 	server.Lock()
 	defer server.Unlock()
-
-	delete(server.clients, client.Idx)
-	if server.onConnCloseCB != nil {
-		server.onConnCloseCB(client)
-	}
+	server.onStopCB = cb
 }
 
 func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
@@ -353,12 +348,12 @@ func NewTcpServer(name string) *TcpServer {
 		listener:  nil,
 		//newConnCBMap: make(map[string]func(client *TcpClient)),
 		handlerMap: make(map[CmdType]MsgHandler),
-		clients:    make(map[int]*TcpClient),
+		clients:    make(map[*TcpClient]*TcpClient),
 		//clientIdMap: make(map[*TcpClient]uint32),
 		//idClientMap: make(map[uint32]*TcpClient),
 		msgFilter:     nil,
 		onNewConnCB:   nil,
-		onConnCloseCB: nil,
+		onStopCB:      nil,
 		recvBlockTime: DEFAULT_RECV_BLOCK_TIME,
 		sendBlockTime: DEFAULT_SEND_BLOCK_TIME,
 

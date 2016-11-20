@@ -91,10 +91,10 @@ type TcpServer struct {
 	ClientNum         int
 	listener          *net.TCPListener
 	handlerMap        map[CmdType]MsgHandler
-	clients           map[int]*TcpClient
+	clients           map[*TcpClient]*TcpClient
 	msgFilter         func(*NetMsg) bool
 	onNewConnCB       func(client *TcpClient)
-	onConnCloseCB     func(client *TcpClient)
+	onStopCB          func()
 	maxPackLen        int
 	recvBlockTime     time.Duration
 	recvBufLen        int

@@ -43,8 +43,8 @@ func (client *TcpClient) Stop() {
 	defer client.Unlock()
 
 	if client.running {
+		//client.parent.onClientStop(client)
 		LogStackInfo()
-		client.parent.onClientStop(client)
 
 		client.running = false
 
@@ -67,6 +67,7 @@ func (client *TcpClient) Stop() {
 		if client.parent.showClientData {
 			ZLog("[Stop] %s", client.Info())
 		}
+
 	}
 	//})
 }
