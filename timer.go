@@ -104,6 +104,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 	timerWheel.currWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(tickTime)
+	timerWheel.born = time.Now().UnixNano()
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
@@ -122,13 +123,13 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 	var timer *WTimer
 	var ok bool = false
 
-	lastTick = time.Now().UnixNano()
-
 	timerfunc := func() {
 		for {
 			if !timerWheel.running {
 				break
 			}
+
+			lastTick = time.Now().UnixNano()
 
 			select {
 			case timer, ok = <-timerWheel.chTimer:
@@ -139,12 +140,14 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 					//wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal)/internal + (*timer).delay) % wheelNum
 					//if timer.loop > 0 {
 					//timer.start = time.Now().UnixNano()
-					wheelIdx = (timerWheel.currWheel + (lastTick - timer.start + halfInternal + timer.delay)) / internal % wheelNum
+					wheelIdx = (timerWheel.currWheel + (lastTick*2 - timerWheel.born - timer.start + halfInternal + timer.delay)) / internal % wheelNum
 					timer.wheelIdx = wheelIdx
 					timerWheel.wheels[wheelIdx][timer.key] = timer
+					Println("NewTimer currWheel, wheelIdx:", timerWheel.currWheel, wheelIdx, timer.start, timer.delay, halfInternal)
 					//}
 				} else {
 					delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
+					//Println("DeleteTimer currWheel, wheelIdx:", timerWheel.currWheel, wheelIdx, timer.start, timer.delay, halfInternal)
 				}
 
 			case <-timerWheel.ticker.C:

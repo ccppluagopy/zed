@@ -45,6 +45,7 @@ type TimerWheel struct {
 	ticker    *time.Ticker
 	currWheel int64
 	wheels    []wheel
+	born      int64
 }
 
 type EventHandler func(event interface{}, args []interface{})
