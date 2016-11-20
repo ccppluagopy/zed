@@ -49,7 +49,7 @@ func (client *TcpClient) Stop() {
 		client.running = false
 
 		client.conn.Close()
-
+		//client.conn.SetLinger(sec)
 		if client.chSend != nil {
 			close(client.chSend)
 		}
