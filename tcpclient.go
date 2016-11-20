@@ -41,17 +41,19 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 func (client *TcpClient) Stop() {
 	client.Lock()
 	defer client.Unlock()
-	LogStackInfo()
 
 	if client.running {
+		LogStackInfo()
 		client.parent.onClientStop(client)
 
 		client.running = false
 
 		client.conn.Close()
-		//client.conn.SetLinger(sec)
+		//client.conn.SetLinger(0)
+
 		if client.chSend != nil {
 			close(client.chSend)
+			client.chSend = nil
 		}
 
 		for _, cb := range client.closeCB {
