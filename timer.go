@@ -61,6 +61,11 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 	timerWheel.Lock()
 	defer timerWheel.Unlock()
 
+	if _, ok := timerWheel.timers[key]; ok {
+		ZLog("TimerWheel NewTimer Error: key(%v) has been exist.", key)
+		return nil
+	}
+
 	timer := &WTimer{}
 	timer.key = key
 	timer.delay = int64(delay)
@@ -86,6 +91,8 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 	//Println("NewTimer currWheel, wheelIdx:", timerWheel.currWheel, timer.wheelIdx, timerWheel.wheelNum, timer.start, timer.delay, timerWheel.internal/2)
 	timerWheel.wheels[timer.wheelIdx][timer.key] = timer
 
+	timerWheel.timers[key] = timer
+
 	return timer
 }
 
@@ -96,7 +103,8 @@ func (timerWheel *TimerWheel) DeleteTimer(timer *WTimer) {
 	timerWheel.Lock()
 	defer timerWheel.Unlock()
 
-	delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
+	delete(timerWheel.wheels[timer.wheelIdx], timer.key)
+	delete(timerWheel.timers, timer.key)
 }
 
 func (timerWheel *TimerWheel) DeleteTimerByKey(key interface{}) {
@@ -130,6 +138,8 @@ func NewTimerWheel(wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 
 	timerWheel.born = time.Now().UnixNano()
 	timerWheel.internal = int64(wheelInternal)
+	timerWheel.timers = make(map[interface{}]*WTimer)
+
 	internal := timerWheel.internal
 	var i int64
 	for i = 0; i < wheelNum; i++ {

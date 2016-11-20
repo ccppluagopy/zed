@@ -50,6 +50,8 @@ type TimerWheel struct {
 	lastTick  int64
 	internal  int64
 	wheelNum  int64
+
+	timers map[interface{}]*WTimer
 }
 
 type EventHandler func(event interface{}, args []interface{})
