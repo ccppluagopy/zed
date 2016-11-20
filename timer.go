@@ -143,7 +143,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 					wheelIdx = (timerWheel.currWheel + (lastTick*2 - timerWheel.born - timer.start + halfInternal + timer.delay)) / internal % wheelNum
 					timer.wheelIdx = wheelIdx
 					timerWheel.wheels[wheelIdx][timer.key] = timer
-					Println("NewTimer currWheel, wheelIdx:", timerWheel.currWheel, wheelIdx, timer.start, timer.delay, halfInternal)
+					//Println("NewTimer currWheel, wheelIdx:", timerWheel.currWheel, wheelIdx, timer.start, timer.delay, halfInternal)
 					//}
 				} else {
 					delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
@@ -151,13 +151,13 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 				}
 
 			case <-timerWheel.ticker.C:
-				xx := 0
+				//xx := 0
 				for {
 					currTick = time.Now().UnixNano()
 					tickSum += (currTick - lastTick)
 					lastTick = currTick
 					if tickSum >= internal {
-						xx |= 0x01
+						//xx |= 0x01
 						loopTime = (tickSum / internal)
 						tickSum -= loopTime * internal
 						//for i = 1; i <= loopTime; i++ {
