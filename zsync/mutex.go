@@ -17,7 +17,7 @@ func SetDebug(flag bool, args ...interface{}) {
 	debug = flag
 	if debug {
 		if timerWheel == nil {
-			timerWheel = zed.NewTimerWheel(time.Second/2, time.Second, 15)
+			timerWheel = zed.NewTimerWheel(time.Second, 15)
 		}
 		if mutexs == nil {
 			mutexs = make(map[string]interface{})

@@ -1,9 +1,7 @@
 package zed
 
+/*
 import (
-	/*"github.com/ziutek/mymysql/mysql"
-	_ "github.com/ziutek/mymysql/native"
-	"gopkg.in/mgo.v2"*/
 	"net"
 	"sync"
 	"time"
@@ -13,7 +11,6 @@ const (
 	LogCmd  = 1
 	LogFile = 2
 
-	//NullID = 0
 	NullID = "NULL"
 
 	TAG_NULL = "--"
@@ -21,7 +18,6 @@ const (
 
 type CmdType uint32
 
-//type ClientIDType uint32
 type ClientIDType string
 
 type NewConnCB func(client *TcpClient)
@@ -31,25 +27,17 @@ type ClosureCB func()
 type TimerCallBack func()
 type WTimerCallBack func(timer *WTimer)
 
-//type DBErrorHandler func()
-
 type MsgHandler func(msg *NetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
 type TimerWheel struct {
-	sync.Mutex
-	running bool
-	//chTicker  chan time.Time
-	//chTimer chan *WTimer
-	//chStop    chan byte
-	//ticker    *time.Ticker
+	running   bool
+	chTimer   chan *WTimer
+	ticker    *time.Ticker
 	currWheel int64
 	wheels    []wheel
 	born      int64
-	lastTick  int64
-	internal  int64
-	wheelNum  int64
 }
 
 type EventHandler func(event interface{}, args []interface{})
@@ -70,12 +58,11 @@ type NetMsg struct {
 
 type TcpClient struct {
 	sync.RWMutex
-	conn   *net.TCPConn
-	parent *TcpServer
-	ID     ClientIDType
-	Idx    int
-	Addr   string
-	//Data    interface{}
+	conn    *net.TCPConn
+	parent  *TcpServer
+	ID      ClientIDType
+	Idx     int
+	Addr    string
 	chSend  chan *AsyncMsg
 	closeCB map[interface{}]ClientCloseCB
 	Valid   bool
@@ -102,7 +89,5 @@ type TcpServer struct {
 	delegate          ZServerDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
-
-	//clientIdMap map[*TcpClient]ClientIDType
-	//idClientMap map[ClientIDType]*TcpClient
 }
+*/
