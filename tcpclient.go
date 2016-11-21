@@ -87,6 +87,7 @@ func (client *TcpClient) writer() {
 					}()
 				}
 			} else {
+				//Println("========= writer stop()")
 				break
 			}
 		}
@@ -165,9 +166,13 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 				asyncmsg.cb = cb
 			}
 		}
-		client.chSend <- asyncmsg
+		if client.chSend != nil {
+			Println("aaaaaaa", client.Info(), msg.Cmd, msg.Len, client.chSend)
+			client.chSend <- asyncmsg
+		}
 		//ZLog("SendMsgAsync %s 777 data: %v", client.Info())
 	}
+	ZLog("[Send_00] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 }
 
 /*
