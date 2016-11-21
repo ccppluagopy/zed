@@ -65,6 +65,7 @@ func (mt *Mutex) Lock() {
 			stack := zed.GetStackInfo()
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.Mutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+				zed.Println("now: ", time.Now().UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
@@ -90,6 +91,7 @@ func (mt *Mutex) Lock() {
 				stack := zed.GetStackInfo()
 				timer = timerWheel.NewTimer(key2, lockTimeout, func(t *zed.WTimer) {
 					zed.Printf("zsync.Mutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+					zed.Println("now: ", time.Now().UnixNano())
 					zed.Println(stack)
 					delete(mutexs, key2)
 				}, 0)
@@ -122,6 +124,7 @@ func (rwmt *RWMutex) Lock() {
 			stack := zed.GetStackInfo()
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+				zed.Println("now: ", time.Now().UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
@@ -146,6 +149,7 @@ func (rwmt *RWMutex) Lock() {
 				stack := zed.GetStackInfo()
 				timer = timerWheel.NewTimer(key2, lockTimeout, func(t *zed.WTimer) {
 					zed.Printf("zsync.RWMutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+					zed.Println("now: ", time.Now().UnixNano())
 					zed.Println(stack)
 					delete(mutexs, key2)
 				}, 0)
@@ -174,6 +178,7 @@ func (rwmt *RWMutex) RLock() {
 			stack := zed.GetStackInfo()
 			timer := timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: RLock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+				zed.Println("now: ", time.Now().UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
@@ -197,6 +202,7 @@ func (rwmt *RWMutex) RLock() {
 				stack := zed.GetStackInfo()
 				timer := timerWheel.NewTimer(key2, lockTimeout, func(t *zed.WTimer) {
 					zed.Printf("zsync.RWMutex Warn: Wait RUnlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
+					zed.Println("now: ", time.Now().UnixNano())
 					zed.Println(stack)
 					delete(mutexs, key2)
 				}, 0)
