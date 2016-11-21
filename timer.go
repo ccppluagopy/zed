@@ -97,16 +97,16 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 }
 
 func (timerWheel *TimerWheel) DeleteTimer(timer *WTimer) {
-	//Println("DeleteTimer 111: ", timer.key)
-	/*timer.active = false
-	timerWheel.chTimer <- timer*/
-	timerWheel.Lock()
-	defer timerWheel.Unlock()
+	if timer != nil {
+		timerWheel.Lock()
+		defer timerWheel.Unlock()
 
-	delete(timerWheel.wheels[timer.wheelIdx], timer.key)
-	delete(timerWheel.timers, timer.key)
+		delete(timerWheel.wheels[timer.wheelIdx], timer.key)
+		delete(timerWheel.timers, timer.key)
+	}
 }
 
+/*
 func (timerWheel *TimerWheel) DeleteTimerByKey(key interface{}) {
 	for _, wl := range timerWheel.wheels {
 		for _, timer := range wl {
@@ -117,7 +117,7 @@ func (timerWheel *TimerWheel) DeleteTimerByKey(key interface{}) {
 		}
 	}
 }
-
+*/
 func (timerWheel *TimerWheel) Stop() {
 	timerWheel.running = false
 	//close(timerWheel.chTimer)

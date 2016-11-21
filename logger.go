@@ -508,6 +508,9 @@ func StopLogger() {
 		task.stop()
 	}
 
+	for _, task := range arrTaskAction {
+		task.stop()
+	}
 	/*	time.Sleep(time.Second / 10)
 
 		for _, task := range arrTaskInfo {

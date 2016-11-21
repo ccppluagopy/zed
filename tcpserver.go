@@ -332,6 +332,7 @@ func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 			}
 		} else {
 			ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
+			client.Stop()
 		}
 	}
 }
