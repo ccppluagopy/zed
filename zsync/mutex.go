@@ -66,7 +66,7 @@ func (mt *Mutex) Lock() {
 			stack := zed.GetStackInfo()
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.Mutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
-				zed.Println("now: ", time.Now().UnixNano())
+				zed.Println("now: ", t1.UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
@@ -95,7 +95,7 @@ func (mt *Mutex) Lock() {
 				stack := zed.GetStackInfo()
 				timer = timerWheel.NewTimer(mt.unlockkey, lockTimeout, func(t *zed.WTimer) {
 					zed.Printf("zsync.Mutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
-					zed.Println("now: ", time.Now().UnixNano())
+					zed.Println("now: ", t1.UnixNano())
 					zed.Println(stack)
 					delete(mutexs, mt.unlockkey)
 				}, 0)
@@ -130,7 +130,7 @@ func (rwmt *RWMutex) Lock() {
 			stack := zed.GetStackInfo()
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
-				zed.Println("now: ", time.Now().UnixNano())
+				zed.Println("now: ", t1.UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
@@ -157,7 +157,7 @@ func (rwmt *RWMutex) Lock() {
 				stack := zed.GetStackInfo()
 				timer = timerWheel.NewTimer(rwmt.unlockkey, lockTimeout, func(t *zed.WTimer) {
 					zed.Printf("zsync.RWMutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
-					zed.Println("now: ", time.Now().UnixNano())
+					zed.Println("now: ", t1.UnixNano())
 					zed.Println(stack)
 					delete(mutexs, rwmt.unlockkey)
 				}, 0)
@@ -185,7 +185,7 @@ func (rwmt *RWMutex) RLock() {
 			stack := zed.GetStackInfo()
 			timer := timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: RLock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
-				zed.Println("now: ", time.Now().UnixNano())
+				zed.Println("now: ", t1.UnixNano())
 				zed.Println(stack)
 				delete(mutexs, key)
 			}, 0)
