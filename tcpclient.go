@@ -44,6 +44,7 @@ func (client *TcpClient) Stop() {
 
 	if client.running {
 		//client.parent.onClientStop(client)
+		ZLog("[Stop_0] %s", client.Info())
 		LogStackInfo()
 
 		client.running = false
@@ -65,7 +66,7 @@ func (client *TcpClient) Stop() {
 		}
 
 		if client.parent.showClientData {
-			ZLog("[Stop] %s", client.Info())
+			ZLog("[Stop_1] %s", client.Info())
 		}
 
 	}
