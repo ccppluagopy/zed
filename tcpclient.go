@@ -95,8 +95,6 @@ func (client *TcpClient) writer() {
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
-	client.Lock()
-	defer client.Unlock()
 	ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	client.parent.SendMsg(client, msg)
 	/*

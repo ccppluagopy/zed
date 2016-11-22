@@ -325,6 +325,9 @@ func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
 
 func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 	if server.delegate != nil {
+		client.Lock()
+		defer client.Unlock()
+
 		msg.Client = client
 		if server.delegate.SendMsg(msg) {
 			if server.dataOutSupervisor != nil {
