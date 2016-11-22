@@ -355,8 +355,8 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 
 				if arrTaskAction[loggerIdx].running {
 					//arrTaskAction[loggerIdx].chMsg <- &s
-					if arrTaskError[loggerIdx].logType == LogFile {
-						arrTaskError[loggerIdx].logFile.Write(&s)
+					if arrTaskAction[loggerIdx].logType == LogFile {
+						arrTaskAction[loggerIdx].logFile.Write(&s)
 					} else {
 						Printf(s)
 					}
@@ -372,7 +372,7 @@ func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
 
 					if arrTaskAction[loggerIdx].running {
 						//arrTaskAction[loggerIdx].chMsg <- &s
-						if arrTaskError[loggerIdx].logType == LogFile {
+						if arrTaskAction[loggerIdx].logType == LogFile {
 							arrTaskAction[loggerIdx].logFile.Write(&s)
 						} else {
 							Printf(s)

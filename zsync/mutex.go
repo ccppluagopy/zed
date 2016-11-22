@@ -8,7 +8,7 @@ import (
 
 var (
 	debug                              = false
-	lockTimeout                        = (time.Second * 3)
+	lockTimeout                        = (time.Second * 5)
 	timerWheel  *zed.TimerWheel        = nil
 	mutexs      map[string]*zed.WTimer = nil
 	lock                               = &sync.Mutex{}
@@ -49,6 +49,7 @@ func SetDebug(flag bool, args ...interface{}) {
 		t, ok := args[0].(time.Duration)
 		if ok {
 			lockTimeout = t
+			zed.Printf("zsync.SetDebug set lockTimeout: %v\n", t)
 		}
 	}
 }
