@@ -7,35 +7,31 @@ import (
 	"time"
 )
 
-func main() {
+func test1() {
 	var (
 		internal   time.Duration = time.Second
-		period     int64         = 5
+		period     int64         = 20
 		timerWheel               = zed.NewTimerWheel(internal, period)
 		sum        int64         = 0
 	)
 
-	//tt := time.Now()
 	cb1 := func(t *zed.WTimer) {
-		//fmt.Println("cb1", time.Since(tt).Seconds())
 		fmt.Println("cb1", time.Now().Unix())
 	}
 	cb2 := func(t *zed.WTimer) {
-		//fmt.Println("cb2", time.Since(tt).Seconds())
 		fmt.Println("cb2", time.Now().Unix())
 	}
 	cb3 := func(t *zed.WTimer) {
-		//fmt.Println("cb3", time.Since(tt).Seconds())
 		fmt.Println("cb3", time.Now().Unix())
 	}
 
-	t1 := timerWheel.NewTimer("cb1", internal*1, cb1, internal*time.Duration(period+2))
-	t2 := timerWheel.NewTimer("cb2", internal*2, cb2, internal)
-	t3 := timerWheel.NewTimer("cb3", internal*3, cb3, internal)
+	t1 := timerWheel.NewTimer("cb1", internal*30, cb1, internal*time.Duration(period+2))
+	t2 := timerWheel.NewTimer("cb2", internal*30, cb2, internal)
+	t3 := timerWheel.NewTimer("cb3", internal*30, cb3, internal)
 
 	fmt.Println("test 111: ", time.Now().Unix())
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 100000)
 	timerWheel.DeleteTimer(t1)
 
 	time.Sleep(time.Second * 3)
@@ -54,7 +50,6 @@ func main() {
 		var n int64 = int64(i)
 		var timer *zed.WTimer
 		tb := time.Now()
-		//timer = timerWheel.NewTimer(n, time.Second*time.Duration(n%period), func() {
 
 		timer = timerWheel.NewTimer(n, time.Second, func(t *zed.WTimer) {
 			if flag {
@@ -84,7 +79,47 @@ func main() {
 	for i := 0; i < len(timers); i++ {
 		timerWheel.DeleteTimer(timers[i])
 	}
-	//wg.Wait()
 	fmt.Println("Test DeleteTimer", TEST_NUM, "times use seconds:", time.Since(tbegin).Seconds())
 	time.Sleep(time.Hour)
+}
+
+func test2() {
+	var (
+		internal   time.Duration = time.Second
+		period     int64         = 5
+		timerWheel               = zed.NewTimerWheel(internal, period)
+	)
+
+	go func() {
+		time.Sleep(internal * 5)
+		var i time.Duration = 0
+		for {
+			time.Sleep(10)
+			i++
+			t1 := time.Now()
+			delay := internal * time.Duration(i)
+			timerWheel.NewTimer(100+i, delay, func(t *zed.WTimer) {
+				sub := (time.Duration(time.Since(t1).Nanoseconds()) - delay) / internal
+				if sub < -1 || sub > 1 {
+					zed.Println("Error, delay:", delay)
+					t.Stop()
+				}
+			}, internal)
+		}
+	}()
+
+	/*go func() {
+		time.Sleep(internal * 4)
+		for i := 0; i < 10; i++ {
+			time.Sleep(258)
+			timerWheel.NewTimer(1000+i, internal*time.Duration(i), func(t *zed.WTimer) {
+
+			}, internal)
+		}
+	}()*/
+	time.Sleep(time.Hour)
+}
+
+func main() {
+	test2()
 }

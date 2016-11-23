@@ -82,10 +82,13 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 	if timer.delay == 0 {
 		wtimerHandler((timer).callback, timer)
 		timer.wheelIdx = (timerWheel.currWheel + (timer.start - timerWheel.born + timerWheel.internal/2 + timer.loop)) / timerWheel.internal % timerWheel.wheelNum
+		//Println("NewTimer 111, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	} else if timer.delay < timerWheel.internal {
 		timer.wheelIdx = timerWheel.currWheel + 1
+		//Println("NewTimer 222, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	} else {
 		timer.wheelIdx = (timerWheel.currWheel + (timer.start - timerWheel.born + timerWheel.internal/2 + timer.delay)) / timerWheel.internal % timerWheel.wheelNum
+		//Println("NewTimer 333, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	}
 
 	timerWheel.wheels[timer.wheelIdx][timer.key] = timer

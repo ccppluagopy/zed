@@ -73,7 +73,7 @@ func (logf *logfile) NewFile() bool {
 
 func (logf *logfile) Write(s *string) {
 	if logf.file == nil {
-		Printf("Error when logfile %s Write, err: file is nil, str: %s.", logf.name, *s)
+		ZLog("Error when logfile %s Write, err: file is nil, str: %s", logf.name, *s)
 		return
 	}
 	nLen := len(*s)
