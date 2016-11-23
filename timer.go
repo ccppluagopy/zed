@@ -218,7 +218,8 @@ func NewTimerWheel(wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 		for {
 			//n := int64(time.Duration(timerWheel.internal - (int64(time.Now().UnixNano())-timerWheel.born)%timerWheel.internal))
 			//Println("Sleep n:", n, sub+internal)
-			time.Sleep(time.Duration(sub + internal))
+			//time.Sleep(time.Duration(sub + internal))
+			time.Sleep(time.Duration(timerWheel.internal - (int64(time.Now().UnixNano())-timerWheel.born)%timerWheel.internal))
 			if !tickFunc() {
 				break
 			}
