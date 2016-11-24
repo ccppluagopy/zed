@@ -169,7 +169,7 @@ func ZLog(format string, v ...interface{}) {
 	Printf(s)
 }
 
-func LogInfoSave(tag int, loggerIdx int) {
+func LogInfoSave(loggerIdx int) {
 	loggerIdx = loggerIdx % infoLoggerNum
 
 	arrTaskInfo[loggerIdx].Lock()
@@ -223,7 +223,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogWarnSave(tag int, loggerIdx int) {
+func LogWarnSave(loggerIdx int) {
 	loggerIdx = loggerIdx % warnLoggerNum
 
 	arrTaskWarn[loggerIdx].Lock()
@@ -278,7 +278,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogErrorSave(tag int, loggerIdx int) {
+func LogErrorSave(loggerIdx int) {
 	loggerIdx = loggerIdx % errorLoggerNum
 
 	arrTaskError[loggerIdx].Lock()
@@ -332,7 +332,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 	}
 }
 
-func LogActionSave(tag int, loggerIdx int) {
+func LogActionSave(loggerIdx int) {
 	loggerIdx = loggerIdx % errorLoggerNum
 
 	arrTaskAction[loggerIdx].Lock()

@@ -93,7 +93,7 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 			timer.wheelIdx = (timerWheel.currWheel + 1) % timerWheel.wheelNum
 			timer.loopCnt = timerWheel.howmanyloops(timer.loop)
 		} else {
-			timer.wheelIdx = (timerWheel.currWheel + (timer.start - timerWheel.born + timerWheel.internal/2 + timer.loop)) / timerWheel.internal % timerWheel.wheelNum
+			timer.wheelIdx = (timerWheel.currWheel + (timer.loop)/timerWheel.internal) % timerWheel.wheelNum
 			timer.loopCnt = timerWheel.howmanyloops(timer.loop)
 		}
 		//Println("NewTimer 111, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
@@ -102,7 +102,7 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 		timer.loopCnt = timerWheel.howmanyloops(timer.delay)
 		//Println("NewTimer 222, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	} else {
-		timer.wheelIdx = (timerWheel.currWheel + (timer.start - timerWheel.born + timerWheel.internal/2 + timer.delay)) / timerWheel.internal % timerWheel.wheelNum
+		timer.wheelIdx = (timerWheel.currWheel + (timer.delay)/timerWheel.internal) % timerWheel.wheelNum
 		timer.loopCnt = timerWheel.howmanyloops(timer.delay)
 		//Println("NewTimer 333, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	}
