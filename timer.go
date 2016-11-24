@@ -48,6 +48,7 @@ type WTimer struct {
 	loop     int64
 	loopCnt  int64
 	wheelIdx int64
+	born     int64
 	start    int64
 	callback WTimerCallBack
 }
@@ -60,6 +61,12 @@ type wheel map[interface{}]*WTimer
 
 func (timerWheel *TimerWheel) howmanyloops(delay int64) int64 {
 	n := int64(delay) / (int64(timerWheel.internal) * int64(timerWheel.wheelNum))
+	//Println("homanyloops 111: ", delay, n)
+	if int64(delay)%(int64(timerWheel.internal)*int64(timerWheel.wheelNum)) > 0 {
+		n++
+		//Println("homanyloops 222: ", delay, n)
+	}
+	//Println("homanyloops 333: ", delay, n)
 	return n
 }
 
@@ -72,12 +79,14 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 		return nil
 	}
 
+	now := time.Now().UnixNano()
 	timer := &WTimer{
 		key:      key,
 		delay:    int64(delay),
 		callback: callback,
 		loop:     int64(loopInternal),
-		start:    time.Now().UnixNano(),
+		born:     now,
+		start:    now,
 	}
 
 	if timer.loop > 0 && timer.loop < timerWheel.internal {
@@ -102,9 +111,11 @@ func (timerWheel *TimerWheel) NewTimer(key interface{}, delay time.Duration, cal
 		timer.loopCnt = timerWheel.howmanyloops(timer.delay)
 		//Println("NewTimer 222, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
 	} else {
-		timer.wheelIdx = (timerWheel.currWheel + (timer.delay)/timerWheel.internal) % timerWheel.wheelNum
-		timer.loopCnt = timerWheel.howmanyloops(timer.delay)
-		//Println("NewTimer 333, currWheel, start, born, delay, wheelIdx", timerWheel.currWheel, timer.start, timerWheel.born, delay, timer.wheelIdx)
+		//sum := (timer.start-timerWheel.born)%timerWheel.internal + timerWheel.internal/2 + timer.delay - timerWheel.internal
+		sum := (timerWheel.internal/2 + timer.delay)
+		timer.wheelIdx = (timerWheel.currWheel + sum/timerWheel.internal) % timerWheel.wheelNum
+		timer.loopCnt = timerWheel.howmanyloops(sum)
+		//Println("NewTimer 333,", sum, timer.wheelIdx, timer.loopCnt)
 	}
 
 	timerWheel.wheels[timer.wheelIdx][timer.key] = timer
@@ -178,37 +189,43 @@ func NewTimerWheel(wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 
 			for {
 				currTick = time.Now().UnixNano()
-				//tickSum += (currTick - timerWheel.lastTick)
 				sub = currTick - timerWheel.lastTick
-				//Println("sub: ", sub)
 				if currTick-timerWheel.lastTick >= internal {
-					//tickSum -= internal
-					timerWheel.lastTick = currTick
 					timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
-
 					wl := timerWheel.wheels[timerWheel.currWheel]
-					//Println("len(wl):", len(wl), time.Now().Second())
 					for _, timer := range wl {
 						timer.loopCnt--
-						//Println("timer.loopCnt:", timer.loopCnt)
-						if timer.loopCnt < 0 {
+						if timer.delay > 0 {
+							timer.delay = 0
+							timer.born = currTick
+						}
+						//Println("timer.loopCnt: ", timer.loopCnt)
+						if timer.loopCnt <= 0 {
 							wtimerHandler((timer).callback, timer)
 
 							delete(wl, (timer).key)
+
 							if timer.loop == 0 {
 								delete(timerWheel.timers, timer.key)
 							} else if timer.loop <= timerWheel.internal {
+								timer.start = currTick
 								timer.wheelIdx = (timerWheel.currWheel + 1) % timerWheel.wheelNum
 								timer.loopCnt = timerWheel.howmanyloops(timer.loop)
 								timerWheel.wheels[timer.wheelIdx][timer.key] = timer
 							} else {
-								timer.wheelIdx = (timerWheel.currWheel + (timer.loop)/timerWheel.internal) % timerWheel.wheelNum
-								timer.loopCnt = timerWheel.howmanyloops(timer.loop)
+								timer.start = currTick
+								//sum := ((timer.start-timerWheel.born)%timerWheel.internal - (timer.start-timer.born)%timer.loop + timerWheel.internal/2 + timer.loop - timerWheel.internal) / timerWheel.internal
+								sum := (timerWheel.internal/2 + timer.loop) / timerWheel.internal
+								timer.wheelIdx = (timer.wheelIdx + sum) % timerWheel.wheelNum
+								timer.loopCnt = timerWheel.howmanyloops(sum)
+								//Println("NewTimer 444,", sum, timer.wheelIdx, timer.loopCnt, ((timer.start-timer.born)%timer.loop)/timerWheel.internal)
 								timerWheel.wheels[timer.wheelIdx][timer.key] = timer
+
 							}
 						}
 
 					}
+					timerWheel.lastTick = currTick
 				} else {
 					break
 				}
