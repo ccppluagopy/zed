@@ -61,12 +61,12 @@ type wheel map[interface{}]*WTimer
 
 func (timerWheel *TimerWheel) howmanyloops(delay int64) int64 {
 	n := int64(delay) / (int64(timerWheel.internal) * int64(timerWheel.wheelNum))
-	//Println("homanyloops 111: ", delay, n)
+	Println("homanyloops 111: ", delay, n)
 	if int64(delay)%(int64(timerWheel.internal)*int64(timerWheel.wheelNum)) > 0 {
 		n++
-		//Println("homanyloops 222: ", delay, n)
+		Println("homanyloops 222: ", delay, n)
 	}
-	//Println("homanyloops 333: ", delay, n)
+	Println("homanyloops 333: ", delay, n)
 	return n
 }
 
@@ -215,8 +215,8 @@ func NewTimerWheel(wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 							} else {
 								timer.start = currTick
 								//sum := ((timer.start-timerWheel.born)%timerWheel.internal - (timer.start-timer.born)%timer.loop + timerWheel.internal/2 + timer.loop - timerWheel.internal) / timerWheel.internal
-								sum := (timerWheel.internal/2 + timer.loop) / timerWheel.internal
-								timer.wheelIdx = (timer.wheelIdx + sum) % timerWheel.wheelNum
+								sum := (timerWheel.internal/2 + timer.loop)
+								timer.wheelIdx = (timer.wheelIdx + sum/timerWheel.internal) % timerWheel.wheelNum
 								timer.loopCnt = timerWheel.howmanyloops(sum)
 								//Println("NewTimer 444,", sum, timer.wheelIdx, timer.loopCnt, ((timer.start-timer.born)%timer.loop)/timerWheel.internal)
 								timerWheel.wheels[timer.wheelIdx][timer.key] = timer
