@@ -61,12 +61,12 @@ type wheel map[interface{}]*WTimer
 
 func (timerWheel *TimerWheel) howmanyloops(delay int64) int64 {
 	n := int64(delay) / (int64(timerWheel.internal) * int64(timerWheel.wheelNum))
-	Println("homanyloops 111: ", delay, n)
+	//Println("homanyloops 111: ", delay, n)
 	if int64(delay)%(int64(timerWheel.internal)*int64(timerWheel.wheelNum)) > 0 {
 		n++
-		Println("homanyloops 222: ", delay, n)
+		//Println("homanyloops 222: ", delay, n)
 	}
-	Println("homanyloops 333: ", delay, n)
+	//Println("homanyloops 333: ", delay, n)
 	return n
 }
 

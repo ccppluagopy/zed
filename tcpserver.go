@@ -327,15 +327,16 @@ func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 	if server.delegate != nil {
 		client.Lock()
 		defer client.Unlock()
-
-		msg.Client = client
-		if server.delegate.SendMsg(msg) {
-			if server.dataOutSupervisor != nil {
-				server.dataOutSupervisor(msg)
+		if client.running {
+			msg.Client = client
+			if server.delegate.SendMsg(msg) {
+				if server.dataOutSupervisor != nil {
+					server.dataOutSupervisor(msg)
+				}
+			} else {
+				ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
+				go client.Stop()
 			}
-		} else {
-			ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
-			client.Stop()
 		}
 	}
 }

@@ -43,12 +43,14 @@ func (client *TcpClient) IsRunning() bool {
 }
 
 func (client *TcpClient) Stop() {
+	//go func() {
 	client.Lock()
 	defer client.Unlock()
 
 	if client.running {
-		//client.parent.onClientStop(client)
-		ZLog("[Stop_0] %s", client.Info())
+		if client.parent.showClientData {
+			ZLog("[Stop_0] %s", client.Info())
+		}
 		LogStackInfo()
 
 		client.running = false
@@ -74,7 +76,7 @@ func (client *TcpClient) Stop() {
 		}
 
 	}
-	//})
+	//}()
 }
 
 func (client *TcpClient) writer() {
@@ -101,9 +103,9 @@ func (client *TcpClient) writer() {
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
 	ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
-	//client.parent.SendMsg(client, msg)
+	client.parent.SendMsg(client, msg)
 
-	client.SendMsgAsync(msg)
+	//client.SendMsgAsync(msg)
 	/*
 			var (
 				writeLen = 0
@@ -147,25 +149,17 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 }
 
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
-	//ZLog("SendMsgAsync %s 111 data: %v", client.Info(), msg)
+	ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+
 	client.RLock()
 	defer client.RUnlock()
-
-	ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
-	//ZLog("SendMsgAsync %s 222 data: %v", client.Info())
-	/*if client.chSend == nil {
-		ZLog("SendMsgAsync %s 333 data: %v", client.Info())
-		client.chSend = make(chan *AsyncMsg, 10)
-		client.StartWriter()
-	}*/
-	//ZLog("SendMsgAsync %s 444 data: %v", client.Info())
 	if client.running {
-		//ZLog("SendMsgAsync %s 555 data: %v", client.Info())
+
 		asyncmsg := &AsyncMsg{
 			msg: msg,
 			cb:  nil,
 		}
-		//ZLog("SendMsgAsync %s 666 data: %v", client.Info())
+
 		if len(argv) > 0 {
 			if cb, ok := (argv[0]).(func()); ok {
 				asyncmsg.cb = cb
@@ -174,8 +168,8 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 		if client.chSend != nil {
 			Println("aaaaaaa", client.Info(), msg.Cmd, msg.Len, client.chSend)
 			client.chSend <- asyncmsg
+			Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
 		}
-		//ZLog("SendMsgAsync %s 777 data: %v", client.Info())
 	}
 	ZLog("[Send_00] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 }
