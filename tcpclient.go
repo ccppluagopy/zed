@@ -380,7 +380,7 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 		Idx:     parent.ClientNum,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
-		chSend:  make(chan *AsyncMsg, 10),
+		chSend:  make(chan *AsyncMsg, 100),
 
 		//Data:    nil,
 		Valid:   false,
