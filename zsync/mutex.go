@@ -57,6 +57,7 @@ func SetDebug(flag bool, args ...interface{}) {
 type Mutex struct {
 	sync.Mutex
 	unlockkey string
+	lastCall  string
 }
 
 func (mt *Mutex) Lock() {
@@ -68,8 +69,9 @@ func (mt *Mutex) Lock() {
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.Mutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				zed.Println("now: ", t1.UnixNano())
-				zed.Println(stack)
-				delete(mutexs, key)
+				zed.Println("this Call :", stack)
+				zed.Println("last Call :", mt.lastCall)
+				unsaveLockTimer(key)
 			}, 0)
 			saveLockTimer(key, timer)
 		}
@@ -83,6 +85,7 @@ func (mt *Mutex) Lock() {
 			if timer := getLockTimer(key); timer != nil {
 				timerWheel.DeleteTimer(timer)
 				unsaveLockTimer(key)
+				mt.lastCall = zed.GetStackInfo()
 			}
 		}
 
@@ -98,7 +101,7 @@ func (mt *Mutex) Lock() {
 					zed.Printf("zsync.Mutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					zed.Println("now: ", t1.UnixNano())
 					zed.Println(stack)
-					delete(mutexs, mt.unlockkey)
+					unsaveLockTimer(mt.unlockkey)
 				}, 0)
 				saveLockTimer(mt.unlockkey, timer)
 			}
@@ -121,6 +124,7 @@ func (mt *Mutex) Unlock() {
 type RWMutex struct {
 	sync.RWMutex
 	unlockkey string
+	lastCall  string
 }
 
 func (rwmt *RWMutex) Lock() {
@@ -132,8 +136,9 @@ func (rwmt *RWMutex) Lock() {
 			timer = timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				zed.Println("now: ", t1.UnixNano())
-				zed.Println(stack)
-				delete(mutexs, key)
+				zed.Println("this Call :", stack)
+				zed.Println("last Call :", rwmt.lastCall)
+				unsaveLockTimer(key)
 			}, 0)
 			saveLockTimer(key, timer)
 		}
@@ -147,6 +152,7 @@ func (rwmt *RWMutex) Lock() {
 		if timer := getLockTimer(key); timer != nil {
 			timerWheel.DeleteTimer(timer)
 			unsaveLockTimer(key)
+			rwmt.lastCall = zed.GetStackInfo()
 		}
 
 		{
@@ -160,7 +166,7 @@ func (rwmt *RWMutex) Lock() {
 					zed.Printf("zsync.RWMutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					zed.Println("now: ", t1.UnixNano())
 					zed.Println(stack)
-					delete(mutexs, rwmt.unlockkey)
+					unsaveLockTimer(rwmt.unlockkey)
 				}, 0)
 				saveLockTimer(rwmt.unlockkey, timer)
 			}
@@ -187,8 +193,9 @@ func (rwmt *RWMutex) RLock() {
 			timer := timerWheel.NewTimer(key, lockTimeout, func(t *zed.WTimer) {
 				zed.Printf("zsync.RWMutex Warn: RLock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				zed.Println("now: ", t1.UnixNano())
-				zed.Println(stack)
-				delete(mutexs, key)
+				zed.Println("this Call :", stack)
+				zed.Println("last Call :", rwmt.lastCall)
+				unsaveLockTimer(key)
 			}, 0)
 			saveLockTimer(key, timer)
 		}
@@ -201,6 +208,7 @@ func (rwmt *RWMutex) RLock() {
 		if timer := getLockTimer(key); timer != nil {
 			timerWheel.DeleteTimer(timer)
 			unsaveLockTimer(key)
+			rwmt.lastCall = zed.GetStackInfo()
 		}
 
 		/*{
