@@ -44,40 +44,42 @@ func (client *TcpClient) IsRunning() bool {
 }
 
 func (client *TcpClient) Stop() {
-	go func() {
-		client.Lock()
-		defer client.Unlock()
+	if client.running {
+		go func() {
+			client.Lock()
+			defer client.Unlock()
 
-		if client.running {
-			if client.parent.showClientData {
-				ZLog("[Stop_0] %s", client.Info())
+			if client.running {
+				client.running = false
+
+				if client.parent.showClientData {
+					ZLog("[Stop_0] %s", client.Info())
+				}
+				LogStackInfo()
+
+				client.conn.Close()
+				//client.conn.SetLinger(0)
+
+				if client.chSend != nil {
+					close(client.chSend)
+					client.chSend = nil
+				}
+
+				for _, cb := range client.closeCB {
+					cb(client)
+				}
+
+				for key, _ := range client.closeCB {
+					delete(client.closeCB, key)
+				}
+
+				if client.parent.showClientData {
+					ZLog("[Stop_1] %s", client.Info())
+				}
+
 			}
-			LogStackInfo()
-
-			client.running = false
-
-			client.conn.Close()
-			//client.conn.SetLinger(0)
-
-			if client.chSend != nil {
-				close(client.chSend)
-				client.chSend = nil
-			}
-
-			for _, cb := range client.closeCB {
-				cb(client)
-			}
-
-			for key, _ := range client.closeCB {
-				delete(client.closeCB, key)
-			}
-
-			if client.parent.showClientData {
-				ZLog("[Stop_1] %s", client.Info())
-			}
-
-		}
-	}()
+		}()
+	}
 }
 
 func (client *TcpClient) writer() {
@@ -85,7 +87,7 @@ func (client *TcpClient) writer() {
 	if client.chSend != nil {
 		for {
 			if asyncMsg, ok := <-client.chSend; ok {
-				func() {
+				if !func() bool {
 					client.Lock()
 					defer client.Unlock()
 					defer func() {
@@ -98,7 +100,10 @@ func (client *TcpClient) writer() {
 					if asyncMsg.cb != nil {
 						asyncMsg.cb()
 					}
-				}()
+					return true
+				}() {
+					return
+				}
 			} else {
 				//Println("========= writer stop()")
 				break
