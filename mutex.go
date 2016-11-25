@@ -35,7 +35,7 @@ func unsaveLockTimer(key string) {
 	delete(mtxmutexs, key)
 }
 
-func SetDebug(flag bool, args ...interface{}) {
+func SetMutexDebug(flag bool, args ...interface{}) {
 	mtxdebug = flag
 	if mtxdebug {
 		if mtxtimerWheel == nil {
@@ -100,7 +100,8 @@ func (mt *Mutex) Lock() {
 				timer = mtxtimerWheel.NewTimer(mt.unlockkey, mtxlockTimeout, func(t *WTimer) {
 					Printf("zsync.Mutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					Println("now: ", t1.UnixNano())
-					Println(stack)
+					Println("this Call :", stack)
+					Println("last Call :", mt.lastCall)
 					unsaveLockTimer(mt.unlockkey)
 				}, 0)
 				saveLockTimer(mt.unlockkey, timer)
@@ -165,7 +166,8 @@ func (rwmt *RWMutex) Lock() {
 				timer = mtxtimerWheel.NewTimer(rwmt.unlockkey, mtxlockTimeout, func(t *WTimer) {
 					Printf("zsync.RWMutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					Println("now: ", t1.UnixNano())
-					Println(stack)
+					Println("this Call :", stack)
+					Println("last Call :", rwmt.lastCall)
 					unsaveLockTimer(rwmt.unlockkey)
 				}, 0)
 				saveLockTimer(rwmt.unlockkey, timer)

@@ -323,6 +323,13 @@ func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
 	return nil
 }
 
+type SendMsgError struct {
+}
+
+func (err *SendMsgError) Error() string {
+	return "SendMsg Failed Error"
+}
+
 func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 	if server.delegate != nil {
 		/*client.Lock()
@@ -334,8 +341,8 @@ func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 				server.dataOutSupervisor(msg)
 			}
 		} else {
-			ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
-			client.Stop()
+			ZLog("SendMsg Failed, Client: %s %d %d %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
+			panic(&SendMsgError{})
 		}
 		//}
 	}

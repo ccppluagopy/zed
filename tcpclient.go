@@ -40,46 +40,68 @@ func (client *TcpClient) RemoveCloseCB(key interface{}) {
 }
 
 func (client *TcpClient) IsRunning() bool {
-	return client.running
+	client.Lock()
+	defer client.Unlock()
+	running := client.running
+	return running
 }
 
 func (client *TcpClient) Stop() {
-	if client.running {
-		go func() {
-			client.Lock()
-			defer client.Unlock()
+	LogStackInfo()
+	NewCoroutine(func() {
+		client.Lock()
+		defer client.Unlock()
 
-			if client.running {
-				client.running = false
+		if client.running {
 
-				if client.parent.showClientData {
-					ZLog("[Stop_0] %s", client.Info())
-				}
-				LogStackInfo()
-
-				client.conn.Close()
-				//client.conn.SetLinger(0)
-
-				if client.chSend != nil {
-					close(client.chSend)
-					client.chSend = nil
-				}
-
-				for _, cb := range client.closeCB {
-					cb(client)
-				}
-
-				for key, _ := range client.closeCB {
-					delete(client.closeCB, key)
-				}
-
-				if client.parent.showClientData {
-					ZLog("[Stop_1] %s", client.Info())
-				}
-
+			if client.parent.showClientData {
+				ZLog("[Stop_0] %s %v", client.Info(), client.running)
 			}
-		}()
-	}
+			client.running = false
+
+			client.conn.Close()
+			//client.conn.SetLinger(0)
+
+			if client.parent.showClientData {
+				ZLog("[Stop_1] %s chSend: %v %v", client.Info(), client.chSend, client.running)
+			}
+
+			if client.chSend != nil {
+				close(client.chSend)
+				client.chSend = nil
+			}
+
+			if client.parent.showClientData {
+				ZLog("[Stop_2] %s %v", client.Info(), client.running)
+			}
+
+			if len(client.closeCB) > 0 {
+				NewCoroutine(func() {
+					for _, cb := range client.closeCB {
+						cb(client)
+					}
+
+					if client.parent.showClientData {
+						ZLog("[Stop_5] %s %v", client.Info(), client.running)
+					}
+				})
+			}
+
+			if client.parent.showClientData {
+				ZLog("[Stop_3] %s %v", client.Info(), client.running)
+			}
+
+			for key, _ := range client.closeCB {
+				delete(client.closeCB, key)
+			}
+
+			if client.parent.showClientData {
+				ZLog("[Stop_4] %s %v", client.Info(), client.running)
+			}
+
+		}
+	})
+
 }
 
 func (client *TcpClient) writer() {
@@ -98,14 +120,15 @@ func (client *TcpClient) writer() {
 					}()
 					parent.SendMsg(client, asyncMsg.msg)
 					if asyncMsg.cb != nil {
-						asyncMsg.cb()
+						NewCoroutine(func() {
+							asyncMsg.cb()
+						})
 					}
 					return true
 				}() {
 					return
 				}
 			} else {
-				//Println("========= writer stop()")
 				break
 			}
 		}
@@ -116,50 +139,17 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	client.Lock()
 	defer client.Unlock()
+	defer func() {
+		if err := PanicHandle(true); err != nil {
+			client.conn.Close()
+			return
+		}
+	}()
+
 	ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	client.parent.SendMsg(client, msg)
 
 	//client.SendMsgAsync(msg)
-	/*
-			var (
-				writeLen = 0
-				buf      []byte
-				err      error
-			)
-
-			if msg.Len > client.parent.maxPackLen {
-				ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
-				goto Exit
-			}
-
-			if err := (*client.conn).SetWriteDeadline(time.Now().Add(client.parent.sendBlockTime)); err != nil {
-				ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
-				goto Exit
-			}
-
-			msg.Client = client
-			buf = make([]byte, PACK_HEAD_LEN+msg.Len)
-			binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
-			binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-			if msg.Len > 0 {
-				copy(buf[PACK_HEAD_LEN:], msg.Data)
-			}
-
-			writeLen, err = client.conn.Write(buf)
-
-			if dataOutSupervisor != nil {
-				dataOutSupervisor(msg)
-			} else if server.showClientData {
-				ZLog("[Send] %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-			}
-
-			if err == nil && writeLen == len(buf) {
-				return
-			}
-
-		Exit:
-			client.Stop()*/
-
 }
 
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
@@ -188,63 +178,6 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	ZLog("[SendAsync_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 }
 
-/*
-func (client *TcpClient) ReadMsg() *NetMsg {
-	var (
-		head    = make([]byte, PACK_HEAD_LEN)
-		readLen = 0
-		err     error
-		msg     *NetMsg
-	)
-
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if client.parent.showClientData {
-			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
-		}
-		goto Exit
-	}
-
-	readLen, err = io.ReadFull(client.conn, head)
-	if err != nil || readLen < PACK_HEAD_LEN {
-		if client.parent.showClientData {
-			ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
-		}
-		goto Exit
-	}
-
-	if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-		if client.parent.showClientData {
-			ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
-		}
-		goto Exit
-	}
-
-	msg = &NetMsg{
-		Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-		Len:    int(binary.LittleEndian.Uint32(head[0:4])),
-		Client: client,
-	}
-	if msg.Len > client.parent.maxPackLen {
-		ZLog("Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, client.parent.maxPackLen)
-		goto Exit
-	}
-	if msg.Len > 0 {
-		msg.Data = make([]byte, msg.Len)
-		readLen, err := io.ReadFull(client.conn, msg.Data)
-		if err != nil || readLen != int(msg.Len) {
-			if client.parent.showClientData {
-				ZLog("%s Read Body Err: %v.", client.Info(), err)
-			}
-			goto Exit
-		}
-	}
-
-	return msg
-
-Exit:
-	return nil
-}
-*/
 func (client *TcpClient) reader() {
 	var (
 		/*head    = make([]byte, PACK_HEAD_LEN)
@@ -255,69 +188,19 @@ func (client *TcpClient) reader() {
 	)
 
 	for {
-		/*if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-			if client.parent.showClientData {
-				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
-			}
-			goto Exit
-		}
 
-		readLen, err = io.ReadFull(client.conn, head)
-		if err != nil || readLen < PACK_HEAD_LEN {
-			if client.parent.showClientData {
-				ZLog("%s Read Head Err: %v %d.", client.Info(), err, readLen)
-			}
-			goto Exit
-		}
-
-		if err = (*client.conn).SetReadDeadline(time.Now().Add(client.parent.recvBlockTime)); err != nil {
-			if client.parent.showClientData {
-				ZLog("%s SetReadDeadline Err: %v.", client.Info(), err)
-			}
-			goto Exit
-		}
-
-		msg = &NetMsg{
-			Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-			Len:    int(binary.LittleEndian.Uint32(head[0:4])),
-			Client: client,
-		}
-
-		if msg.Len > 0 {
-			msg.Data = make([]byte, msg.Len)
-			readLen, err := io.ReadFull(client.conn, msg.Data)
-			if err != nil || readLen != int(msg.Len) {
-				if client.parent.showClientData {
-					ZLog("%s Read Body Err: %v.", client.Info(), err)
-				}
-				goto Exit
-			}
-		}*/
 		msg = parent.RecvMsg(client)
 		if msg == nil {
 			goto Exit
 		}
-
-		//LogInfo(LOG_IDX, client.Idx, "Recv Msg %s Cmd: %d, Len: %d, Data: %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
 
 		parent.HandleMsg(msg)
 	}
 
 Exit:
 	client.Stop()
-	//LogInfo(LOG_IDX, client.Idx, "reader Exit %s", client.Info())
+
 }
-
-/*func (client *TcpClient) ConnectTo(addr string) bool {
-	var err error
-	client.conn, err = net.Dial("tcp", addr)
-	if err != nil {
-		ZLog("[ConnectTo] %s Error: %v", client.Info(), err)
-		return false
-	}
-
-	return true
-}*/
 
 func (client *TcpClient) StartReader() {
 	NewCoroutine(func() {
