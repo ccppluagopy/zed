@@ -4,6 +4,7 @@ import (
 	/*"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native"
 	"gopkg.in/mgo.v2"*/
+	//"github.com/ccppluagopy/zed/zsync"
 	"net"
 	"sync"
 	"time"
@@ -71,7 +72,7 @@ type NetMsg struct {
 }
 
 type TcpClient struct {
-	sync.RWMutex
+	Mutex
 	conn   *net.TCPConn
 	parent *TcpServer
 	ID     ClientIDType

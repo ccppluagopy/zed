@@ -260,52 +260,52 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 */
 
 func (server *TcpServer) SetIOBlockTime(recvBT time.Duration, sendBT time.Duration) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.recvBlockTime = recvBT
 	server.sendBlockTime = sendBT
 }
 
 func (server *TcpServer) SetIOBufLen(recvBL int, sendBL int) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.recvBufLen = recvBL
 	server.sendBufLen = sendBL
 }
 
 func (server *TcpServer) SetCientAliveTime(aliveT time.Duration) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.aliveTime = aliveT
 }
 
 func (server *TcpServer) SetMaxPackLen(maxPL int) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.maxPackLen = maxPL
 }
 
 func (server *TcpServer) SetDataInSupervisor(dataInSupervisor func(msg *NetMsg)) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.dataInSupervisor = dataInSupervisor
 }
 
 func (server *TcpServer) SetDataOutSupervisor(dataOutSupervisor func(msg *NetMsg)) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.dataOutSupervisor = dataOutSupervisor
 }
 
 func (server *TcpServer) SetShowClientData(show bool) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.showClientData = show
 }
 
 func (server *TcpServer) SetDelegate(delegate ZServerDelegate) {
-	server.RLock()
-	defer server.RUnlock()
+	server.Lock()
+	defer server.Unlock()
 	server.delegate = delegate
 	delegate.SetServer(server)
 }
@@ -325,19 +325,19 @@ func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
 
 func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 	if server.delegate != nil {
-		client.Lock()
+		/*client.Lock()
 		defer client.Unlock()
-		if client.running {
-			msg.Client = client
-			if server.delegate.SendMsg(msg) {
-				if server.dataOutSupervisor != nil {
-					server.dataOutSupervisor(msg)
-				}
-			} else {
-				ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
-				go client.Stop()
+		if client.running {*/
+		msg.Client = client
+		if server.delegate.SendMsg(msg) {
+			if server.dataOutSupervisor != nil {
+				server.dataOutSupervisor(msg)
 			}
+		} else {
+			ZLog("SendMsg Failed, Client: %s %v", client.Info(), msg)
+			client.Stop()
 		}
+		//}
 	}
 }
 

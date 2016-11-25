@@ -12,13 +12,12 @@ const (
 	separator = "---------------------------------------\n"
 )
 
-func PanicHandle(needLog bool, args ...interface{}) {
+func PanicHandle(needLog bool, args ...interface{}) interface{} {
 
 	/*if len(args) > 0 {
 		ZLog(args[0].(string))
 		Println(args[0].(string))
 	}*/
-
 	if err := recover(); err != nil {
 		errstr := fmt.Sprintf("%sruntime error: %v\ntraceback:\n", separator, err)
 
@@ -53,8 +52,9 @@ func PanicHandle(needLog bool, args ...interface{}) {
 				cb()
 			}
 		}
+		return err
 	}
-
+	return nil
 }
 
 func GetStackInfo() string {
