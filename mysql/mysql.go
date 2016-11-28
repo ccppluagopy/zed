@@ -127,7 +127,7 @@ func (msqlMgr *MysqlMgr) Start() bool {
 		if err != nil {
 			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
 				msqlMgr.tryCount = msqlMgr.tryCount + 1
-
+				time.Sleep(time.Second * 1)
 				return msqlMgr.Start()
 			} else {
 				return false
@@ -190,7 +190,7 @@ func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 
 	defer func() {
 		if err := recover(); err != nil {
-			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr DBAction err: %v!", err)
+			//zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr DBAction err: %v!", err)
 			msqlMgr.Restart()
 		}
 	}()

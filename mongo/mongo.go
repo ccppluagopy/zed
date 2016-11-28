@@ -93,7 +93,7 @@ func (mongoMgr *MongoMgr) Start() bool {
 			zed.ZLog("MongoMgr Start err: %v addr: %s dbname: %s collection: %s", err, mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
 				mongoMgr.tryCount = mongoMgr.tryCount + 1
-
+				time.Sleep(time.Second * 1)
 				return mongoMgr.Start()
 			} else {
 				return false
@@ -161,7 +161,8 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
 
 	defer func() {
 		if err := recover(); err != nil {
-			zed.ZLog("MongoMgr DBAction err: %v!", err)
+			/*zed.ZLog("MongoMgr DBAction err: %v!", err)
+			zed.LogStackInfo()*/
 			mongoMgr.Restart()
 		}
 	}()
