@@ -80,7 +80,7 @@ func GetInstance() *EventMgr {
 		defaultInstance = &EventMgr{
 			listenerMap: make(map[interface{}]interface{}),
 			listeners:   make(map[interface{}]map[interface{}]EventHandler),
-			mutex:       &sync.Mutex{},
+			mutex:       &Mutex{},
 			valid:       true,
 		}
 	}
@@ -99,7 +99,7 @@ func NewEventMgr(tag interface{}) *EventMgr {
 	eventMgr := &EventMgr{
 		listenerMap: make(map[interface{}]interface{}),
 		listeners:   make(map[interface{}]map[interface{}]EventHandler),
-		mutex:       &sync.Mutex{},
+		mutex:       &Mutex{},
 		valid:       true,
 	}
 

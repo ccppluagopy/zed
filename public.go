@@ -60,7 +60,7 @@ type EventHandler func(event interface{}, args []interface{})
 type EventMgr struct {
 	listenerMap map[interface{}]interface{}
 	listeners   map[interface{}]map[interface{}]EventHandler
-	mutex       *sync.Mutex
+	mutex       *Mutex
 	valid       bool
 }
 
