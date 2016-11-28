@@ -10,7 +10,7 @@ var (
 	inited = false
 )
 
-func HandleSignal(maskAll bool) {
+func HandleSignal(maskAll bool, handler func(sig os.Signal)) {
 	if !inited {
 		NewCoroutine(func() {
 			var (
@@ -22,7 +22,6 @@ func HandleSignal(maskAll bool) {
 				if maskAll {
 					ZLog("Handle Signal %s!", sig)
 				} else {
-					ZLog("Exit By Signal %s!", sig)
 					os.Exit(0)
 				}
 			}
@@ -49,6 +48,11 @@ func HandleSignal(maskAll bool) {
 					handlemsg("SIGHUP")
 
 				default:
+				}
+
+				if handler != nil {
+					//ZLog("Handle Signal %s!", sig)
+					handler(sig)
 				}
 			}
 		})
