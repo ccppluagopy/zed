@@ -34,6 +34,13 @@ func (eventMgr *EventMgr) NewListener(tag interface{}, event interface{}, handle
 	return true
 }
 
+func (eventMgr *EventMgr) DeleteListenerInCall(tag interface{}) {
+	if event, ok := eventMgr.listenerMap[tag]; ok {
+		delete(eventMgr.listenerMap, tag)
+		delete(eventMgr.listeners[event], tag)
+	}
+}
+
 func (eventMgr *EventMgr) DeleteListener(tag interface{}) {
 	eventMgr.mutex.Lock()
 	defer eventMgr.mutex.Unlock()
