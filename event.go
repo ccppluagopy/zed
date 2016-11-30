@@ -8,7 +8,7 @@ import (
 var (
 	defaultInstance *EventMgr = nil
 	instanceMap     map[interface{}]*EventMgr
-	instanceMutex   = &sync.Mutex{}
+	instanceMutex   = sync.Mutex{}
 )
 
 func eventHandler(handler EventHandler, event interface{}, args []interface{}) {
@@ -17,8 +17,8 @@ func eventHandler(handler EventHandler, event interface{}, args []interface{}) {
 }
 
 func (eventMgr *EventMgr) NewListener(tag interface{}, event interface{}, handler EventHandler) bool {
-	eventMgr.mutex.Lock()
-	defer eventMgr.mutex.Unlock()
+	eventMgr.Lock()
+	defer eventMgr.Unlock()
 
 	if _, ok := eventMgr.listenerMap[tag]; ok {
 		LogError(LOG_IDX, LOG_IDX, "NewListener Error: listener %v exist!", tag)
@@ -42,8 +42,8 @@ func (eventMgr *EventMgr) DeleteListenerInCall(tag interface{}) {
 }
 
 func (eventMgr *EventMgr) DeleteListener(tag interface{}) {
-	eventMgr.mutex.Lock()
-	defer eventMgr.mutex.Unlock()
+	eventMgr.Lock()
+	defer eventMgr.Unlock()
 
 	if event, ok := eventMgr.listenerMap[tag]; ok {
 		delete(eventMgr.listenerMap, tag)
@@ -65,8 +65,8 @@ func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool 
 }
 
 func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
-	eventMgr.mutex.Lock()
-	defer eventMgr.mutex.Unlock()
+	eventMgr.Lock()
+	defer eventMgr.Unlock()
 
 	if listeners, ok := eventMgr.listeners[event]; ok {
 		for _, listener := range listeners {
@@ -80,8 +80,8 @@ func GetInstance() *EventMgr {
 		defaultInstance = &EventMgr{
 			listenerMap: make(map[interface{}]interface{}),
 			listeners:   make(map[interface{}]map[interface{}]EventHandler),
-			mutex:       &Mutex{},
-			valid:       true,
+			//mutex:       sync.Mutex{},
+			valid: true,
 		}
 	}
 	return defaultInstance
@@ -99,8 +99,8 @@ func NewEventMgr(tag interface{}) *EventMgr {
 	eventMgr := &EventMgr{
 		listenerMap: make(map[interface{}]interface{}),
 		listeners:   make(map[interface{}]map[interface{}]EventHandler),
-		mutex:       &Mutex{},
-		valid:       true,
+		//mutex:       sync.Mutex{},
+		valid: true,
 	}
 
 	if instanceMap == nil {
@@ -116,8 +116,8 @@ func DeleteEventMgr(tag interface{}) {
 	defer instanceMutex.Unlock()
 
 	if eventMgr, ok := instanceMap[tag]; ok {
-		eventMgr.mutex.Lock()
-		defer eventMgr.mutex.Unlock()
+		eventMgr.Lock()
+		defer eventMgr.Unlock()
 
 		for k, e := range eventMgr.listenerMap {
 			if emap, ok := eventMgr.listeners[e]; ok {

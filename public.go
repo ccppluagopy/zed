@@ -60,8 +60,8 @@ type EventHandler func(event interface{}, args []interface{})
 type EventMgr struct {
 	listenerMap map[interface{}]interface{}
 	listeners   map[interface{}]map[interface{}]EventHandler
-	mutex       *Mutex
-	valid       bool
+	sync.Mutex
+	valid bool
 }
 
 type NetMsg struct {
@@ -72,7 +72,7 @@ type NetMsg struct {
 }
 
 type TcpClient struct {
-	Mutex
+	sync.Mutex
 	conn   *net.TCPConn
 	parent *TcpServer
 	ID     ClientIDType
