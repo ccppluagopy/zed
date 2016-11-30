@@ -189,10 +189,8 @@ func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 	defer msqlMgr.Unlock()
 
 	defer func() {
-		if err := recover(); err != nil {
-			//zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr DBAction err: %v!", err)
-			msqlMgr.Restart()
-		}
+		zed.PanicHandle(true)
+		mongoMgr.Restart()
 	}()
 	//db := msqlMgr.DB
 	cb(msqlMgr.DB)

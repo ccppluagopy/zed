@@ -158,13 +158,9 @@ func (mongoMgr *MongoMgr) Stop() {
 }*/
 
 func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
-
 	defer func() {
-		if err := recover(); err != nil {
-			/*zed.ZLog("MongoMgr DBAction err: %v!", err)
-			zed.LogStackInfo()*/
-			mongoMgr.Restart()
-		}
+		zed.PanicHandle(true)
+		mongoMgr.Restart()
 	}()
 
 	c := mongoMgr.Collection
