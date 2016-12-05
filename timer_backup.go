@@ -20,7 +20,7 @@ type WTimer struct {
 	active   bool
 	delay    int64
 	loop     int64
-	wheelIdx int64
+	WheelIdx int64
 	start    int64
 	callback WTimerCallBack
 }
@@ -74,10 +74,10 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 	var timerWheel TimerWheel
 
 	timerWheel.chTimer = make(chan *WTimer, 10)
-	timerWheel.currWheel = 0
+	timerWheel.CurrWheel = 0
 	timerWheel.wheels = make([]wheel, wheelNum)
 	timerWheel.ticker = time.NewTicker(tickTime)
-	timerWheel.born = time.Now().UnixNano()
+	timerWheel.Born = time.Now().UnixNano()
 
 	var i int64
 	for i = 0; i < wheelNum; i++ {
@@ -88,7 +88,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 	var tickSum int64 = 0
 	var lastTick int64 = 0
 	var currTick int64 = 0
-	var wheelIdx int64 = 0
+	var WheelIdx int64 = 0
 	var internal int64 = int64(wheelInternal)
 	var halfInternal = internal / 2
 
@@ -110,11 +110,11 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 					return
 				}
 				if (*timer).active {
-					wheelIdx = (timerWheel.currWheel + (lastTick*2 - timerWheel.born - timer.start + halfInternal + timer.delay)) / internal % wheelNum
-					timer.wheelIdx = wheelIdx
-					timerWheel.wheels[wheelIdx][timer.key] = timer
+					WheelIdx = (timerWheel.CurrWheel + (lastTick*2 - timerWheel.Born - timer.start + halfInternal + timer.delay)) / internal % wheelNum
+					timer.WheelIdx = WheelIdx
+					timerWheel.wheels[WheelIdx][timer.key] = timer
 				} else {
-					delete(timerWheel.wheels[timer.wheelIdx], (timer).key)
+					delete(timerWheel.wheels[timer.WheelIdx], (timer).key)
 				}
 
 			case <-timerWheel.ticker.C:
@@ -125,9 +125,9 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 					if tickSum >= internal {
 						loopTime = (tickSum / internal)
 						tickSum -= loopTime * internal
-						timerWheel.currWheel = (timerWheel.currWheel + 1) % wheelNum
+						timerWheel.CurrWheel = (timerWheel.CurrWheel + 1) % wheelNum
 
-						wl := timerWheel.wheels[timerWheel.currWheel]
+						wl := timerWheel.wheels[timerWheel.CurrWheel]
 
 						for _, timer := range wl {
 							if timer.delay > 0 {
@@ -138,9 +138,9 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 									delete(wl, (timer).key)
 									if timer.loop > 0 {
 										timer.start = currTick
-										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
-										timer.wheelIdx = wheelIdx
-										timerWheel.wheels[wheelIdx][timer.key] = timer
+										WheelIdx = (timerWheel.CurrWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
+										timer.WheelIdx = WheelIdx
+										timerWheel.wheels[WheelIdx][timer.key] = timer
 									}
 								}
 							} else {
@@ -150,9 +150,9 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 									delete(wl, (timer).key)
 									if timer.loop > 0 {
 										timer.start = currTick
-										wheelIdx = (timerWheel.currWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
-										timer.wheelIdx = wheelIdx
-										timerWheel.wheels[wheelIdx][timer.key] = timer
+										WheelIdx = (timerWheel.CurrWheel + wheelNum + (tickSum+halfInternal+timer.loop)/internal) % wheelNum
+										timer.WheelIdx = WheelIdx
+										timerWheel.wheels[WheelIdx][timer.key] = timer
 									}
 								}
 							}
@@ -173,7 +173,7 @@ func NewTimerWheel(tickTime time.Duration, wheelInternal time.Duration, wheelNum
 type mtimer struct {
 	key      interface{}
 	internal int64
-	born     int64
+	Born     int64
 	active   bool
 	delay    int64
 	loop     bool
@@ -193,7 +193,7 @@ func (timerMgr *TimerMgr) NewTimer(key interface{}, delay int64, internal int64,
 	timer.internal = internal
 	timer.callback = callback
 	timer.loop = loop
-	timer.born = time.Now().UnixNano() + delay
+	timer.Born = time.Now().UnixNano() + delay
 	timer.active = true
 	timerMgr.chTimer <- &timer
 
@@ -244,9 +244,9 @@ func NewTimerMgr(internal int64) *TimerMgr {
 			case <-timerMgr.ticker.C:
 				currTime := time.Now().UnixNano()
 				for key, timer := range timerMgr.timers {
-					if (currTime - timer.born) >= 0 {
+					if (currTime - timer.Born) >= 0 {
 						timerHandler((timer).callback)
-						(*timer).born = currTime + timer.internal
+						(*timer).Born = currTime + timer.internal
 
 						if !(*timer).loop {
 							delete(timerMgr.timers, key)
