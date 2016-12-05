@@ -246,3 +246,29 @@ func NewTimerWheel(wheelInternal time.Duration, wheelNum int64) *TimerWheel {
 
 	return &timerWheel
 }
+
+type OnceTimer struct {
+	ch chan bool
+}
+
+func (t *OnceTimer) Stop() {
+	close(t.ch)
+}
+
+func NewOnceTimer(delay time.Duration, cb func()) *OnceTimer {
+	t := OnceTimer{
+		ch: make(chan bool, 1),
+	}
+	go func() {
+		select {
+		case <-t.ch:
+			return
+		case <-time.After(delay):
+			func() {
+				defer PanicHandle(true)
+				cb()
+			}()
+		}
+	}()
+	return &t
+}
