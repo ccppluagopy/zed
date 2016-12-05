@@ -51,7 +51,7 @@ func (server *TcpServer) startListener(addr string) {
 			//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
 			ZLog("TcpServer Accept error: %v\n", err)
 		} else {
-			client = newTcpClient(server, conn)
+			client = newTcpClient(server.delegate, conn, server.ClientNum)
 			if client.start() {
 				server.ClientNum = server.ClientNum + 1
 
@@ -67,6 +67,34 @@ func (server *TcpServer) startListener(addr string) {
 		}
 	}
 
+}
+
+func (server *TcpServer) ShowClientData() bool {
+	return server.showClientData
+}
+
+func (server *TcpServer) MaxPackLen() int {
+	return server.maxPackLen
+}
+
+func (server *TcpServer) RecvBufLen() int {
+	return server.recvBufLen
+}
+
+func (server *TcpServer) SendBufLen() int {
+	return server.sendBufLen
+}
+
+func (server *TcpServer) RecvBlockTime() time.Duration {
+	return server.recvBlockTime
+}
+
+func (server *TcpServer) SendBlockTime() time.Duration {
+	return server.sendBlockTime
+}
+
+func (server *TcpServer) AliveTime() time.Duration {
+	return server.aliveTime
 }
 
 func (server *TcpServer) Start(addr string) {
@@ -260,50 +288,48 @@ func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
 */
 
 func (server *TcpServer) SetIOBlockTime(recvBT time.Duration, sendBT time.Duration) {
-	server.Lock()
-	defer server.Unlock()
-	server.recvBlockTime = recvBT
-	server.sendBlockTime = sendBT
+	if server.delegate != nil {
+		server.delegate.SetIOBlockTime(recvBT, sendBT)
+	}
 }
 
 func (server *TcpServer) SetIOBufLen(recvBL int, sendBL int) {
-	server.Lock()
-	defer server.Unlock()
-	server.recvBufLen = recvBL
-	server.sendBufLen = sendBL
+	if server.delegate != nil {
+		server.delegate.SetIOBufLen(recvBL, sendBL)
+	}
 }
 
 func (server *TcpServer) SetCientAliveTime(aliveT time.Duration) {
-	server.Lock()
-	defer server.Unlock()
-	server.aliveTime = aliveT
+	if server.delegate != nil {
+		server.delegate.SetCientAliveTime(aliveT)
+	}
 }
 
 func (server *TcpServer) SetMaxPackLen(maxPL int) {
-	server.Lock()
-	defer server.Unlock()
-	server.maxPackLen = maxPL
+	if server.delegate != nil {
+		server.delegate.SetMaxPackLen(maxPL)
+	}
 }
 
 func (server *TcpServer) SetDataInSupervisor(dataInSupervisor func(msg *NetMsg)) {
-	server.Lock()
-	defer server.Unlock()
-	server.dataInSupervisor = dataInSupervisor
+	if server.delegate != nil {
+		server.delegate.SetDataInSupervisor(dataInSupervisor)
+	}
 }
 
 func (server *TcpServer) SetDataOutSupervisor(dataOutSupervisor func(msg *NetMsg)) {
-	server.Lock()
-	defer server.Unlock()
-	server.dataOutSupervisor = dataOutSupervisor
+	if server.delegate != nil {
+		server.delegate.SetDataOutSupervisor(dataOutSupervisor)
+	}
 }
 
 func (server *TcpServer) SetShowClientData(show bool) {
-	server.Lock()
-	defer server.Unlock()
-	server.showClientData = show
+	if server.delegate != nil {
+		server.delegate.SetShowClientData(show)
+	}
 }
 
-func (server *TcpServer) SetDelegate(delegate ZServerDelegate) {
+func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
 	server.Lock()
 	defer server.Unlock()
 	server.delegate = delegate
@@ -335,8 +361,8 @@ func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 		/*client.Lock()
 		defer client.Unlock()
 		if client.running {*/
-		msg.Client = client
-		if server.delegate.SendMsg(msg) {
+		//msg.Client = client
+		if server.delegate.SendMsg(client, msg) {
 			if server.dataOutSupervisor != nil {
 				server.dataOutSupervisor(msg)
 			}
@@ -381,7 +407,7 @@ func NewTcpServer(name string) *TcpServer {
 		showClientData:    false,
 	}
 
-	server.SetDelegate(&DefaultTSDelegate{
+	server.SetDelegate(&DefaultTCDelegate{
 		Server: server,
 	})
 

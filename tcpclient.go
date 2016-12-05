@@ -51,10 +51,11 @@ func (client *TcpClient) Stop() {
 	NewCoroutine(func() {
 		client.Lock()
 		defer client.Unlock()
+		showClientData := client.parent.ShowClientData()
 
 		if client.running {
 
-			if client.parent.showClientData {
+			if showClientData {
 				ZLog("[Stop_0] %s %v", client.Info(), client.running)
 			}
 			client.running = false
@@ -62,7 +63,7 @@ func (client *TcpClient) Stop() {
 			client.conn.Close()
 			//client.conn.SetLinger(0)
 
-			if client.parent.showClientData {
+			if showClientData {
 				ZLog("[Stop_1] %s chSend: %v %v", client.Info(), client.chSend, client.running)
 			}
 
@@ -71,7 +72,7 @@ func (client *TcpClient) Stop() {
 				client.chSend = nil
 			}
 
-			if client.parent.showClientData {
+			if showClientData {
 				ZLog("[Stop_2] %s %v", client.Info(), client.running)
 			}
 
@@ -81,13 +82,13 @@ func (client *TcpClient) Stop() {
 						cb(client)
 					}
 
-					if client.parent.showClientData {
+					if showClientData {
 						ZLog("[Stop_5] %s %v", client.Info(), client.running)
 					}
 				})
 			}
 
-			if client.parent.showClientData {
+			if showClientData {
 				ZLog("[Stop_3] %s %v", client.Info(), client.running)
 			}
 
@@ -95,7 +96,7 @@ func (client *TcpClient) Stop() {
 				delete(client.closeCB, key)
 			}
 
-			if client.parent.showClientData {
+			if showClientData {
 				ZLog("[Stop_4] %s %v", client.Info(), client.running)
 			}
 
@@ -215,28 +216,29 @@ func (client *TcpClient) StartWriter() {
 }
 
 func (client *TcpClient) start() bool {
+	showClientData := client.parent.ShowClientData()
 	if err := client.conn.SetKeepAlive(true); err != nil {
-		if client.parent.showClientData {
+		if showClientData {
 			ZLog("%s SetKeepAlive Err: %v.", client.Info())
 		}
 		return false
 	}
 
-	if err := client.conn.SetKeepAlivePeriod(client.parent.aliveTime); err != nil {
-		if client.parent.showClientData {
+	if err := client.conn.SetKeepAlivePeriod(client.parent.AliveTime()); err != nil {
+		if showClientData {
 			ZLog("%s SetKeepAlivePeriod Err: %v.", client.Info(), err)
 		}
 		return false
 	}
 
-	if err := (*client.conn).SetReadBuffer(client.parent.recvBufLen); err != nil {
-		if client.parent.showClientData {
+	if err := (*client.conn).SetReadBuffer(client.parent.RecvBufLen()); err != nil {
+		if showClientData {
 			ZLog("%s SetReadBuffer Err: %v.", client.Info(), err)
 		}
 		return false
 	}
-	if err := (*client.conn).SetWriteBuffer(client.parent.sendBufLen); err != nil {
-		if client.parent.showClientData {
+	if err := (*client.conn).SetWriteBuffer(client.parent.SendBufLen()); err != nil {
+		if showClientData {
 			ZLog("%s SetWriteBuffer Err: %v.", client.Info(), err)
 		}
 		return false
@@ -248,19 +250,19 @@ func (client *TcpClient) start() bool {
 	client.StartWriter()
 	client.StartReader()
 
-	if client.parent.showClientData {
+	if showClientData {
 		ZLog("New Client Start %s", client.Info())
 	}
 
 	return true
 }
 
-func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
+func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpClient {
 	client := &TcpClient{
 		conn:    conn,
 		parent:  parent,
 		ID:      NullID,
-		Idx:     parent.ClientNum,
+		Idx:     idx,
 		Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
 		chSend:  make(chan *AsyncMsg, 100),
@@ -271,4 +273,21 @@ func newTcpClient(parent *TcpServer, conn *net.TCPConn) *TcpClient {
 	}
 
 	return client
+}
+
+func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int) *TcpClient {
+	tcpAddr, err := net.ResolveTCPAddr("tcp", serveraddr)
+	if err != nil {
+		ZLog("NewTcpClient ResolveTCPAddr Failed, err: %s", err)
+	}
+
+	conn, err := net.DialTCP("tcp", nil, tcpAddr)
+	//conn, err := net.DialTimeout("tcp", serveraddr, 3000000000)
+
+	if err != nil {
+		ZLog("NewTcpClient DialTCP(%s) Failed, err: %s", serveraddr, err)
+		return nil
+	}
+
+	return newTcpClient(dele, conn, idx)
 }

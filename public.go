@@ -71,10 +71,24 @@ type NetMsg struct {
 	Data   []byte
 }
 
+type ZClientDelegate interface {
+	ShowClientData() bool
+	MaxPackLen() int
+	RecvBufLen() int
+	SendBufLen() int
+	RecvBlockTime() time.Duration
+	SendBlockTime() time.Duration
+	AliveTime() time.Duration
+
+	RecvMsg(*TcpClient) *NetMsg
+	SendMsg(*NetMsg) bool
+	HandleMsg(*NetMsg)
+}
+
 type TcpClient struct {
 	sync.Mutex
 	conn   *net.TCPConn
-	parent *TcpServer
+	parent ZTcpClientDelegate
 	ID     ClientIDType
 	Idx    int
 	Addr   string
@@ -102,7 +116,7 @@ type TcpServer struct {
 	sendBlockTime     time.Duration
 	sendBufLen        int
 	aliveTime         time.Duration
-	delegate          ZServerDelegate
+	delegate          ZTcpClientDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
 

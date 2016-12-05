@@ -1,6 +1,6 @@
-package test
+//package test
 
-/*package main
+package main
 
 import (
 	"fmt"
@@ -32,6 +32,7 @@ func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
 		time.Sleep(time.Second * 3)
 		pool.DBAction(n, func(db *mysql.Conn) {
 			_, _, err := (*db).Query("insert xx values(\"usr%d\", %d);", n*ACTION_NUM+(i+1), i%30+20)
+
 			fmt.Println("insert err:", n, err)
 			if err != nil {
 
@@ -84,4 +85,3 @@ func main() {
 	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
 	pool.Stop()
 }
-*/

@@ -10,7 +10,7 @@ import (
 func test1() {
 	var (
 		internal   time.Duration = time.Second
-		period     int64         = 20
+		period     int64         = 5
 		timerWheel               = zed.NewTimerWheel(internal, period)
 		sum        int64         = 0
 	)
@@ -34,9 +34,9 @@ func test1() {
 		tb3 = time.Now()
 	}
 
-	t1 := timerWheel.NewTimer("cb1", internal*6, cb1, internal*1)
-	t2 := timerWheel.NewTimer("cb2", internal*2, cb2, internal*2)
-	t3 := timerWheel.NewTimer("cb3", internal*3, cb3, internal*3)
+	t1 := timerWheel.NewTimer("cb1", internal*3, cb1, internal*9)
+	t2 := timerWheel.NewTimer("cb2", internal*2, cb2, 0)
+	t3 := timerWheel.NewTimer("cb3", internal*3, cb3, 0)
 
 	fmt.Println("test 111: ", time.Now().Unix())
 	//fmt.Println("test aaa: ", t1.WheelIdx, t2.WheelIdx, t3.WheelIdx)
