@@ -13,7 +13,13 @@ var (
 	mutex        sync.Mutex
 	last         = time.Now().Unix()
 	logfiletag   = -1
+
+	MAX_LOG_FILE_SIZE = (1024 * 1024)
 )
+
+func SetMaxLogFileSize(size int) {
+	MAX_LOG_FILE_SIZE = size
+}
 
 type logfile struct {
 	tag  string
