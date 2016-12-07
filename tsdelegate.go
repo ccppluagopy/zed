@@ -19,7 +19,11 @@ type ZTcpClientDelegate interface {
 	SetDataInSupervisor(func(msg *NetMsg))
 	SetDataOutSupervisor(func(msg *NetMsg))
 	SetIOBlockTime(time.Duration, time.Duration)
+	SetRecvBlockTime(time.Duration)
+	SetSendBlockTime(time.Duration)
 	SetIOBufLen(int, int)
+	SetRecvBufLen(int)
+	SetSendBufLen(int)
 	SetCientAliveTime(time.Duration)
 	SetMaxPackLen(int)
 
@@ -138,6 +142,9 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 	writeLen, err = client.conn.Write(buf)
 
 	if err == nil && writeLen == len(buf) {
+		if dele.showClientData {
+			ZLog("[Send_2] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+		}
 		return true
 	}
 
@@ -207,10 +214,34 @@ func (dele *DefaultTCDelegate) SetIOBlockTime(recvBT time.Duration, sendBT time.
 	dele.sendBlockTime = sendBT
 }
 
+func (dele *DefaultTCDelegate) SetRecvBlockTime(recvBT time.Duration) {
+	dele.Lock()
+	defer dele.Unlock()
+	dele.recvBlockTime = recvBT
+}
+
+func (dele *DefaultTCDelegate) SetSendBlockTime(sendBT time.Duration) {
+	dele.Lock()
+	defer dele.Unlock()
+	dele.sendBlockTime = sendBT
+}
+
 func (dele *DefaultTCDelegate) SetIOBufLen(recvBL int, sendBL int) {
 	dele.Lock()
 	defer dele.Unlock()
 	dele.recvBufLen = recvBL
+	dele.sendBufLen = sendBL
+}
+
+func (dele *DefaultTCDelegate) SetRecvBufLen(recvBL int) {
+	dele.Lock()
+	defer dele.Unlock()
+	dele.recvBufLen = recvBL
+}
+
+func (dele *DefaultTCDelegate) SetSendBufLen(sendBL int) {
+	dele.Lock()
+	defer dele.Unlock()
 	dele.sendBufLen = sendBL
 }
 

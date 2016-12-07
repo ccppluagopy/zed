@@ -137,7 +137,9 @@ func (client *TcpClient) writer() {
 }
 
 func (client *TcpClient) SendMsg(msg *NetMsg) {
-	ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	if client.parent.ShowClientData() {
+		ZLog("[Send_0] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	}
 	client.Lock()
 	defer client.Unlock()
 	defer func() {
@@ -146,20 +148,25 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 			return
 		}
 	}()
-
-	ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	if client.parent.ShowClientData() {
+		ZLog("[Send_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	}
 	client.parent.SendMsg(client, msg)
 
 	//client.SendMsgAsync(msg)
 }
 
 func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
-	ZLog("[SendAsync_00] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	if client.parent.ShowClientData() {
+		ZLog("[SendAsync_00] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	}
 
 	client.Lock()
 	defer client.Unlock()
 	if client.running {
-		ZLog("[SendAsync_01] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+		if client.parent.ShowClientData() {
+			ZLog("[SendAsync_01] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+		}
 		asyncmsg := &AsyncMsg{
 			msg: msg,
 			cb:  nil,
@@ -176,7 +183,9 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 			Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
 		}
 	}
-	ZLog("[SendAsync_1] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	if client.parent.ShowClientData() {
+		ZLog("[SendAsync_02] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+	}
 }
 
 func (client *TcpClient) reader() {
@@ -289,5 +298,10 @@ func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int) *TcpClien
 		return nil
 	}
 
-	return newTcpClient(dele, conn, idx)
+	client := newTcpClient(dele, conn, idx)
+	if client != nil && client.start() {
+		return client
+	}
+
+	return nil
 }
