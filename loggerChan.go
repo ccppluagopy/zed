@@ -63,7 +63,7 @@ func (task *logtask) start(taskType string, logType int) {
 	task.chMsg = make(chan *string, 100)
 	task.logType = logType
 	if logType == LogFile {
-		task.ticker = time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL)
+		task.ticker = time.NewTicker(LOG_FILE_SYNC_INTERNAL)
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
 			NewCoroutine(func() {

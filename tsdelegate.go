@@ -8,6 +8,8 @@ import (
 )
 
 type ZTcpClientDelegate interface {
+	Init()
+
 	RecvMsg(*TcpClient) *NetMsg
 	SendMsg(*TcpClient, *NetMsg) bool
 	HandleMsg(*NetMsg)
@@ -163,6 +165,31 @@ func (dele *DefaultTCDelegate) MsgFilter(msg *NetMsg) bool {
 	return true
 }
 */
+func (dele *DefaultTCDelegate) Init() {
+	if dele.AliveTime() == 0 {
+		dele.SetCientAliveTime(DEFAULT_KEEP_ALIVE_TIME)
+	}
+
+	if dele.RecvBlockTime() == 0 {
+		dele.SetRecvBlockTime(DEFAULT_RECV_BLOCK_TIME)
+	}
+
+	if dele.SendBlockTime() == 0 {
+		dele.SetSendBlockTime(DEFAULT_SEND_BLOCK_TIME)
+	}
+
+	if dele.MaxPackLen() == 0 {
+		dele.SetMaxPackLen(DEFAULT_MAX_PACK_LEN)
+	}
+
+	if dele.RecvBufLen() == 0 {
+		dele.SetRecvBufLen(DEFAULT_RECV_BUF_LEN)
+	}
+	if dele.SendBufLen() == 0 {
+		dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
+	}
+
+}
 
 func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
 	/*defer PanicHandle(true, func() {
@@ -179,7 +206,7 @@ func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
 			msg.Client.Stop()
 		}
 	} else {
-		ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
+		ZLog("DefaultTCDelegate HandleMsg Error: No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
 	}
 }
 

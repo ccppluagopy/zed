@@ -224,6 +224,10 @@ func (client *TcpClient) StartWriter() {
 	})
 }
 
+func (client *TcpClient) Start() bool {
+	return client.start()
+}
+
 func (client *TcpClient) start() bool {
 	showClientData := client.parent.ShowClientData()
 	if err := client.conn.SetKeepAlive(true); err != nil {

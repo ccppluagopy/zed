@@ -332,7 +332,8 @@ func (server *TcpServer) SetShowClientData(show bool) {
 func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
 	server.Lock()
 	defer server.Unlock()
-	if delegate.AliveTime() == 0 {
+	delegate.Init()
+	/*if delegate.AliveTime() == 0 {
 		delegate.SetCientAliveTime(DEFAULT_KEEP_ALIVE_TIME)
 	}
 
@@ -354,7 +355,7 @@ func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
 	if delegate.SendBufLen() == 0 {
 		delegate.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
 	}
-
+	*/
 	server.delegate = delegate
 	delegate.SetServer(server)
 }

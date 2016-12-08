@@ -1,315 +1,249 @@
 package observer
 
 import (
-	"encoding/binary"
-	"github.com/ccppluagopy/zed"
-	//"fmt"
 	"encoding/json"
-	"io"
-	"net"
 	"sync"
-	"time"
+
+	"github.com/ccppluagopy/zed"
 )
 
-type MsgRegist struct {
-	Key string `json:"Key"`
-}
-
-type MsgPublic struct {
-	Key  string `json:"Key"`
-	Data []byte `json:"Data"`
-}
-
-type ObserverServer struct {
-	sync.RWMutex
-	server *zed.TcpServer
-	events map[string]map[*zed.TcpClient]bool
-}
-
-type ObserverClient struct {
-	mutex  sync.Mutex
-	addr   string
-	name   string
-	client *zed.TcpClient
-}
-
-const (
-	ERR_REGIST_EMPTY_KEY = iota
-	ERR_UNREGIST_EMPTY_KEY
-	ERR_UNREGIST_INVALID_KEY
-	ERR_PUBLIC_EMPTY_KEY
-	ERR_PUBLIC_EMPTY_KEY_DATA
-)
-
+//OBServers ...
 type OBServers struct {
 	sync.Mutex
-	servers map[string]*ObserverServer
+	name    string
+	servers map[string]*ObserverServer //key:name
 }
 
-func (servers *OBServers) GetServer(name string) *ObserverServer {
-	servers.Lock()
-	defer servers.Unlock()
-	return servers.servers[name]
+/*type EventMap struct {
+	sync.RWMutex
+	EventClient map[string]map[*zed.TcpClient]bool
+}*/
+
+//ObserverServer ...
+type ObserverServer struct {
+	OBDelaget
+	Name     string
+	Addr     string
+	EventMap map[string]map[*zed.TcpClient]bool
 }
 
-func (servers *OBServers) AddServer(name string, server *ObserverServer) {
-	servers.Lock()
-	defer servers.Unlock()
-	if s, ok := servers.servers[name]; !ok {
-		servers.servers[name] = server
+var (
+	observers = &OBServers{
+		servers: make(map[string]*ObserverServer),
+	}
+)
+
+//GetServer ...
+func (observers *OBServers) GetServer(name string) *ObserverServer {
+	observers.Lock()
+	defer observers.Unlock()
+	return observers.servers[name]
+}
+
+//AddServer ...
+func (observers *OBServers) AddOBServer(name string, server *ObserverServer) {
+	observers.Lock()
+	defer observers.Unlock()
+	if _, ok := observers.servers[name]; !ok {
+		observers.servers[name] = server
 	} else {
 		zed.ZLog("OBServers AddServer Error: %s has been exist!", name)
 	}
 
 }
 
-func (servers *OBServers) DeleServer(name string) {
-	servers.Lock()
-	defer servers.Unlock()
-	delete(servers.servers, name)
-
+//DeleServer delete ObserverServer by name
+func (observers *OBServers) DeleServer(name string) {
+	observers.Lock()
+	defer observers.Unlock()
+	delete(observers.servers, name)
 }
 
-var (
-	observers = &OBServers{
+//-------------------------------------------------------------------------------ObserverServer
 
-		servers: make(map[string]*ObserverServer),
-	}
-	errconfig = make(map[int]string{
-		ERR_REGIST_EMPTY_KEY:      "ERR_REGIST_EMPTY_KEY",
-		ERR_UNREGIST_EMPTY_KEY:    "ERR_UNREGIST_EMPTY_KEY",
-		ERR_UNREGIST_INVALID_KEY:  "ERR_UNREGIST_INVALID_KEY",
-		ERR_PUBLIC_EMPTY_KEY:      "ERR_PUBLIC_EMPTY_KEY",
-		ERR_PUBLIC_EMPTY_KEY_DATA: "ERR_PUBLIC_EMPTY_KEY_DATA",
-	})
-)
-
-const (
-	OBC_CMD_REGIST_REQ = iota
-	OBS_CMD_REGIST_RSP
-
-	OBC_CMD_UNREGIST_REQ
-	OBS_CMD_UNREGIST_RSP
-
-	OBC_CMD_PUBLIC_REQ
-	OBS_CMD_PUBLIC_RSP
-	OBS_CMD_PUBLIC
-)
-
-func SendError(client *zed.TcpClient, cmd zed.CmdType, errNum int) {
-	if desc, ok := errconfig[errNum]; ok {
-		rsp := make(map[string]string)
-
-		rsp["Error"] = desc
-		rspData, _ := json.Marshal(&rsp)
-
-		client.SendMsg(&zed.NetMsg{
-			Cmd:    cmd,
-			Len:    len(rspData),
-			Client: client,
-			Data:   rspData,
-		})
-	} else {
-		zed.ZLog("ObServerServer SendError Error: errNum not found.")
-	}
-}
-
-type ZObserverServerErr struct {
-	errno int
-}
-
-func (err *ZObserverServerErr) Error() string {
-	switch err.errno {
-	case MUTEX_NET_ERR:
-		return "Error: ZMutex Operation Net Unavailable."
-	case MUTEX_LOCK_EMPTY_KEY_ERR:
-		return "Error: ZMutex Lock key is empty."
-	case MUTEX_TWICE_LOCK_ERR:
-		return "Error: ZMutex Twice Lock."
-	case MUTEX_LOCK_RECV_INVALID_CMD_ERR:
-		return "Error: ZMutex Lock Recv Invalid Cmd."
-	case MUTEX_INVALID_UNLOCK_ERR:
-		return "Error: ZMutex Invalid UnLock Operation."
-	case MUTEX_UNLOCK_EMPTY_KEY_ERR:
-		return "Error: ZMutex UnLock key is empty."
-	case MUTEX_UNLOCK_RECV_INVALID_CMD_ERR:
-		return "Error: ZMutex UnLock Recv Invalid Cmd."
-	}
-
-	return "ZMutexError"
-}
-
-func (observer *ObserverServer) Public(msg *MsgPublic, args ...interface{}) {
-	observer.Lock()
-	defer observer.Unlock()
-
-	obs, ok := observer.events[msg.Key]
-	if ok {
-		if len(args) == 1 {
-			if data, ok := args[0].([]byte); ok {
-				for ob, _ := range obs {
-					ob.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_PUBLIC, Len: len(data), Data: data})
-				}
-			}
-		} else if len(args) == 0 {
-			if data, err := json.Marshal(msg); err == nil {
-				for ob, _ := range obs {
-					ob.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_PUBLIC, Len: len(data), Data: data})
-				}
-			} else {
-
-			}
-		} else {
-			zed.ZLog("ObserverServer Public Error: Invalid args num: %d", len(args))
-		}
-	}
-}
-
-func NewObserverServer(name string, addr string) *ObserverServer {
+//NewObserverServer  creat a new ObserverServer
+func NewOBServer(name string) *ObserverServer {
 	if observer := observers.GetServer(name); observer == nil {
+		tcpserver := zed.NewTcpServer(name)
 		observer = &ObserverServer{
-			server: zed.NewTcpServer(name),
-			events: make(map[string]map[*zed.TcpClient]bool),
+			Name:     name,
+			EventMap: make(map[string]map[*zed.TcpClient]bool),
 		}
 
-		handleRegist := func(msg *zed.NetMsg) bool {
-			if msg.Data == nil || msg.Len <= 0 {
-				SendError(msg.Client, OBS_CMD_REGIST_RSP, ERR_REGIST_EMPTY_KEY)
-				return true
-			}
+		tcpserver.SetDelegate(observer)
+		//observer.Server.SetMsgFilter(func(msg *zed.NetMsg) bool { return true })
 
-			observer.Lock()
-			defer observer.Unlock()
-			req := &MsgRegist{}
-			if err := json.Unmarshal(msg.Data, req); err == nil {
-				if req.Key == "" {
-					SendError(msg.Client, OBS_CMD_REGIST_RSP, ERR_REGIST_EMPTY_KEY)
-					return true
-				} else {
-					obs, ok := observer.events[msg.Key]
-					if !ok {
-						obs = make(map[*zed.TcpClient]bool)
-						observer.events[msg.Key] = obs
-					}
-					obs[msg.Client] = true
-					msg.Client.AddCloseCB(zed.Spritf("rme%s", req.Key), func(c *zed.TcpClient) {
-						delete(obs, msg.Client)
-					})
-					msg.Client.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_REGIST_RSP})
-				}
-			}
-			return true
-		}
-
-		handleUnregist := func(msg *zed.NetMsg) bool {
-			if msg.Data == nil || msg.Len <= 0 {
-				SendError(msg.Client, OBS_CMD_UNREGIST_RSP, ERR_UNREGIST_EMPTY_KEY)
-				return true
-			}
-
-			observer.Lock()
-			defer observer.Unlock()
-			req := &MsgRegist{}
-			if err := json.Unmarshal(msg.Data, req); err == nil {
-				if req.Key == "" {
-					SendError(msg.Client, OBS_CMD_UNREGIST_RSP, ERR_UNREGIST_EMPTY_KEY)
-					return true
-				} else {
-					obs, ok := observer.events[msg.Key]
-					if !ok {
-						SendError(msg.Client, OBS_CMD_UNREGIST_RSP, ERR_UNREGIST_INVALID_KEY)
-					} else {
-						delete(obs, msg.Client)
-						msg.Client.RemoveCloseCB(zed.Spritf("rme%s", req.Key))
-						msg.Client.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_UNREGIST_RSP})
-					}
-				}
-			}
-			return true
-		}
-
-		handlePublic := func(msg *zed.NetMsg) bool {
-			if msg.Data == nil || msg.Len <= 0 {
-				SendError(msg.Client, OBS_CMD_PUBLIC_RSP, ERR_PUBLIC_EMPTY_KEY_DATA)
-				return true
-			}
-			req := &MsgRegist{}
-			if err := json.Unmarshal(msg.Data, req); err == nil {
-				if req.Key == "" {
-					SendError(msg.Client, OBS_CMD_PUBLIC_RSP, ERR_PUBLIC_EMPTY_KEY)
-					return true
-				} else {
-					observer.Lock()
-					defer observer.Unlock()
-
-					obs, ok := observer.events[req.Key]
-					if ok {
-						for ob, _ := range obs {
-							ob.SendMsgAsync(&zed.NetMsg{Cmd: OBS_CMD_PUBLIC, Len: len(msg.Data), Data: msg.Data})
-						}
-					}
-				}
-			}
-			return true
-		}
-
-		handleConnClose := func(client *zed.TcpClient) {
-
-		}
-
-		observer.server.SetConnCloseCB(handleConnClose)
-		observer.server.AddMsgHandler(OBC_CMD_REGIST_REQ, handleRegist)
-		observer.server.AddMsgHandler(OBC_CMD_UNREGIST_REQ, handleUnregist)
-		observer.server.AddMsgHandler(OBC_CMD_PUBLIC_REQ, handlePublic)
-
-		zed.NewCoroutine(func() {
-			observer.server.Start(addr)
-		})
-
-		observers.AddServer(name, observer)
+		observers.AddOBServer(name, observer)
 		return observer
 	} else {
 		zed.ZLog("NewObserverServer Error: %s has been exist.", name)
 	}
+
 	return nil
 }
 
-func DeleObserverServer(name string) {
-	observers.DeleServer(name)
+//handle heartbeat req
+func (observer *ObserverServer) handleHeartBeat(client *zed.TcpClient) bool {
+	zed.ZLog("ObserverServer handleHeartBeatReq")
+	client.SendMsgAsync(NewNetMsg(&OBMsg{
+		OP: OBRSP,
+	}))
+	return true
 }
 
-func NewOBClient(name string, addr string) *ObserverClient {
+//handle regist req
+func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient) bool {
+	zed.ZLog("ObserverServer handleRegist 000")
 
-	client := &zed.TcpClient{
-		conn:    conn,
-		parent:  parent,
-		ID:      NullID,
-		Idx:     parent.ClientNum,
-		Addr:    addr,
-		closeCB: make(map[interface{}]ClientCloseCB),
-		chSend:  make(chan *AsyncMsg, 10),
-		Valid:   false,
-		running: true,
+	if event == NullEvent {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    OBRSP,
+			Event: ErrEventFlag,
+			Data:  []byte(ErrRegistNullEvent),
+		}))
+
+		zed.ZLog("ObserverServer handleRegist 111")
+		return true
 	}
 
-	conn, err := net.Dial("tcp", serverAddr)
+	events, ok := observer.EventMap[event]
+	if !ok {
+		events = make(map[*zed.TcpClient]bool)
+		observer.EventMap[event] = events
+	}
+
+	events[client] = true
+
+	client.SendMsgAsync(NewNetMsg(&OBMsg{
+		OP: OBRSP,
+	}))
+
+	zed.ZLog("ObserverServer handleRegist 222")
+
+	return true
+}
+
+//handle unregist req
+func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClient) bool {
+	zed.ZLog("ObserverServer handleUnregist 000")
+
+	if event == NullEvent {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    OBRSP,
+			Event: ErrEventFlag,
+			Data:  []byte(ErrUnregistNullEvent),
+		}))
+
+		zed.ZLog("ObserverServer handleRegist 111")
+		return true
+	}
+
+	events, ok := observer.EventMap[event]
+	if !ok {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    OBRSP,
+			Event: ErrEventFlag,
+			Data:  []byte(ErrUnegistNotRegisted),
+		}))
+
+		zed.ZLog("ObserverServer handleRegist 222")
+		return true
+	}
+
+	_, ok = events[client]
+	if !ok {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    OBRSP,
+			Event: ErrEventFlag,
+			Data:  []byte(ErrUnegistNotRegisted),
+		}))
+
+		zed.ZLog("ObserverServer handleRegist 333")
+		return true
+	} else {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP: OBRSP,
+		}))
+		zed.ZLog("ObserverServer handleRegist 444")
+	}
+
+	return true
+}
+
+//handle publish req
+func (observer *ObserverServer) handlePublish(event string, data []byte, client *zed.TcpClient) bool {
+	zed.ZLog("ObserverServer handlePublish 111 Event: %s, Data: %v", event, data)
+
+	client.SendMsgAsync(NewNetMsg(&OBMsg{
+		OP: OBRSP,
+	}))
+
+	clients, ok := observer.EventMap[event]
+	if ok {
+		msg := NewNetMsg(&OBMsg{
+			OP:    PUBLISH,
+			Event: event,
+			Data:  data,
+		})
+		for c, _ := range clients {
+			c.SendMsgAsync(msg)
+		}
+		zed.ZLog("ObserverServer handlePublish 222 Event: %s, Data: %v", event, data)
+	}
+
+	return true
+}
+
+//HandleMsg ...
+func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
+	zed.ZLog("ObserverServer HandleMsg, Data: %s", msg.Data)
+	observer.Lock()
+	defer observer.Unlock()
+
+	obmsg := OBMsg{}
+	err := json.Unmarshal(msg.Data, &obmsg)
 	if err != nil {
-		return nil
+		obmsg.OP = OBRSP
+		obmsg.Event = ErrEventFlag
+		obmsg.Data = []byte(ErrJsonUnmarshall)
+
+		msg.Client.SendMsgAsync(NewNetMsg(&obmsg))
+		return
 	}
 
-	client.StartReader()
-	client.StartWriter()
-
-	observer := &ObserverClient{
-		addr:   addr,
-		client: client,
-		name:   name,
+	switch obmsg.OP {
+	case HEART_BEATREQ:
+		observer.handleHeartBeat(msg.Client)
+	case REGIST_REQ:
+		observer.handleRegist(obmsg.Event, msg.Client)
+		break
+	case UNREGIST_REQ:
+		observer.handleUnregist(obmsg.Event, msg.Client)
+		break
+	case PUBLISH_REQ:
+		observer.handlePublish(obmsg.Event, obmsg.Data, msg.Client)
+		break
+	default:
+		obmsg.OP = OBRSP
+		obmsg.Event = ErrEventFlag
+		obmsg.Data = []byte(ErrInvalidOP)
+		msg.Client.SendMsgAsync(NewNetMsg(&obmsg))
+		break
 	}
 }
 
-func DeleOBClient(client *MutexClient) {
-	client.mutex.Lock()
-	defer client.mutex.Unlock()
+func (observer *ObserverServer) Start(addr string) {
+	zed.NewCoroutine(func() {
+		observer.Addr = addr
+		observer.Server.Start(addr)
+	})
+}
 
-	client.conn.Close()
+//delete obss's TcpServer
+func (observer *ObserverServer) Stop() {
+	observer.Lock()
+	defer observer.Unlock()
+
+	observers.DeleServer(observer.Name)
+	observer.Server.Stop()
 }

@@ -26,6 +26,13 @@ const (
 )
 
 var (
+	LOG_IDX = 0
+	LOG_TAG = "zed"
+
+	LOG_FILE_SYNC_INTERNAL time.Duration = (time.Second * 30)
+)
+
+var (
 	tags = map[int]string{
 		LOG_IDX: LOG_TAG,
 	}
@@ -81,12 +88,16 @@ func SetLogLevel(l int) {
 	}
 }
 
+func SetLogInternal(internal time.Duration) {
+	LOG_FILE_SYNC_INTERNAL = internal
+}
+
 func (task *logtask) start(taskType string, logType int) {
 	task.running = true
 	//task.chMsg = make(chan *string, 100)
 	task.logType = logType
 	if logType == LogFile {
-		task.ticker = time.NewTicker(time.Second * LOG_FILE_SYNC_INTERNAL)
+		task.ticker = time.NewTicker(LOG_FILE_SYNC_INTERNAL)
 		task.logFile = CreateLogFile(taskType)
 		if task.logFile.NewFile() {
 			NewCoroutine(func() {
