@@ -141,19 +141,24 @@ func (obclient *ObserverClient) DeleteListenerInCall(tag interface{}) {
 	obclient.eventMgr.DeleteListenerInCall(tag)
 }
 
-func NewOBClient(addr string, heartbeat time.Duration) *ObserverClient {
+func NewOBClient(addr string, ename string, heartbeat time.Duration) *ObserverClient {
 	obclient := &ObserverClient{
-		ticker:   time.NewTicker(heartbeat),
-		running:  true,
-		eventMgr: zed.NewEventMgr(zed.Sprintf("obc_%s", addr)),
+		ticker:  time.NewTicker(heartbeat),
+		running: true,
 	}
 	obclient.Client = zed.NewTcpClient(obclient, addr, 0)
 
 	if obclient.Client != nil {
+		obclient.eventMgr = zed.NewEventMgr(ename)
+		if obclient.eventMgr == nil {
+			zed.Println("------------------ obclient.Client:", obclient.Client)
+		}
 		zed.NewCoroutine(func() {
 			obclient.startHeartbeat()
 		})
 		return obclient
+	} else {
+		zed.Println("===================== obclient.Client:", obclient.Client)
 	}
 
 	return nil

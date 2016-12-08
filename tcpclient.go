@@ -285,6 +285,8 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 		running: true,
 	}
 
+	parent.Init()
+
 	return client
 }
 
