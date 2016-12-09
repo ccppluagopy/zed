@@ -22,7 +22,7 @@ func (obclient *ObserverClient) heartbeat() {
 
 	zed.ZLog("heartbeat")
 	obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP: HEART_BEATREQ,
+		OP: HEARTBEAT_REQ,
 	}))
 }
 
@@ -97,38 +97,46 @@ func (obclient *ObserverClient) Publish(event string, data []byte) {
 
 //HandleMsg ...
 func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
-	zed.ZLog("ObserverClient HandleMsg, Data: %v", msg.Data)
+	zed.Printf("ObserverClient HandleMsg, Data: %s\n", string(msg.Data))
 	obclient.Lock()
 	defer obclient.Unlock()
 
 	obmsg := OBMsg{}
 	err := json.Unmarshal(msg.Data, &obmsg)
 	if err != nil {
-		zed.ZLog("ObserverClient HandleMsg Error json Unmarshal Error: %v", err)
+		zed.Printf("ObserverClient HandleMsg Error json Unmarshal Error: %v\n", err)
 		return
 	}
 
 	opstr, ok := opname[obmsg.OP]
 	if !ok {
-		zed.ZLog("ObserverClient HandleMsg Error, Invalid OP: %d", obmsg.OP)
+		zed.Printf("ObserverClient HandleMsg Error, Invalid OP: %d\n", obmsg.OP)
 		return
 	}
 
 	switch obmsg.OP {
-	case OBRSP:
-		if obmsg.Event == ErrEventFlag {
-			zed.ZLog("ObserverClient HandleMsg Error: %s", string(obmsg.Data))
-		} else {
-			zed.ZLog("ObserverClient HandleMsg %s", opstr)
-		}
+	case OB_RSP_NONE:
+		zed.Printf("ObserverClient HandleMsg Error: %s\n", string(obmsg.Data))
 		break
-	case PUBLISH:
-		zed.ZLog("11111  ObserverClient HandleMsg Publish: Event: %s, Data: %s", obmsg.Event, string(obmsg.Data))
+	case HEARTBEAT_RSP:
+		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		break
+	case REGIST_RSP:
+		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		break
+	case UNREGIST_RSP:
+		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		break
+	case PUBLISH_RSP:
+		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		break
+	case PUBLISH_NOTIFY:
+		zed.Printf("11111  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
 		obclient.eventMgr.Dispatch(obmsg.Event, obmsg.Data)
-		zed.ZLog("22222  ObserverClient HandleMsg Publish: Event: %s, Data: %s", obmsg.Event, string(obmsg.Data))
+		zed.Printf("22222  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
 		break
 	default:
-		zed.ZLog("ObserverClient HandleMsg Error: No Handler", obmsg.OP, obclient.Client.Info())
+		zed.Printf("ObserverClient HandleMsg Error: No Handler\n", obmsg.OP, obclient.Client.Info())
 		break
 	}
 }

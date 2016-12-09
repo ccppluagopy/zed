@@ -86,7 +86,7 @@ func NewOBServer(name string) *ObserverServer {
 func (observer *ObserverServer) handleHeartBeat(client *zed.TcpClient) bool {
 	zed.ZLog("ObserverServer handleHeartBeatReq")
 	client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP: OBRSP,
+		OP: HEARTBEAT_RSP,
 	}))
 	return true
 }
@@ -95,11 +95,11 @@ func (observer *ObserverServer) handleHeartBeat(client *zed.TcpClient) bool {
 func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient) bool {
 	zed.ZLog("ObserverServer handleRegist 000")
 
-	if event == NullEvent {
+	if event == EventNull {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP:    OBRSP,
+			OP:    REGIST_RSP,
 			Event: ErrEventFlag,
-			Data:  []byte(ErrRegistNullEvent),
+			Data:  []byte(ErrRegistEventNull),
 		}))
 
 		zed.ZLog("ObserverServer handleRegist 111")
@@ -115,8 +115,11 @@ func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient
 	events[client] = true
 
 	client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP: OBRSP,
+		OP: REGIST_RSP,
 	}))
+	client.AddCloseCB(event, func(c *zed.TcpClient) {
+		delete(events, c)
+	})
 
 	zed.ZLog("ObserverServer handleRegist 222")
 
@@ -127,11 +130,11 @@ func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient
 func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClient) bool {
 	zed.ZLog("ObserverServer handleUnregist 000")
 
-	if event == NullEvent {
+	if event == EventNull {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP:    OBRSP,
+			OP:    UNREGIST_RSP,
 			Event: ErrEventFlag,
-			Data:  []byte(ErrUnregistNullEvent),
+			Data:  []byte(ErrUnregistEventNull),
 		}))
 
 		zed.ZLog("ObserverServer handleRegist 111")
@@ -141,7 +144,7 @@ func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClie
 	events, ok := observer.EventMap[event]
 	if !ok {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP:    OBRSP,
+			OP:    UNREGIST_RSP,
 			Event: ErrEventFlag,
 			Data:  []byte(ErrUnegistNotRegisted),
 		}))
@@ -153,7 +156,7 @@ func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClie
 	_, ok = events[client]
 	if !ok {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP:    OBRSP,
+			OP:    UNREGIST_RSP,
 			Event: ErrEventFlag,
 			Data:  []byte(ErrUnegistNotRegisted),
 		}))
@@ -162,8 +165,9 @@ func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClie
 		return true
 	} else {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP: OBRSP,
+			OP: UNREGIST_RSP,
 		}))
+		client.RemoveCloseCB(event)
 		zed.ZLog("ObserverServer handleRegist 444")
 	}
 
@@ -174,14 +178,18 @@ func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClie
 func (observer *ObserverServer) handlePublish(event string, data []byte, client *zed.TcpClient) bool {
 	zed.ZLog("ObserverServer handlePublish 111 Event: %s, Data: %v", event, data)
 
+	var (
+		msg *zed.NetMsg = nil
+	)
+
 	client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP: OBRSP,
+		OP: PUBLISH_RSP,
 	}))
 
 	clients, ok := observer.EventMap[event]
 	if ok {
-		msg := NewNetMsg(&OBMsg{
-			OP:    PUBLISH,
+		msg = NewNetMsg(&OBMsg{
+			OP:    PUBLISH_NOTIFY,
 			Event: event,
 			Data:  data,
 		})
@@ -189,6 +197,21 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 			c.SendMsgAsync(msg)
 		}
 		zed.ZLog("ObserverServer handlePublish 222 Event: %s, Data: %v", event, data)
+	}
+	clients, ok = observer.EventMap[EventAll]
+	if ok {
+		if msg == nil {
+			msg = NewNetMsg(&OBMsg{
+				OP:    PUBLISH_NOTIFY,
+				Event: event,
+				Data:  data,
+			})
+		}
+		for c, _ := range clients {
+			c.SendMsgAsync(msg)
+			zed.Println("EventAll xxxx")
+		}
+		zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
 	}
 
 	return true
@@ -203,7 +226,7 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 	obmsg := OBMsg{}
 	err := json.Unmarshal(msg.Data, &obmsg)
 	if err != nil {
-		obmsg.OP = OBRSP
+		obmsg.OP = OB_RSP_NONE
 		obmsg.Event = ErrEventFlag
 		obmsg.Data = []byte(ErrJsonUnmarshall)
 
@@ -212,7 +235,7 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 	}
 
 	switch obmsg.OP {
-	case HEART_BEATREQ:
+	case HEARTBEAT_REQ:
 		observer.handleHeartBeat(msg.Client)
 	case REGIST_REQ:
 		observer.handleRegist(obmsg.Event, msg.Client)
@@ -224,7 +247,7 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 		observer.handlePublish(obmsg.Event, obmsg.Data, msg.Client)
 		break
 	default:
-		obmsg.OP = OBRSP
+		obmsg.OP = obmsg.OP
 		obmsg.Event = ErrEventFlag
 		obmsg.Data = []byte(ErrInvalidOP)
 		msg.Client.SendMsgAsync(NewNetMsg(&obmsg))

@@ -25,33 +25,42 @@ const (
 )
 
 const (
-	OBRSP = iota
-	PUBLISH
-	HEART_BEATREQ
-	REGIST_REQ
-	UNREGIST_REQ
+	OB_RSP_NONE = iota
 	PUBLISH_REQ
+	PUBLISH_RSP
+	PUBLISH_NOTIFY
+	HEARTBEAT_REQ
+	HEARTBEAT_RSP
+	REGIST_REQ
+	REGIST_RSP
+	UNREGIST_REQ
+	UNREGIST_RSP
 )
 
 var (
 	opname = map[int]string{
-		OBRSP:         "OBRSP",
-		PUBLISH:       "PUBLISH",
-		HEART_BEATREQ: "HEART_BEATREQ",
-		REGIST_REQ:    "REGIST_REQ",
-		UNREGIST_REQ:  "UNREGIST_REQ",
-		PUBLISH_REQ:   "PUBLISH_REQ",
+		OB_RSP_NONE:    "OB_RSP_NONE",
+		PUBLISH_REQ:    "PUBLISH_REQ",
+		PUBLISH_RSP:    "PUBLISH_RSP",
+		PUBLISH_NOTIFY: "PUBLISH_NOTIFY",
+		HEARTBEAT_REQ:  "HEARTBEAT_REQ",
+		HEARTBEAT_RSP:  "HEARTBEAT_RSP",
+		REGIST_REQ:     "REGIST_REQ",
+		REGIST_RSP:     "REGIST_RSP",
+		UNREGIST_REQ:   "UNREGIST_REQ",
+		UNREGIST_RSP:   "UNREGIST_RSP",
 	}
 )
 
-const (
-	NullEvent = ""
+var (
+	EventNull = ""
+	EventAll  = zed.EventAll
 
 	ErrEventFlag = "Error"
 
 	ErrJsonUnmarshall     = "Json Unmarshall Failed"
-	ErrRegistNullEvent    = "Regist Event is Null"
-	ErrUnregistNullEvent  = "Unregist Event is Null"
+	ErrRegistEventNull    = "Regist Event is Null"
+	ErrUnregistEventNull  = "Unregist Event is Null"
 	ErrUnegistNotRegisted = "Unegist Not Registed"
 	ErrInvalidOP          = "InvalidOP, No Handler"
 )
