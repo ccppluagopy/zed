@@ -61,7 +61,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		readLen = 0
 		err     error
 		msg     *NetMsg
-		server  = dele.Server
+		//server  = dele.Server
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(dele.recvBlockTime)); err != nil {
