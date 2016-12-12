@@ -55,17 +55,14 @@ func (eventMgr *EventMgr) DeleteListener(tag interface{}) {
 
 func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool {
 	flag := false
-	Println("xxxxxxxxxx 000 event: ", event)
 	if listeners, ok := eventMgr.listeners[event]; ok {
 		for _, listener := range listeners {
-			Println("xxxxxxxxxx event: ", event)
 			eventHandler(listener, event, args)
 			flag = true
 		}
 	}
 	if listeners, ok := eventMgr.listeners[EventAll]; ok {
 		for _, listener := range listeners {
-			Println("xxxxxxxxxx 222 event: ", event)
 			eventHandler(listener, event, args)
 		}
 	}
@@ -75,16 +72,13 @@ func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool 
 func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
 	eventMgr.Lock()
 	defer eventMgr.Unlock()
-	Println("xxxxxxxxxx 000 event: ", event)
 	if listeners, ok := eventMgr.listeners[event]; ok {
 		for _, listener := range listeners {
-			Println("xxxxxxxxxx 111 event: ", event)
 			eventHandler(listener, event, args)
 		}
 	}
 	if listeners, ok := eventMgr.listeners[EventAll]; ok {
 		for _, listener := range listeners {
-			Println("xxxxxxxxxx 222 event: ", event)
 			eventHandler(listener, event, args)
 		}
 	}

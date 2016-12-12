@@ -65,7 +65,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 	)
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(dele.recvBlockTime)); err != nil {
-		if server != nil && server.showClientData {
+		if dele.showClientData {
 			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -73,14 +73,14 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 
 	readLen, err = io.ReadFull(client.conn, head)
 	if err != nil || readLen < PACK_HEAD_LEN {
-		if server != nil && server.showClientData {
+		if dele.showClientData {
 			ZLog("RecvMsg %s Read Head Err: %v %d.", client.Info(), err, readLen)
 		}
 		goto Exit
 	}
 
 	if err = (*client.conn).SetReadDeadline(time.Now().Add(dele.recvBlockTime)); err != nil {
-		if server != nil && server.showClientData {
+		if dele.showClientData {
 			ZLog("RecvMsg %s SetReadDeadline Err: %v.", client.Info(), err)
 		}
 		goto Exit
@@ -99,7 +99,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		msg.Data = make([]byte, msg.Len)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
 		if err != nil || readLen != int(msg.Len) {
-			if server != nil && server.showClientData {
+			if dele.showClientData {
 				ZLog("RecvMsg %s Read Body Err: %v.", client.Info(), err)
 			}
 			goto Exit
@@ -120,17 +120,23 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 	)
 
 	if msg.Len > 0 && (msg.Data == nil || msg.Len != len(msg.Data)) {
-		ZLog("SendMsg Err: msg.Len(%d) != len(Data)%v", msg.Len, msg.Data)
+		if dele.showClientData {
+			ZLog("SendMsg Err: msg.Len(%d) != len(Data)%v", msg.Len, msg.Data)
+		}
 		goto Exit
 	}
 
 	if msg.Len > dele.maxPackLen {
-		ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
+		if dele.showClientData {
+			ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
+		}
 		goto Exit
 	}
 
 	if err := (*client.conn).SetWriteDeadline(time.Now().Add(dele.sendBlockTime)); err != nil {
-		ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
+		if dele.showClientData {
+			ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
+		}
 		goto Exit
 	}
 
@@ -189,6 +195,7 @@ func (dele *DefaultTCDelegate) Init() {
 		dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
 	}
 
+	dele.SetShowClientData(true)
 }
 
 func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
@@ -202,11 +209,15 @@ func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
 		if cb(msg) {
 			return
 		} else {
-			ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			if dele.showClientData {
+				ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+			}
 			msg.Client.Stop()
 		}
 	} else {
-		ZLog("DefaultTCDelegate HandleMsg Error: No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
+		if dele.showClientData {
+			ZLog("DefaultTCDelegate HandleMsg Error: No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
+		}
 	}
 }
 

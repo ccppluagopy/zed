@@ -47,7 +47,7 @@ func (client *TcpClient) IsRunning() bool {
 }
 
 func (client *TcpClient) Stop() {
-	LogStackInfo()
+	//LogStackInfo()
 	NewCoroutine(func() {
 		client.Lock()
 		defer client.Unlock()
