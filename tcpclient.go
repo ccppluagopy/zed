@@ -178,9 +178,9 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 			}
 		}
 		if client.chSend != nil {
-			Println("aaaaaaa", client.Info(), msg.Cmd, msg.Len, client.chSend)
+			//Println("aaaaaaa", client.Info(), msg.Cmd, msg.Len, client.chSend)
 			client.chSend <- asyncmsg
-			Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
+			//Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
 		}
 	}
 	if client.parent.ShowClientData() {

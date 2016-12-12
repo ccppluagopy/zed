@@ -6,6 +6,8 @@ import (
 )
 
 var (
+	EventAll = "*"
+
 	defaultInstance *EventMgr = nil
 	instanceMap     map[interface{}]*EventMgr
 	instanceMutex   = sync.Mutex{}
@@ -61,7 +63,12 @@ func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool 
 			flag = true
 		}
 	}
-
+	if listeners, ok := eventMgr.listeners[EventAll]; ok {
+		for _, listener := range listeners {
+			Println("xxxxxxxxxx 222 event: ", event)
+			eventHandler(listener, event, args)
+		}
+	}
 	return flag
 }
 
@@ -72,6 +79,12 @@ func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
 	if listeners, ok := eventMgr.listeners[event]; ok {
 		for _, listener := range listeners {
 			Println("xxxxxxxxxx 111 event: ", event)
+			eventHandler(listener, event, args)
+		}
+	}
+	if listeners, ok := eventMgr.listeners[EventAll]; ok {
+		for _, listener := range listeners {
+			Println("xxxxxxxxxx 222 event: ", event)
 			eventHandler(listener, event, args)
 		}
 	}
