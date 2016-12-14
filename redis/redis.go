@@ -5,8 +5,9 @@ import (
 	"time"
 
 	"github.com/ccppluagopy/zed"
-
 	redis "gopkg.in/redis.v5"
+	"io/ioutil"
+	"os"
 )
 
 const (
@@ -18,15 +19,16 @@ type RedisActionCB func(redis *RedisMgr) bool
 
 type RedisMgr struct {
 	sync.RWMutex
-	client     *redis.Client
-	tryCount   int
-	addr       string
-	database   int
-	passwd     string
-	poolSize   int
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
+	client      *redis.Client
+	tryCount    int
+	addr        string
+	database    int
+	passwd      string
+	poolSize    int
+	ticker      *time.Ticker
+	running     bool
+	restarting  bool
+	scriptCache map[string]string
 }
 
 type RedisMgrPool struct {
@@ -50,13 +52,14 @@ func NewRedisMgrPool(name, addr string, database int, passwd string, size int) *
 	var ok bool
 	for index := 0; index < size; index++ {
 		rediscopy := &RedisMgr{
-			tryCount:   0,
-			addr:       addr,
-			database:   database,
-			passwd:     passwd,
-			poolSize:   1,
-			running:    false,
-			restarting: false,
+			tryCount:    0,
+			addr:        addr,
+			database:    database,
+			passwd:      passwd,
+			poolSize:    1,
+			running:     false,
+			restarting:  false,
+			scriptCache: make(map[string]string),
 		}
 
 		ok = rediscopy.Start()
@@ -98,13 +101,14 @@ func NewRedisMgr(name, addr string, database int, passwd string) *RedisMgr {
 	redismgr, isexist := redisMgrs[name]
 	if !isexist {
 		redismgr = &RedisMgr{
-			client:     nil,
-			tryCount:   0,
-			addr:       addr,
-			database:   database,
-			passwd:     passwd,
-			running:    false,
-			restarting: false,
+			client:      nil,
+			tryCount:    0,
+			addr:        addr,
+			database:    database,
+			passwd:      passwd,
+			running:     false,
+			restarting:  false,
+			scriptCache: make(map[string]string),
 		}
 
 		ok := redismgr.Start()
@@ -121,15 +125,36 @@ func NewRedisMgr(name, addr string, database int, passwd string) *RedisMgr {
 	return nil
 }
 
+func (redismgr *RedisMgr) LoadScript(path string) (string, bool) {
+	fi, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	defer fi.Close()
+	buf, err := ioutil.ReadAll(fi)
+	// fmt.Println(string(fd))
+	fstr := string(buf)
+	ret := redismgr.client.ScriptLoad(fstr)
+	str, err := ret.Result()
+	if err != nil {
+		zed.ZLog("RedisMgr LoadScript Error: %s %s %v", path, str, err)
+		return "", false
+	}
+	zed.ZLog("RedisMgr LoadScript %s", path)
+	redismgr.scriptCache[path] = str
+	return str, true
+}
+
 //Start ...
 func (redismgr *RedisMgr) Start() bool {
 	if !redismgr.IsRuning() {
+		zed.ZLog("RedisMgr Start - 00000")
 		client := redis.NewClient(&redis.Options{
 			Addr:        redismgr.addr,
 			Password:    redismgr.passwd,
 			DB:          redismgr.database, /*连接的表的编号*/
 			PoolSize:    redismgr.poolSize, /**/
-			DialTimeout: DB_DIAL_TIMEOUT,
+			DialTimeout: time.Second / 20,
 		})
 		_, err := client.Ping().Result()
 		if err != nil {
@@ -150,6 +175,12 @@ func (redismgr *RedisMgr) Start() bool {
 		redismgr.ticker = time.NewTicker(10 * time.Second)
 		redismgr.SetRunningState(true)
 		redismgr.restarting = false
+
+		redismgr.client.ScriptFlush()
+		for path, _ := range redismgr.scriptCache {
+			redismgr.LoadScript(path)
+			zed.ZLog("111111111111 RedisMgr aLoadScript: %s  ", path)
+		}
 
 		zed.NewCoroutine(func() {
 			redismgr.startHeartBeat()
@@ -186,18 +217,21 @@ func (redismgr *RedisMgr) DBAction(cb func(*redis.Client) bool) bool {
 func (redismgr *RedisMgr) Restart() {
 	//zed.ZLog("enter Restart function ...")
 	redismgr.Lock()
+	defer redismgr.Unlock()
 
 	if !redismgr.restarting {
-		redismgr.restarting = true
-		redismgr.Unlock()
-		redismgr.Stop()
-		redismgr.Start()
+		zed.NewCoroutine(func() {
+			redismgr.restarting = true
+
+			redismgr.Stop()
+			redismgr.Start()
+		})
 	}
 }
 
 //Stop ...
 func (redismgr *RedisMgr) Stop() {
-	//zed.ZLog("enter Stop function ...")
+	zed.ZLog("RedisMgr Stop 000 ...")
 	redismgr.SetRunningState(false)
 
 	redismgr.Lock()
@@ -228,18 +262,17 @@ func (redismgr *RedisMgr) startHeartBeat() {
 
 //heartBeat ...
 func (redismgr *RedisMgr) heartBeat() {
-	redismgr.Lock()
-	//redismgr.Unlock()
-
-	if redismgr.client != nil {
+	/*
+		redismgr.Lock()
+		defer redismgr.Unlock()
+	*/
+	if redismgr.running {
 		_, err := redismgr.client.Ping().Result()
 		if err != nil {
 			zed.ZLog("RedisMgr heartBeat err: %v!", err)
 			//panic(err)
-			redismgr.Unlock()
+			//redismgr.Unlock()
 			redismgr.Restart()
-		} else {
-			redismgr.Unlock()
 		}
 	}
 }
