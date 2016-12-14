@@ -25,34 +25,34 @@ func readfile(path string) string {
 
 func TestRedisCluster() {
 	redispool = zredis.NewRedisMgrPool("xx", "127.0.0.1:6379", 0, "", 3)
-	var cmd *redis.StringCmd
-
+	var sha1 = ""
 	redispool.DBAction(0, func(c *redis.Client) bool {
 		status := c.ScriptFlush()
 		if status.Err() != nil {
 			fmt.Println("Script Flush Error: ", status.Err())
 			return false
 		}
-		fstr := readfile("./redis.lua")
+		fstr := readfile("./test_redis.lua")
 		//fmt.Println("file: ", fstr)
-		cmd = c.ScriptLoad(fstr)
-		err, str := cmd.Result()
+		cmd := c.ScriptLoad(fstr)
+		str, err := cmd.Result()
 		fmt.Println("cmd 111: ", err, str)
+		if err == nil {
+			sha1 = str
+		}
 		return true
 	})
 
 	for i := 0; i < 10000; i++ {
 		redispool.DBAction(0, func(c *redis.Client) bool {
-
-			ret := c.EvalSha(cmd.Val(), []string{"gaofeng", "gaofeng"}, "gaofeng")
-
+			k, v := fmt.Sprintf("key_%d", i), fmt.Sprintf("data_%d", i)
+			ret := c.EvalSha(sha1, []string{k}, v)
 			str, err := ret.Result()
 			retstr, ok := str.(string)
 			fmt.Println("ret err: ", err, "ok:", ok, "str:", retstr)
-			//fmt.Println("ret2: ", ret2.String())
 			return true
 		})
-		time.Sleep(10 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 
 }
