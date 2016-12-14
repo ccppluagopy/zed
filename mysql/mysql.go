@@ -197,7 +197,9 @@ func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 	}()
 
 	//db := msqlMgr.DB
-	cb(msqlMgr.DB)
+	if msqlMgr.running {
+		cb(msqlMgr.DB)
+	}
 }
 
 func (msqlMgr *MysqlMgr) heartbeat() {

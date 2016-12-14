@@ -81,6 +81,10 @@ func (pool *RedisMgrPool) GetMgr(idx int) *RedisMgr {
 	return pool.redismgrs[idx%len(pool.redismgrs)]
 }
 
+func (pool *RedisMgrPool) GetScriptSha1(path string) string {
+	return pool.redismgrs[0].GetScriptSha1(path)
+}
+
 //DBAction ...
 func (pool *RedisMgrPool) DBAction(idx int, cb func(*redis.Client) bool) bool {
 
@@ -123,6 +127,13 @@ func NewRedisMgr(name, addr string, database int, passwd string) *RedisMgr {
 	zed.ZLog("NewRedisMgr Error: %s has been existed!", name)
 
 	return nil
+}
+
+func (redismgr *RedisMgr) GetScriptSha1(path string) string {
+	if sha1, ok := redismgr.scriptCache[path]; ok {
+		return sha1
+	}
+	return ""
 }
 
 func (redismgr *RedisMgr) LoadScript(path string) (string, bool) {

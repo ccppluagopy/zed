@@ -166,14 +166,17 @@ func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
 		}
 	}()
 
-	c := mongoMgr.Collection
-	if c != nil {
-		return cb(c)
-	} else {
-		return false
-	}
+	if mongoMgr.running {
+		c := mongoMgr.Collection
+		if c != nil {
+			return cb(c)
+		} else {
+			return false
+		}
 
-	return true
+		return true
+	}
+	return false
 }
 
 func (mongoMgr *MongoMgr) heartbeat() {
