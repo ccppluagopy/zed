@@ -85,6 +85,16 @@ func (pool *RedisMgrPool) GetScriptSha1(path string) string {
 	return pool.redismgrs[0].GetScriptSha1(path)
 }
 
+func (pool *RedisMgrPool) LoadScript(path string) (string, bool) {
+	sha1, ok := pool.redismgrs[0].LoadScript(path)
+	if ok {
+		for i := 1; i < len(pool.redismgrs); i++ {
+			pool.redismgrs[i].scriptCache[path] = sha1
+		}
+	}
+	return sha1, ok
+}
+
 //DBAction ...
 func (pool *RedisMgrPool) DBAction(idx int, cb func(*redis.Client) bool) bool {
 
