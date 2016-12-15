@@ -222,16 +222,19 @@ func (redismgr *RedisMgr) DBAction(cb func(*redis.Client) bool) bool {
 		}
 	}()
 
-	client := redismgr.client
-	if client != nil {
+	if redismgr.running {
+		client := redismgr.client
+		if client != nil {
 
-		return cb(client)
-	} else {
+			return cb(client)
+		} else {
 
-		return false
+			return false
+		}
+
+		return true
 	}
-
-	return true
+	return false
 }
 
 //Restart ...
@@ -253,16 +256,16 @@ func (redismgr *RedisMgr) Restart() {
 //Stop ...
 func (redismgr *RedisMgr) Stop() {
 	zed.ZLog("RedisMgr Stop 000 ...")
-	redismgr.SetRunningState(false)
-
 	redismgr.Lock()
 	defer redismgr.Unlock()
-	//zed.ZLog("return back Stop function ...")
-
-	err := redismgr.client.Close()
-	if err != nil {
-		zed.ZLog("RedisMgr stop client(%#v) err: %v", redismgr.client, err)
-		panic(err)
+	if redismgr.running {
+		redismgr.running = false
+		redismgr.ticker.Stop()
+		err := redismgr.client.Close()
+		if err != nil {
+			zed.ZLog("RedisMgr stop client(%#v) err: %v", redismgr.client, err)
+			panic(err)
+		}
 	}
 }
 
