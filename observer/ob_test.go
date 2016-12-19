@@ -7,17 +7,26 @@ import (
 	//"github.com/ccppluagopy/zed"
 )
 
+func CenterServer(addr string) {
+
+}
+
+func NodeServer(caddr string, addr string) {
+
+}
+
 func TestObserverServer(t *testing.T) {
 	//timewheel = zed.NewTimerWheel(10*time.Second, 3)
 	addr := "127.0.0.1:3333"
 	go NewOBServer("server").Start(addr)
 	time.Sleep(2 * time.Second)
 
-	obsc := NewOBClient(addr, time.Second*1000)
+	obsc := NewOBClient(addr, "xx", time.Second*1000)
 	if obsc == nil {
 		fmt.Println("obsc is nil.....")
 		return
 	}
+
 	event := "asdfja"
 	obsc.Regist(event, []byte("regist test"))
 	obsc.NewListener("xx", event, func(e interface{}, args []interface{}) {

@@ -217,6 +217,51 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 	return true
 }
 
+//handle publish req
+func (observer *ObserverServer) handlePublish2(event string, data []byte, client *zed.TcpClient) bool {
+	zed.ZLog("ObserverServer handlePublish2 111 Event: %s, Data: %v", event, data)
+
+	var (
+		msg *zed.NetMsg = nil
+	)
+
+	client.SendMsgAsync(NewNetMsg(&OBMsg{
+		OP: PUBLISH_RSP,
+	}))
+
+	clients, ok := observer.EventMap[event]
+	if ok {
+		msg = NewNetMsg(&OBMsg{
+			OP:    PUBLISH_NOTIFY,
+			Event: event,
+			Data:  data,
+		})
+		for c, _ := range clients {
+			c.SendMsgAsync(msg)
+		}
+		zed.ZLog("ObserverServer handlePublish2 222 Event: %s, Data: %v", event, data)
+	}
+	clients, ok = observer.EventMap[EventAll]
+	if ok {
+		if msg == nil {
+			msg = NewNetMsg(&OBMsg{
+				OP:    PUBLISH_NOTIFY,
+				Event: event,
+				Data:  data,
+			})
+		}
+		for c, _ := range clients {
+			if c != client {
+				c.SendMsgAsync(msg)
+				zed.Println("EventAll xxxx")
+			}
+		}
+		zed.ZLog("ObserverServer handlePublish2 333 Event: %s, Data: %v", event, data)
+	}
+
+	return true
+}
+
 //HandleMsg ...
 func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 	zed.ZLog("ObserverServer HandleMsg, Data: %s", msg.Data)
@@ -245,6 +290,9 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 		break
 	case PUBLISH_REQ:
 		observer.handlePublish(obmsg.Event, obmsg.Data, msg.Client)
+		break
+	case PUBLISH2_REQ:
+		observer.handlePublish2(obmsg.Event, obmsg.Data, msg.Client)
 		break
 	default:
 		obmsg.OP = obmsg.OP

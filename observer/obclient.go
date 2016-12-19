@@ -95,6 +95,19 @@ func (obclient *ObserverClient) Publish(event string, data []byte) {
 	}))
 }
 
+func (obclient *ObserverClient) Publish2(event string, data []byte) {
+	zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
+
+	obclient.Lock()
+	defer obclient.Unlock()
+
+	obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
+		OP:    PUBLISH2_REQ,
+		Event: event,
+		Data:  data,
+	}))
+}
+
 //HandleMsg ...
 func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 	zed.Printf("ObserverClient HandleMsg, Data: %s\n", string(msg.Data))
