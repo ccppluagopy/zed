@@ -54,6 +54,19 @@ func (client *LoadbalanceClient) Increament(serverType string, serverTag string,
 	}
 }
 
+func (client *LoadbalanceClient) UpdateLoad(serverType string, serverTag string, num int) {
+	args := &LBArgs{
+		ServerType: serverType,
+		ServerTag:  serverTag,
+		Num:        num,
+	}
+
+	err := client.Client.Call("LoadbalanceServer.UpdateLoad", args, nil)
+	if err != nil {
+		zed.ZLog("LoadbalanceClient UpdateLoad Error: %v", err)
+	}
+}
+
 func (client *LoadbalanceClient) DeleteServer(serverType string, serverTag string) {
 	args := &LBArgs{
 		ServerType: serverType,

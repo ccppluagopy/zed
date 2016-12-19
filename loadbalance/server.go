@@ -102,6 +102,25 @@ func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) erro
 	return nil
 }
 
+func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) error {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	fmt.Println("LoadbalanceServer.UpdateLoad 000")
+
+	serverType, serverTag, num := args.ServerType, args.ServerTag, args.Num
+
+	if servers, ok := server.Servers[serverType]; ok {
+		server, ok2 := servers[serverTag]
+		if ok2 {
+			server.Num = num
+			fmt.Println("LoadbalanceServer.UpdateLoad 333: ", serverType, serverTag, num)
+		}
+	}
+
+	return nil
+}
+
 func (server *LoadbalanceServer) GetServerAddr(args *LBArgs, reply *([]LBRsp)) error {
 	mtx.Lock()
 	defer mtx.Unlock()
