@@ -30,6 +30,7 @@ type LBRsp struct {
 }
 
 type LoadbalanceServer struct {
+	sync.Mutex
 	Addr    string
 	Servers map[string]map[string]*ServerInfo
 }
@@ -39,8 +40,8 @@ type LoadbalanceServer struct {
 }*/
 
 func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error {
-	mtx.Lock()
-	defer mtx.Unlock()
+	server.Lock()
+	defer server.Unlock()
 
 	serverType, serverTag, addr, num := args.ServerType, args.ServerTag, args.Addr, args.Num
 
@@ -68,8 +69,8 @@ func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error
 }
 
 func (server *LoadbalanceServer) DeleteServer(args *LBArgs, reply *([]LBRsp)) error {
-	mtx.Lock()
-	defer mtx.Unlock()
+	server.Lock()
+	defer server.Unlock()
 
 	fmt.Println("LoadbalanceServer.DeleteServer 000")
 
@@ -84,8 +85,8 @@ func (server *LoadbalanceServer) DeleteServer(args *LBArgs, reply *([]LBRsp)) er
 }
 
 func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) error {
-	mtx.Lock()
-	defer mtx.Unlock()
+	server.Lock()
+	defer server.Unlock()
 
 	fmt.Println("LoadbalanceServer.Increament 000")
 
@@ -103,8 +104,8 @@ func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) erro
 }
 
 func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) error {
-	mtx.Lock()
-	defer mtx.Unlock()
+	server.Lock()
+	defer server.Unlock()
 
 	fmt.Println("LoadbalanceServer.UpdateLoad 000")
 
@@ -122,8 +123,8 @@ func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) erro
 }
 
 func (server *LoadbalanceServer) GetServerAddr(args *LBArgs, reply *([]LBRsp)) error {
-	mtx.Lock()
-	defer mtx.Unlock()
+	server.Lock()
+	defer server.Unlock()
 
 	//fmt.Println("LoadbalanceServer.GetServerAddr 000")
 
