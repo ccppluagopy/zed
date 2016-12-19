@@ -168,3 +168,21 @@ func NewLoadbalanceServer(addr string) *LoadbalanceServer {
 
 	return server
 }
+
+func GetServerAddr(server *LoadbalanceServer, serverType string) *ServerInfo {
+	args := &LBArgs{
+		ServerType: serverType,
+	}
+	reply := []LBRsp{}
+	err := server.GetServerAddr(args, &reply)
+	if err != nil {
+		zed.ZLog("loadbalance GetServerAddr Error:", err)
+	}
+
+	if len(reply) == 1 {
+		//zed.ZLog("LoadbalanceClient GetServerAddr:", reply[0].Info.Addr, reply[0].Info.Num)
+		return &(reply[0].Info)
+	}
+
+	return nil
+}
