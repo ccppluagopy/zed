@@ -22,7 +22,7 @@ func (obclient *ObserverClient) heartbeat() {
 	defer obclient.Unlock()
 
 	if obclient.running {
-		zed.ZLog("heartbeat")
+		//zed.ZLog("heartbeat")
 		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
 			OP: HEARTBEAT_REQ,
 		}))
@@ -31,7 +31,7 @@ func (obclient *ObserverClient) heartbeat() {
 }
 
 func (obclient *ObserverClient) startHeartbeat() {
-	zed.ZLog("ObserverClient start heartbeat")
+	//zed.ZLog("ObserverClient start heartbeat")
 	for {
 		select {
 		case _, ok := <-obclient.ticker.C:
@@ -76,7 +76,7 @@ func (obclient *ObserverClient) Regist(event string, data []byte) bool {
 		}
 
 		//req.Data = append(req.Data, data...)
-		zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
+		zed.ZLog("===== aaaaaaaaaa   obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
 		obclient.Client.SendMsgAsync(NewNetMsg(req))
 
 		return true
@@ -95,7 +95,7 @@ func (obclient *ObserverClient) Unregist(event string, data []byte) bool {
 		}
 
 		req.Data = append(req.Data, data...)
-		zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
+		//zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
 		obclient.Client.SendMsgAsync(NewNetMsg(req))
 
 		return true
@@ -123,7 +123,7 @@ func (obclient *ObserverClient) Publish(event string, data []byte) bool {
 }
 
 func (obclient *ObserverClient) Publish2(event string, data []byte) bool {
-	zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
+	//zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
 
 	obclient.Lock()
 	defer obclient.Unlock()
@@ -154,7 +154,8 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 		return
 	}
 
-	opstr, ok := opname[obmsg.OP]
+	//opstr, ok := opname[obmsg.OP]
+	_, ok := opname[obmsg.OP]
 	if !ok {
 		zed.Printf("ObserverClient HandleMsg Error, Invalid OP: %d\n", obmsg.OP)
 		return
@@ -162,24 +163,24 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 
 	switch obmsg.OP {
 	case OB_RSP_NONE:
-		zed.Printf("ObserverClient HandleMsg Error: %s\n", string(obmsg.Data))
+		//zed.Printf("ObserverClient HandleMsg Error: %s\n", string(obmsg.Data))
 		break
 	case HEARTBEAT_RSP:
-		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		//zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
 		break
 	case REGIST_RSP:
-		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		//zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
 		break
 	case UNREGIST_RSP:
-		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		//zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
 		break
 	case PUBLISH_RSP:
-		zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
+		//zed.Printf("ObserverClient HandleMsg: %s\n", opstr)
 		break
 	case PUBLISH_NOTIFY:
-		zed.Printf("11111  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
+		zed.Printf("ObserverClient HandleMsg PUBLISH_NOTIFY 1111111: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
 		obclient.eventMgr.Dispatch(obmsg.Event, obmsg.Data)
-		zed.Printf("22222  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
+		//zed.Printf("22222  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
 		break
 	default:
 		zed.Printf("ObserverClient HandleMsg Error: No Handler\n", obmsg.OP, obclient.Client.Info())

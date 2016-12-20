@@ -26,14 +26,14 @@ func (mgrErr *OBClusterError) Error() string {
 }
 
 type OBClusterMgr struct {
-	sync.Mutex
+	mutex   sync.Mutex
 	Addr    string
 	Clients map[string]*ObserverClient
 }
 
 func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
-	mgr.Lock()
-	defer mgr.Unlock()
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
 
 	addr, heartbeat := args.Addr, args.Heartbeat
 	if _, ok := mgr.Clients[addr]; ok {
@@ -45,24 +45,29 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 	ename := fmt.Sprintf("obclustermgr_%s", addr)
 	client := NewOBClient(addr, ename, heartbeat)
 	client.SetCloseCB(func() {
-		mgr.Lock()
-		defer mgr.Unlock()
+		mgr.mutex.Lock()
+		defer mgr.mutex.Unlock()
 		delete(mgr.Clients, addr)
 	})
 
 	client.Regist(EventAll, nil)
 	client.NewListener(EventAll, EventAll, func(e interface{}, args []interface{}) {
-		for _, c := range mgr.Clients {
-			eve, ok1 := e.(string)
-			if ok1 {
-				data, ok2 := args[0].([]byte)
-				if ok2 {
-					c.Publish2(eve, data)
+		mgr.mutex.Lock()
+		defer mgr.mutex.Unlock()
+		eve, ok1 := e.(string)
+		if ok1 {
+			data, ok2 := args[0].([]byte)
+			if ok2 {
+				fmt.Println("Cluster Mgr On Event 00000000000000000", eve, data)
+				for pubaddr, c := range mgr.Clients {
+					fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 111", pubaddr, addr)
+					if pubaddr != addr {
+						c.Publish2(eve, data)
+						fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 222", pubaddr, addr)
+					}
 				}
 			}
-
 		}
-
 	})
 
 	mgr.Clients[addr] = client
@@ -71,8 +76,8 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 }
 
 func (mgr *OBClusterMgr) DeleteNode(args *OBAgrs, reply *([]OBRsp)) error {
-	mgr.Lock()
-	defer mgr.Unlock()
+	mgr.mutex.Lock()
+	defer mgr.mutex.Unlock()
 
 	delete(mgr.Clients, args.Addr)
 
@@ -120,7 +125,7 @@ func (node *OBClusterNode) Start() bool {
 		Heartbeat: DEFAULT_HEART_BEAT_TIME - time.Second*3,
 	}
 
-	err = client.Call("OBClusterNode Start OBClusterMgr AddNode", args, nil)
+	err = client.Call("OBClusterMgr.AddNode", args, nil)
 	if err != nil {
 		zed.ZLog("OBClusterNode Start OBClusterMgr AddNode Error: %v", err)
 		return false
@@ -133,7 +138,6 @@ func NewOBClusterNode(mgraddr string, nodeaddr string, heartbeat time.Duration) 
 	return &OBClusterNode{
 		MgrAddr:  mgraddr,
 		NodeAddr: nodeaddr,
-		Server:   NewOBServer(fmt.Sprintf("OBClusterNode_%d", time.Nanosecond)),
+		Server:   NewOBServer(fmt.Sprintf("OBClusterNode_%s", nodeaddr)),
 	}
-
 }
