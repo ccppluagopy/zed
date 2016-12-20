@@ -14,16 +14,20 @@ type ObserverClient struct {
 	Client   *zed.TcpClient
 	ticker   *time.Ticker
 	running  bool
+	onStop   func()
 }
 
 func (obclient *ObserverClient) heartbeat() {
 	obclient.Lock()
 	defer obclient.Unlock()
 
-	zed.ZLog("heartbeat")
-	obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP: HEARTBEAT_REQ,
-	}))
+	if obclient.running {
+		zed.ZLog("heartbeat")
+		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP: HEARTBEAT_REQ,
+		}))
+
+	}
 }
 
 func (obclient *ObserverClient) startHeartbeat() {
@@ -40,6 +44,10 @@ func (obclient *ObserverClient) startHeartbeat() {
 	}
 }
 
+func (obclient *ObserverClient) SetCloseCB(cb func()) {
+	obclient.onStop = cb
+}
+
 func (obclient *ObserverClient) Stop() {
 	obclient.Lock()
 	defer obclient.Unlock()
@@ -47,65 +55,90 @@ func (obclient *ObserverClient) Stop() {
 		obclient.running = false
 		obclient.ticker.Stop()
 		obclient.Client.Stop()
+		if obclient.onStop != nil {
+			zed.NewCoroutine(func() {
+				defer zed.PanicHandle(true)
+				obclient.onStop()
+			})
+		}
 	}
 }
 
-func (obclient *ObserverClient) Regist(event string, data []byte) {
+func (obclient *ObserverClient) Regist(event string, data []byte) bool {
 	obclient.Lock()
 	defer obclient.Unlock()
 
-	req := &OBMsg{
-		OP:    REGIST_REQ,
-		Event: event,
+	if obclient.running {
+		req := &OBMsg{
+			OP:    REGIST_REQ,
+			Event: event,
+			Data:  data,
+		}
+
+		//req.Data = append(req.Data, data...)
+		zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
+		obclient.Client.SendMsgAsync(NewNetMsg(req))
+
+		return true
 	}
 
-	req.Data = append(req.Data, data...)
-	zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
-	obclient.Client.SendMsgAsync(NewNetMsg(req))
-
-	return
+	return false
 }
 
-func (obclient *ObserverClient) Unregist(event string, data []byte) {
+func (obclient *ObserverClient) Unregist(event string, data []byte) bool {
 	obclient.Lock()
 	defer obclient.Unlock()
+	if obclient.running {
+		req := &OBMsg{
+			OP:    UNREGIST_REQ,
+			Event: event,
+		}
 
-	req := &OBMsg{
-		OP:    UNREGIST_REQ,
-		Event: event,
+		req.Data = append(req.Data, data...)
+		zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
+		obclient.Client.SendMsgAsync(NewNetMsg(req))
+
+		return true
 	}
 
-	req.Data = append(req.Data, data...)
-	zed.ZLog("obclient SendMsg:\n\top: %d\n\tevent: %s\n\tdata: %s", req.OP, req.Event, string(req.Data))
-	obclient.Client.SendMsgAsync(NewNetMsg(req))
-
-	return
+	return false
 }
 
-func (obclient *ObserverClient) Publish(event string, data []byte) {
+func (obclient *ObserverClient) Publish(event string, data []byte) bool {
 	zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
 
 	obclient.Lock()
 	defer obclient.Unlock()
 
-	obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP:    PUBLISH_REQ,
-		Event: event,
-		Data:  data,
-	}))
+	if obclient.running {
+		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    PUBLISH_REQ,
+			Event: event,
+			Data:  data,
+		}))
+		return true
+	}
+
+	return false
 }
 
-func (obclient *ObserverClient) Publish2(event string, data []byte) {
+func (obclient *ObserverClient) Publish2(event string, data []byte) bool {
 	zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
 
 	obclient.Lock()
 	defer obclient.Unlock()
 
-	obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
-		OP:    PUBLISH2_REQ,
-		Event: event,
-		Data:  data,
-	}))
+	if obclient.running {
+		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    PUBLISH2_REQ,
+			Event: event,
+			Data:  data,
+		}))
+
+		return true
+	}
+
+	return false
 }
 
 //HandleMsg ...
@@ -155,11 +188,18 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 }
 
 func (obclient *ObserverClient) NewListener(tag interface{}, event interface{}, handler zed.EventHandler) bool {
-	return obclient.eventMgr.NewListener(tag, event, handler)
+	if obclient.running {
+		return obclient.eventMgr.NewListener(tag, event, handler)
+	}
+	return false
 }
 
 func (obclient *ObserverClient) DeleteListenerInCall(tag interface{}) {
 	obclient.eventMgr.DeleteListenerInCall(tag)
+}
+
+func (obclient *ObserverClient) DeleteListener(tag interface{}) {
+	obclient.eventMgr.DeleteListener(tag)
 }
 
 func NewOBClient(addr string, ename string, heartbeat time.Duration) *ObserverClient {

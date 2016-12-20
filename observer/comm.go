@@ -17,7 +17,7 @@ const (
 	DEFAULT_KEEP_ALIVE_TIME = time.Second * 60
 	DEFAULT_RECV_BLOCK_TIME = time.Second * 65
 	DEFAULT_SEND_BLOCK_TIME = time.Second * 5
-	DEFAULT_HEART_BEAT_TIME = time.Second * 3
+	DEFAULT_HEART_BEAT_TIME = time.Second * 30
 	DEFAULT_ASYN_BUF_LEN    = 10
 
 /*	DIAL_INTERNAL  = time.Second

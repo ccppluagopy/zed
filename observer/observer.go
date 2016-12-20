@@ -304,10 +304,10 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 }
 
 func (observer *ObserverServer) Start(addr string) {
-	zed.NewCoroutine(func() {
-		observer.Addr = addr
-		observer.Server.Start(addr)
-	})
+	//zed.NewCoroutine(func() {
+	observer.Addr = addr
+	observer.Server.Start(addr)
+	//})
 }
 
 //delete obss's TcpServer
