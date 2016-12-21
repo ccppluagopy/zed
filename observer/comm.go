@@ -25,20 +25,23 @@ const (
 )
 
 const (
-	OB_RSP_NONE = iota
-	PUBLISH_REQ
-	PUBLISH2_REQ
-	PUBLISH_RSP
-	PUBLISH_NOTIFY
-	HEARTBEAT_REQ
-	HEARTBEAT_RSP
-	REGIST_REQ
-	REGIST_RSP
-	UNREGIST_REQ
-	UNREGIST_RSP
+	OB_RSP_NONE    = "OB_RSP_NONE"
+	PUBLISH_REQ    = "PUBLISH_REQ"
+	PUBLISH2_REQ   = "PUBLISH2_REQ"
+	PUBLISH_RSP    = "PUBLISH_RSP"
+	PUBLISH2_RSP   = "PUBLISH2_RSP"
+	PUBLISH_NOTIFY = "PUBLISH_NOTIFY"
+	HEARTBEAT_REQ  = "HEARTBEAT_REQ"
+	HEARTBEAT_RSP  = "HEARTBEAT_RSP"
+	REGIST_REQ     = "REGIST_REQ"
+	REGIST_RSP     = "REGIST_RSP"
+	UNREGIST_REQ   = "UNREGIST_REQ"
+	UNREGIST_RSP   = "UNREGIST_RSP"
+	CLUSTER_REQ    = "CLUSTER_REQ"
+	CLUSTER_RSP    = "CLUSTER_RSP"
 )
 
-var (
+/*var (
 	opname = map[int]string{
 		OB_RSP_NONE:    "OB_RSP_NONE",
 		PUBLISH_REQ:    "PUBLISH_REQ",
@@ -52,7 +55,7 @@ var (
 		UNREGIST_REQ:   "UNREGIST_REQ",
 		UNREGIST_RSP:   "UNREGIST_RSP",
 	}
-)
+)*/
 
 var (
 	EventNull = ""
@@ -65,11 +68,12 @@ var (
 	ErrUnregistEventNull  = "Unregist Event is Null"
 	ErrUnegistNotRegisted = "Unegist Not Registed"
 	ErrInvalidOP          = "InvalidOP, No Handler"
+	ErrClusterHadRegisted = "Cluster Had Registed"
 )
 
 //OBMsg ...
 type OBMsg struct {
-	OP    int    `json:"OP"` //client: Regist/UnRegist/Publish   server: Rsp/Publish
+	OP    string `json:"OP"` //client: Regist/UnRegist/Publish   server: Rsp/Publish
 	Error string `json:"Error"`
 	Event string `json:"Event"`
 	Data  []byte `json:"Data"`

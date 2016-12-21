@@ -22,9 +22,10 @@ type OBServers struct {
 //ObserverServer ...
 type ObserverServer struct {
 	OBDelaget
-	Name     string
-	Addr     string
-	EventMap map[string]map[*zed.TcpClient]bool
+	Name         string
+	Addr         string
+	EventMap     map[string]map[*zed.TcpClient]bool
+	ClusterNodes map[*zed.TcpClient]bool
 }
 
 var (
@@ -66,8 +67,9 @@ func NewOBServer(name string) *ObserverServer {
 	if observer := observers.GetServer(name); observer == nil {
 		tcpserver := zed.NewTcpServer(name)
 		observer = &ObserverServer{
-			Name:     name,
-			EventMap: make(map[string]map[*zed.TcpClient]bool),
+			Name:         name,
+			EventMap:     make(map[string]map[*zed.TcpClient]bool),
+			ClusterNodes: make(map[*zed.TcpClient]bool),
 		}
 
 		tcpserver.SetDelegate(observer)
@@ -93,7 +95,7 @@ func (observer *ObserverServer) handleHeartBeat(client *zed.TcpClient) bool {
 
 //handle regist req
 func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient) bool {
-	zed.ZLog("===== 000000  ObserverServer handleRegist %s ", event)
+	//zed.ZLog("===== 000000  ObserverServer handleRegist %s ", event)
 
 	if event == EventNull {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
@@ -128,7 +130,7 @@ func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient
 
 //handle unregist req
 func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClient) bool {
-	zed.ZLog("===== 000000  ObserverServer handleUnregist  ", event)
+	//zed.ZLog("===== 000000  ObserverServer handleUnregist  ", event)
 
 	if event == EventNull {
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
@@ -176,7 +178,7 @@ func (observer *ObserverServer) handleUnregist(event string, client *zed.TcpClie
 
 //handle publish req
 func (observer *ObserverServer) handlePublish(event string, data []byte, client *zed.TcpClient) bool {
-	zed.ZLog("==== 33333  ObserverServer handlePublish Event: %s, Data: %v", event, data)
+	//zed.Printf("==== 33333  ObserverServer handlePublish Event: %s, Data: %v\n", event, data)
 
 	var (
 		msg *zed.NetMsg = nil
@@ -195,6 +197,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		})
 		for c, _ := range clients {
 			c.SendMsgAsync(msg)
+			//zed.Printf("----  ObserverServer handlePublish 111 Event: %s, Data: %v\n", event, data)
 		}
 		//zed.ZLog("ObserverServer handlePublish 222 Event: %s, Data: %v", event, data)
 	}
@@ -209,17 +212,34 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		}
 		for c, _ := range clients {
 			c.SendMsgAsync(msg)
-			//zed.Println("EventAll xxxx")
+			//zed.Printf("----  ObserverServer handlePublish 222 Event: %s, Data: %v\n", event, data) //zed.Println("EventAll xxxx")
 		}
 		//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
 	}
+	//if ok {
+	if msg == nil {
+		msg = NewNetMsg(&OBMsg{
+			OP:    PUBLISH_NOTIFY,
+			Event: event,
+			Data:  data,
+		})
+	}
+	for c, _ := range observer.ClusterNodes {
+		if c != client {
+			c.SendMsgAsync(msg)
+			//zed.Printf("----  ObserverServer handlePublish 333 Event: %s, Data: %v\n", event, data)
+		}
+		//zed.Println("EventAll xxxx")
+	}
+	//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
+	//}
 
 	return true
 }
 
 //handle publish req
 func (observer *ObserverServer) handlePublish2(event string, data []byte, client *zed.TcpClient) bool {
-	zed.ZLog("==== 55555  ObserverServer handlePublish2 Event: %s, Data: %v", event, data)
+	//zed.ZLog("==== 55555  ObserverServer handlePublish2 Event: %s, Data: %v", event, data)
 
 	var (
 		msg *zed.NetMsg = nil
@@ -252,7 +272,7 @@ func (observer *ObserverServer) handlePublish2(event string, data []byte, client
 		for c, _ := range clients {
 			if c != client {
 				c.SendMsgAsync(msg)
-				zed.Println("EventAll xxxx")
+				//zed.Println("EventAll xxxx")
 			}
 		}
 		//zed.ZLog("ObserverServer handlePublish2 333 Event: %s, Data: %v", event, data)
@@ -261,9 +281,30 @@ func (observer *ObserverServer) handlePublish2(event string, data []byte, client
 	return true
 }
 
+func (observer *ObserverServer) handleRegistCluster(client *zed.TcpClient) bool {
+	//zed.ZLog("==== 888888  ObserverServer handleRegistCluster: %s", client.Info())
+
+	if _, ok := observer.ClusterNodes[client]; ok {
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    CLUSTER_RSP,
+			Error: ErrClusterHadRegisted,
+		}))
+	} else {
+		observer.ClusterNodes[client] = true
+		client.AddCloseCB("ClusterStop", func(c *zed.TcpClient) {
+			delete(observer.ClusterNodes, c)
+		})
+		client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP: CLUSTER_RSP,
+		}))
+	}
+
+	return true
+}
+
 //HandleMsg ...
 func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
-	zed.ZLog("==== 66666  ObserverServer HandleMsg, Data: %s", string(msg.Data))
+	//zed.ZLog("==== 66666  ObserverServer HandleMsg, Data: %s", string(msg.Data))
 	observer.Lock()
 	defer observer.Unlock()
 
@@ -292,6 +333,9 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 		break
 	case PUBLISH2_REQ:
 		observer.handlePublish2(obmsg.Event, obmsg.Data, msg.Client)
+		break
+	case CLUSTER_REQ:
+		observer.handleRegistCluster(msg.Client)
 		break
 	default:
 		obmsg.OP = obmsg.OP

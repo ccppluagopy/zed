@@ -13,7 +13,7 @@ type OBDelaget struct {
 }
 
 func (dele *OBDelaget) RecvMsg(client *zed.TcpClient) *zed.NetMsg {
-	zed.ZLog("OBDelaget RecvMsg %s", client.GetConn().LocalAddr().String())
+	//zed.ZLog("OBDelaget RecvMsg %s", client.GetConn().LocalAddr().String())
 	var (
 		head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
@@ -58,7 +58,7 @@ func (dele *OBDelaget) RecvMsg(client *zed.TcpClient) *zed.NetMsg {
 		}
 	}
 
-	zed.ZLog("recvmsg from %v", client.GetConn().RemoteAddr())
+	//zed.ZLog("recvmsg from %v", client.GetConn().RemoteAddr())
 	return msg
 
 Exit:
@@ -66,7 +66,7 @@ Exit:
 }
 
 func (dele *OBDelaget) SendMsg(client *zed.TcpClient, msg *zed.NetMsg) bool {
-	zed.ZLog("enter SendMsg function ....")
+	//zed.ZLog("enter SendMsg function ....")
 	var (
 		writeLen = 0
 		buf      []byte
@@ -94,7 +94,7 @@ func (dele *OBDelaget) SendMsg(client *zed.TcpClient, msg *zed.NetMsg) bool {
 		copy(buf[PACK_HEAD_LEN:], msg.Data)
 	}
 
-	zed.ZLog("OBDelegate %s send msg to %s.", client.GetConn().LocalAddr().String(), client.GetConn().RemoteAddr().String())
+	//zed.ZLog("OBDelegate %s send msg to %s.", client.GetConn().LocalAddr().String(), client.GetConn().RemoteAddr().String())
 	writeLen, err = client.GetConn().Write(buf)
 
 	if err == nil && writeLen == len(buf) {

@@ -50,25 +50,27 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 		delete(mgr.Clients, addr)
 	})
 
-	client.Regist(EventAll, nil)
-	client.NewListener(EventAll, EventAll, func(e interface{}, args []interface{}) {
-		mgr.mutex.Lock()
-		defer mgr.mutex.Unlock()
-		eve, ok1 := e.(string)
-		if ok1 {
-			data, ok2 := args[0].([]byte)
-			if ok2 {
-				fmt.Println("Cluster Mgr On Event 00000000000000000", eve, data)
-				for pubaddr, c := range mgr.Clients {
-					fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 111", pubaddr, addr)
-					if pubaddr != addr {
-						c.Publish2(eve, data)
-						fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 222", pubaddr, addr)
+	if client.RegistCluster() {
+		client.NewListener(EventAll, EventAll, func(e interface{}, args []interface{}) {
+			mgr.mutex.Lock()
+			defer mgr.mutex.Unlock()
+			eve, ok1 := e.(string)
+			if ok1 {
+				//fmt.Println("Cluster Mgr On Event --------------------", eve)
+				data, ok2 := args[0].([]byte)
+				if ok2 {
+					//fmt.Println("Cluster Mgr On Event 00000000000000000", eve, data)
+					for pubaddr, c := range mgr.Clients {
+						//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 111", pubaddr, addr)
+						if pubaddr != addr {
+							c.Publish(eve, data)
+							//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 222", pubaddr, addr)
+						}
 					}
 				}
 			}
-		}
-	})
+		})
+	}
 
 	mgr.Clients[addr] = client
 

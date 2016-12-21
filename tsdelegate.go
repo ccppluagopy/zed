@@ -195,7 +195,7 @@ func (dele *DefaultTCDelegate) Init() {
 		dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
 	}
 
-	dele.SetShowClientData(true)
+	dele.SetShowClientData(false)
 }
 
 func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
