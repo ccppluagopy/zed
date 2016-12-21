@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/rpc"
 	"sync"
+	"time"
 )
 
 var (
@@ -25,14 +26,24 @@ type LBArgs struct {
 	Num        int
 }
 
+type LBError struct {
+	description string
+}
+
+func (lbError *LBError) Error() string {
+	return lbError.description
+}
+
 type LBRsp struct {
 	Info ServerInfo
 }
 
 type LoadbalanceServer struct {
 	sync.Mutex
-	Addr    string
-	Servers map[string]map[string]*ServerInfo
+	Addr     string
+	ticker   *time.Ticker
+	listener net.Listener
+	Servers  map[string]map[string]*ServerInfo
 }
 
 /*func (server *LoadbalanceServer) Init() {
@@ -44,8 +55,6 @@ func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error
 	defer server.Unlock()
 
 	serverType, serverTag, addr, num := args.ServerType, args.ServerTag, args.Addr, args.Num
-
-	fmt.Println("LoadbalanceServer.AddServer 000: ", serverType, serverTag, addr)
 
 	servers, ok := server.Servers[serverType]
 	if !ok {
@@ -60,10 +69,12 @@ func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error
 			Addr: addr,
 			Num:  num,
 		}
-		fmt.Println("LoadbalanceServer.AddServer 333: ", serverType, serverTag, addr)
+	} else {
+		zed.ZLog("LoadbalanceServer Addserver Error: serverTag %s has been exist", serverTag)
+		return &LBError{
+			description: "LoadbalanceServer Addserver Error: serverTag %s has been exist",
+		}
 	}
-
-	fmt.Println("LoadbalanceServer.AddServer 444: ", serverType, serverTag, addr)
 
 	return nil
 }
@@ -72,13 +83,10 @@ func (server *LoadbalanceServer) DeleteServer(args *LBArgs, reply *([]LBRsp)) er
 	server.Lock()
 	defer server.Unlock()
 
-	fmt.Println("LoadbalanceServer.DeleteServer 000")
-
 	serverType, serverTag := args.ServerType, args.ServerTag
 
 	if servers, ok := server.Servers[serverType]; ok {
 		delete(servers, serverTag)
-		fmt.Println("LoadbalanceServer.DeleteServer 222: ", serverType, serverTag)
 	}
 
 	return nil
@@ -88,26 +96,25 @@ func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) erro
 	server.Lock()
 	defer server.Unlock()
 
-	fmt.Println("LoadbalanceServer.Increament 000")
-
 	serverType, serverTag, num := args.ServerType, args.ServerTag, args.Num
 
 	if servers, ok := server.Servers[serverType]; ok {
 		server, ok2 := servers[serverTag]
 		if ok2 {
 			server.Num += num
-			fmt.Println("LoadbalanceServer.Increament 333: ", serverType, serverTag, num)
+			return nil
 		}
 	}
 
-	return nil
+	zed.ZLog("LoadbalanceServer Increament Error: serverTag %s does not exist", serverTag)
+	return &LBError{
+		description: "LoadbalanceServer Increament Error: serverTag %s does not exist",
+	}
 }
 
 func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) error {
 	server.Lock()
 	defer server.Unlock()
-
-	fmt.Println("LoadbalanceServer.UpdateLoad 000")
 
 	serverType, serverTag, num := args.ServerType, args.ServerTag, args.Num
 
@@ -115,11 +122,14 @@ func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) erro
 		server, ok2 := servers[serverTag]
 		if ok2 {
 			server.Num = num
-			fmt.Println("LoadbalanceServer.UpdateLoad 333: ", serverType, serverTag, num)
+			return nil
 		}
 	}
 
-	return nil
+	zed.ZLog("LoadbalanceServer UpdateLoad Error: serverTag %s does not exist", serverTag)
+	return &LBError{
+		description: "LoadbalanceServer UpdateLoad Error: serverTag %s does not exist",
+	}
 }
 
 func (server *LoadbalanceServer) GetServerAddr(args *LBArgs, reply *([]LBRsp)) error {
@@ -148,23 +158,59 @@ func (server *LoadbalanceServer) GetServerAddr(args *LBArgs, reply *([]LBRsp)) e
 	return nil
 }
 
+func (server *LoadbalanceServer) Stop() {
+	server.listener.Close()
+	server.ticker.Stop()
+}
+
+func (server *LoadbalanceServer) startHeartbeat() {
+	go func() {
+		for {
+			select {
+			case _, ok := <-server.ticker.C:
+				if ok {
+					func() {
+						defer zed.PanicHandle(true)
+						for _, servers := range server.Servers {
+							for tag, info := range servers {
+								if !zed.Ping(info.Addr) {
+									server.Lock()
+									delete(servers, tag)
+									server.Unlock()
+									//zed.Println("xxxxxxxxxxxxxx delete: ", tag, info.Addr, info.Num)
+								}
+							}
+						}
+					}()
+				} else {
+					return
+				}
+			}
+		}
+	}()
+}
+
 func NewLoadbalanceServer(addr string) *LoadbalanceServer {
 	server := &LoadbalanceServer{
 		Addr:    addr,
 		Servers: make(map[string]map[string]*ServerInfo),
+		ticker:  time.NewTicker(time.Second * 10),
+		//ticker:  time.NewTicker(time.Minute),
 	}
 
 	rpc.Register(server)
 	rpc.HandleHTTP()
 
-	listener, e := net.Listen("tcp", server.Addr)
+	listener, e := net.Listen("tcp", addr)
 	if e != nil {
 		zed.ZLog("NewLoadbalanceServer Listen error: %v", e)
 		return nil
 	}
 
+	server.startHeartbeat()
+	server.listener = listener
 	zed.NewCoroutine(func() {
-		http.Serve(listener, nil)
+		http.Serve(server.listener, nil)
 	})
 
 	return server

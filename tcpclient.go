@@ -311,3 +311,12 @@ func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int) *TcpClien
 
 	return nil
 }
+
+func Ping(addr string) bool {
+	client := NewTcpClient(&DefaultTCDelegate{}, addr, 0)
+	if client != nil {
+		client.Stop()
+		return true
+	}
+	return false
+}
