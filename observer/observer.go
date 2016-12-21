@@ -2,9 +2,9 @@ package observer
 
 import (
 	"encoding/json"
-	"sync"
-
 	"github.com/ccppluagopy/zed"
+	"sync"
+	"sync/atomic"
 )
 
 //OBServers ...
@@ -21,11 +21,13 @@ type OBServers struct {
 
 //ObserverServer ...
 type ObserverServer struct {
+	//sync.Mutex
 	OBDelaget
 	Name         string
 	Addr         string
 	EventMap     map[string]map[*zed.TcpClient]bool
 	ClusterNodes map[*zed.TcpClient]bool
+	load         int32
 }
 
 var (
@@ -61,28 +63,6 @@ func (observers *OBServers) DeleServer(name string) {
 }
 
 //-------------------------------------------------------------------------------ObserverServer
-
-//NewObserverServer  creat a new ObserverServer
-func NewOBServer(name string) *ObserverServer {
-	if observer := observers.GetServer(name); observer == nil {
-		tcpserver := zed.NewTcpServer(name)
-		observer = &ObserverServer{
-			Name:         name,
-			EventMap:     make(map[string]map[*zed.TcpClient]bool),
-			ClusterNodes: make(map[*zed.TcpClient]bool),
-		}
-
-		tcpserver.SetDelegate(observer)
-		//observer.Server.SetMsgFilter(func(msg *zed.NetMsg) bool { return true })
-
-		observers.AddOBServer(name, observer)
-		return observer
-	} else {
-		zed.ZLog("NewObserverServer Error: %s has been exist.", name)
-	}
-
-	return nil
-}
 
 //handle heartbeat req
 func (observer *ObserverServer) handleHeartBeat(client *zed.TcpClient) bool {
@@ -120,6 +100,8 @@ func (observer *ObserverServer) handleRegist(event string, client *zed.TcpClient
 		OP: REGIST_RSP,
 	}))
 	client.AddCloseCB(event, func(c *zed.TcpClient) {
+		observer.Lock()
+		defer observer.Unlock()
 		delete(events, c)
 	})
 
@@ -292,6 +274,8 @@ func (observer *ObserverServer) handleRegistCluster(client *zed.TcpClient) bool 
 	} else {
 		observer.ClusterNodes[client] = true
 		client.AddCloseCB("ClusterStop", func(c *zed.TcpClient) {
+			observer.Lock()
+			defer observer.Unlock()
 			delete(observer.ClusterNodes, c)
 		})
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
@@ -360,4 +344,37 @@ func (observer *ObserverServer) Stop() {
 
 	observers.DeleServer(observer.Name)
 	observer.Server.Stop()
+}
+
+func (observer *ObserverServer) GetLoad() int32 {
+	return observer.load
+}
+
+//NewObserverServer  creat a new ObserverServer
+func NewOBServer(name string) *ObserverServer {
+	if observer := observers.GetServer(name); observer == nil {
+		tcpserver := zed.NewTcpServer(name)
+		observer = &ObserverServer{
+			load:         0,
+			Name:         name,
+			EventMap:     make(map[string]map[*zed.TcpClient]bool),
+			ClusterNodes: make(map[*zed.TcpClient]bool),
+		}
+
+		tcpserver.SetDelegate(observer)
+		tcpserver.SetNewConnCB(func(client *zed.TcpClient) {
+			atomic.AddInt32(&(observer.load), 1)
+			client.AddCloseCB("subload", func(c *zed.TcpClient) {
+				atomic.AddInt32(&(observer.load), -1)
+			})
+		})
+		//observer.Server.SetMsgFilter(func(msg *zed.NetMsg) bool { return true })
+
+		observers.AddOBServer(name, observer)
+		return observer
+	} else {
+		zed.ZLog("NewObserverServer Error: %s has been exist.", name)
+	}
+
+	return nil
 }

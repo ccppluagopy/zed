@@ -56,8 +56,8 @@ func (server *TcpServer) startListener(addr string) {
 				server.ClientNum = server.ClientNum + 1
 
 				//server.onNewClient(client)
-				if server.onNewConnCB != nil {
-					server.onNewConnCB(client)
+				if onnew := server.delegate.NewConnCB(); onnew != nil {
+					onnew(client)
 				}
 
 				/*for _, cb := range server.newConnCBMap {
@@ -187,7 +187,9 @@ func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
 }
 
 func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
-	server.onNewConnCB = cb
+	if server.delegate != nil {
+		server.delegate.SetNewConnCB(cb)
+	}
 }
 
 /*func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
