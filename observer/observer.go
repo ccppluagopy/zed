@@ -347,7 +347,7 @@ func (observer *ObserverServer) Stop() {
 }
 
 func (observer *ObserverServer) GetLoad() int32 {
-	return observer.load
+	return atomic.LoadInt32(&(observer.load))
 }
 
 //NewObserverServer  creat a new ObserverServer
