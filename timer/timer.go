@@ -51,7 +51,10 @@ func (tm *Timers) Remove(i int) {
 		(*tm).Swap(i, n)
 		*tm = (*tm)[:n]
 		heap.Fix(tm, i)
+	} else {
+		*tm = (*tm)[:n]
 	}
+
 }
 
 func (tm *Timers) Pop() interface{} {
@@ -85,6 +88,9 @@ type Timer struct {
 }
 
 func (tm *Timer) NewItem(timeout time.Duration, cb func()) *TimeItem {
+	tm.Lock()
+	defer tm.Unlock()
+
 	item := &TimeItem{
 		Index:    len(tm.timers),
 		Expire:   time.Now().Add(timeout),
@@ -94,7 +100,7 @@ func (tm *Timer) NewItem(timeout time.Duration, cb func()) *TimeItem {
 	//zed.Println("=== 111 Index:", item.Index)
 	heap.Fix(&(tm.timers), item.Index)
 	//zed.Println("=== 222 Index:", item.Index)
-	if head := tm.timers.Head(); head != nil {
+	if head := tm.timers.Head(); head == item {
 		//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
 		tm.signal.Reset(head.Expire.Sub(time.Now()))
 	}
@@ -103,11 +109,27 @@ func (tm *Timer) NewItem(timeout time.Duration, cb func()) *TimeItem {
 }
 
 func (tm *Timer) DeleteItem(item *TimeItem) {
+	tm.Lock()
+	defer tm.Unlock()
 	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
-	tm.timers.Remove(item.Index)
+	n := tm.timers.Len()
+	if item.Index > 0 && item.Index < n {
+		tm.timers.Remove(item.Index)
+	} else if item.Index == 0 {
+		tm.timers.Remove(item.Index)
+		if head := tm.timers.Head(); head != item {
+			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
+			tm.signal.Reset(head.Expire.Sub(time.Now()))
+		}
+	} else {
+		zed.ZLog("Timer DeleteItem Error: Invalid Index: %d", item.Index)
+	}
 }
 
 func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeItem {
+	tm.Lock()
+	defer tm.Unlock()
+
 	item := &TimeItem{
 		Index:    tm.timers.Len(),
 		GroupIdx: gidx,
@@ -121,6 +143,8 @@ func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeI
 }
 
 func (tm *Timer) Size() int {
+	tm.Lock()
+	defer tm.Unlock()
 	return len(tm.timers)
 }
 
