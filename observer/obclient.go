@@ -64,22 +64,24 @@ func (obclient *ObserverClient) Stop() {
 	}
 }
 
-func (obclient *ObserverClient) Regist(event string, data []byte) bool {
+func (obclient *ObserverClient) Regist(tag string, event string, handler func(e interface{}, args []interface{})) bool {
 	obclient.Lock()
 	defer obclient.Unlock()
 
 	if obclient.running {
-		req := &OBMsg{
-			OP:    REGIST_REQ,
-			Event: event,
-			Data:  data,
+		if obclient.eventMgr.NewListener(tag, event, handler) {
+			req := &OBMsg{
+				OP:    REGIST_REQ,
+				Event: event,
+				//Data:  data,
+			}
+
+			//req.Data = append(req.Data, data...)
+			//zed.ZLog("===== aaaaaaaaaa   obclient SendMsg op: %d event: %s", req.OP, req.Event)
+			obclient.Client.SendMsgAsync(NewNetMsg(req))
+
+			return true
 		}
-
-		//req.Data = append(req.Data, data...)
-		//zed.ZLog("===== aaaaaaaaaa   obclient SendMsg op: %d event: %s", req.OP, req.Event)
-		obclient.Client.SendMsgAsync(NewNetMsg(req))
-
-		return true
 	}
 
 	return false
@@ -144,16 +146,12 @@ func (obclient *ObserverClient) Publish(event string, data []byte) bool {
 func (obclient *ObserverClient) Publish2(event string, data []byte) bool {
 	//zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
 
-	obclient.Lock()
-	defer obclient.Unlock()
-
 	if obclient.running {
 		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
-			OP:    PUBLISH2_REQ,
+			OP:    PUBLISH_REQ,
 			Event: event,
 			Data:  data,
 		}))
-
 		return true
 	}
 
@@ -202,7 +200,7 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 	case PUBLISH_NOTIFY:
 		//zed.Printf("ObserverClient HandleMsg PUBLISH_NOTIFY 1111111: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
 		obclient.eventMgr.Dispatch(obmsg.Event, obmsg.Data)
-		//zed.Printf("22222  ObserverClient HandleMsg Publish: Event: %s, Data: %s\n", obmsg.Event, string(obmsg.Data))
+
 		break
 	default:
 		zed.Println("ObserverClient HandleMsg Error: No Handler,", obmsg.OP, obclient.Client.Info())

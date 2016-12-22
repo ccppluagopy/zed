@@ -10,3 +10,7 @@ timer每次执行后根据loop = loop-(start-curr-internal)
 
 observer 添加负载和回调的接口
 loadbalance的addserver，当serverstop时应该deleteserver，或者loadbalance添加一个ping的功能
+
+
+observer newlistener 合并
+observer cluster 转发加个命令

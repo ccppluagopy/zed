@@ -2,35 +2,53 @@ package main
 
 import (
 	"fmt"
+	"github.com/ccppluagopy/zed"
 	"github.com/ccppluagopy/zed/observer"
 	"time"
 )
 
 func xxx(addr string, data string, n int) {
-	obsc := observer.NewOBClient(addr, addr, time.Second*20)
-	if obsc == nil {
-		fmt.Println("obsc is nil.....")
-		return
+	for i := 0; i < 2; i++ {
+		selfkey := fmt.Sprintf("%s-%d", addr, i)
+		go func() {
+			obsc := observer.NewOBClient(addr, selfkey, time.Second*20)
+			if obsc == nil {
+				fmt.Println("obsc is nil.....")
+				return
+			}
+
+			event := "chat"
+			//obsc.Regist(event, nil)
+			obsc.Regist("xx", event, func(e interface{}, args []interface{}) {
+				msg, ok := args[0].([]byte)
+				if ok {
+					fmt.Printf("--- %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
+				} else {
+					fmt.Printf("xxx %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
+				}
+			})
+			//fmt.Println("-------- Addr: ", addr, obsc)
+			/*obsc.NewListener("xx", event, func(e interface{}, args []interface{}) {
+				msg, ok := args[0].([]byte)
+				if ok {
+					fmt.Printf("--- %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
+				} else {
+					fmt.Printf("xxx %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
+				}
+
+			})*/
+
+			time.Sleep(time.Second * time.Duration(2))
+			/*fmt.Println("\n\n*************************************")
+			fmt.Println("*************************************")
+			fmt.Println("*************************************")*/
+			obsc.Publish(event, []byte(selfkey))
+		}()
 	}
-
-	event := "chat"
-	obsc.Regist(event, nil)
-	//fmt.Println("-------- Addr: ", addr, obsc)
-	obsc.NewListener("xx", event, func(e interface{}, args []interface{}) {
-		msg, ok := args[0].([]byte)
-		if ok {
-			fmt.Println("--- chatMsg:", e, string(msg))
-		}
-	})
-
-	time.Sleep(time.Second * time.Duration(n))
-	fmt.Println("\n\n*************************************")
-	fmt.Println("*************************************")
-	fmt.Println("*************************************")
-	obsc.Publish(event, []byte(data))
 }
 
 func main() {
+	zed.SetMutexDebug(true)
 	mgrAddr := "127.0.0.1:6666"
 	nodeAddr1 := "127.0.0.1:7777"
 	nodeAddr2 := "127.0.0.1:8888"

@@ -52,8 +52,8 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 
 	if client.RegistCluster() {
 		client.NewListener(EventAll, EventAll, func(e interface{}, args []interface{}) {
-			mgr.mutex.Lock()
-			defer mgr.mutex.Unlock()
+			//mgr.mutex.Lock()
+			//defer mgr.mutex.Unlock()
 			eve, ok1 := e.(string)
 			if ok1 {
 				//fmt.Println("Cluster Mgr On Event --------------------", eve)
@@ -63,7 +63,7 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 					for pubaddr, c := range mgr.Clients {
 						//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 111", pubaddr, addr)
 						if pubaddr != addr {
-							c.Publish(eve, data)
+							c.Publish2(eve, data)
 							//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 222", pubaddr, addr)
 						}
 					}

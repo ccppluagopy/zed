@@ -179,6 +179,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		})
 		for c, _ := range clients {
 			c.SendMsgAsync(msg)
+			//zed.Println("111 ObserverServer handlePublish: ", string(msg.Data))
 			//zed.Printf("----  ObserverServer handlePublish 111 Event: %s, Data: %v\n", event, data)
 		}
 		//zed.ZLog("ObserverServer handlePublish 222 Event: %s, Data: %v", event, data)
@@ -194,6 +195,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		}
 		for c, _ := range clients {
 			c.SendMsgAsync(msg)
+			//zed.Println("222 ObserverServer handlePublish: ", string(msg.Data))
 			//zed.Printf("----  ObserverServer handlePublish 222 Event: %s, Data: %v\n", event, data) //zed.Println("EventAll xxxx")
 		}
 		//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
@@ -209,6 +211,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 	for c, _ := range observer.ClusterNodes {
 		if c != client {
 			c.SendMsgAsync(msg)
+			//zed.Println("333 ObserverServer handlePublish: ", string(msg.Data))
 			//zed.Printf("----  ObserverServer handlePublish 333 Event: %s, Data: %v\n", event, data)
 		}
 		//zed.Println("EventAll xxxx")
