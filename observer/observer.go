@@ -201,7 +201,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
 	}
 
-	if msg == nil {
+	/*if msg == nil {
 		msg = NewNetMsg(&OBMsg{
 			OP:    PUBLISH_NOTIFY,
 			Event: event,
@@ -212,7 +212,7 @@ func (observer *ObserverServer) handlePublish(event string, data []byte, client 
 		if c != client {
 			c.SendMsgAsync(msg)
 		}
-	}
+	}*/
 
 	return true
 }
@@ -302,24 +302,24 @@ func (observer *ObserverServer) handlePublishAll(event string, data []byte, clie
 		}
 		//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
 	}
-	//if ok {
-	if msg == nil {
-		msg = NewNetMsg(&OBMsg{
-			OP:    PUBLISH_NOTIFY,
-			Event: event,
-			Data:  data,
-		})
-	}
-	for c, _ := range observer.ClusterNodes {
-		if c != client {
-			c.SendMsgAsync(msg)
-			//zed.Println("333 ObserverServer handlePublish: ", string(msg.Data))
-			//zed.Printf("----  ObserverServer handlePublish 333 Event: %s, Data: %v\n", event, data)
+	if len(observer.ClusterNodes) > 0 {
+		if msg == nil {
+			msg = NewNetMsg(&OBMsg{
+				OP:    PUBLISH_NOTIFY,
+				Event: event,
+				Data:  data,
+			})
 		}
-		//zed.Println("EventAll xxxx")
+		for c, _ := range observer.ClusterNodes {
+			if c != client {
+				c.SendMsgAsync(msg)
+				//zed.Println("333 ObserverServer handlePublish: ", string(msg.Data))
+				//zed.Printf("----  ObserverServer handlePublish 333 Event: %s, Data: %v\n", event, data)
+			}
+			//zed.Println("EventAll xxxx")
+		}
+		//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
 	}
-	//zed.ZLog("ObserverServer handlePublish 333 Event: %s, Data: %v", event, data)
-	//}
 
 	return true
 }

@@ -42,7 +42,7 @@ func xxx(addr string, data string, n int) {
 			/*fmt.Println("\n\n*************************************")
 			fmt.Println("*************************************")
 			fmt.Println("*************************************")*/
-			obsc.Publish(event, []byte(selfkey))
+			obsc.PublishAll(event, []byte(selfkey))
 		}()
 	}
 }
