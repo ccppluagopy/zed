@@ -158,6 +158,21 @@ func (obclient *ObserverClient) Publish2(event string, data []byte) bool {
 	return false
 }
 
+func (obclient *ObserverClient) PublishAll(event string, data []byte) bool {
+	//zed.ZLog("ObserverClient Publish, Event: %s Data: %v", event, data)
+
+	if obclient.running {
+		obclient.Client.SendMsgAsync(NewNetMsg(&OBMsg{
+			OP:    PUBLISHALL_REQ,
+			Event: event,
+			Data:  data,
+		}))
+		return true
+	}
+
+	return false
+}
+
 //HandleMsg ...
 func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 	//zed.Printf("ObserverClient HandleMsg, Data: %s\n", string(msg.Data))

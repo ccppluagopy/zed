@@ -42,6 +42,7 @@ type ZTcpClientDelegate interface {
 
 type DefaultTCDelegate struct {
 	sync.Mutex
+	//Mutex
 	Server     *TcpServer
 	HandlerMap map[CmdType]MsgHandler
 

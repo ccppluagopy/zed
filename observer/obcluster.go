@@ -63,7 +63,7 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 					for pubaddr, c := range mgr.Clients {
 						//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 111", pubaddr, addr)
 						if pubaddr != addr {
-							c.Publish2(eve, data)
+							c.PublishAll(eve, data)
 							//fmt.Println("Cluster Mgr On Event xxxxxxxxxxxxxx 222", pubaddr, addr)
 						}
 					}
