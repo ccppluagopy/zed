@@ -98,16 +98,16 @@ func NewNetMsg(obm *OBMsg) *zed.NetMsg {
 //------------------------------------------------------------------------------
 
 //todo unpack
-func unpack(lenbytes []byte, data []byte) *OBMsg {
-	obm := new(OBMsg)
+func unpack(data []byte) (*OBMsg, error) {
+	obm := OBMsg{}
 	//len := int(binary.LittleEndian.Uint32(lenbytes[0:]))
-	err := json.Unmarshal(data, obm)
+	err := json.Unmarshal(data, &obm)
 	if err != nil {
 		zed.ZLog("unpack json unmarshal failed!!!!")
-		return nil
+		return nil, err
 	}
 
-	return obm
+	return &obm, nil
 }
 
 //pack

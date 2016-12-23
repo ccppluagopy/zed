@@ -1,7 +1,7 @@
 package observer
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"github.com/ccppluagopy/zed"
 	"sync"
 	"sync/atomic"
@@ -353,14 +353,14 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 	observer.Lock()
 	defer observer.Unlock()
 
-	obmsg := OBMsg{}
-	err := json.Unmarshal(msg.Data, &obmsg)
+	//obmsg := OBMsg{}
+	obmsg, err := unpack(msg.Data)
 	if err != nil {
 		obmsg.OP = OB_RSP_NONE
 		obmsg.Event = ErrEventFlag
 		obmsg.Data = []byte(ErrJsonUnmarshall)
 
-		msg.Client.SendMsgAsync(NewNetMsg(&obmsg))
+		msg.Client.SendMsgAsync(NewNetMsg(obmsg))
 		return
 	}
 
@@ -389,7 +389,7 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 		obmsg.OP = obmsg.OP
 		obmsg.Event = ErrEventFlag
 		obmsg.Data = []byte(ErrInvalidOP)
-		msg.Client.SendMsgAsync(NewNetMsg(&obmsg))
+		msg.Client.SendMsgAsync(NewNetMsg(obmsg))
 		break
 	}
 }

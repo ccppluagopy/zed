@@ -1,7 +1,7 @@
 package observer
 
 import (
-	"encoding/json"
+	//"encoding/json"
 	"github.com/ccppluagopy/zed"
 	//"sync"
 	"time"
@@ -179,8 +179,8 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 	obclient.Lock()
 	defer obclient.Unlock()
 
-	obmsg := OBMsg{}
-	err := json.Unmarshal(msg.Data, &obmsg)
+	//obmsg := OBMsg{}
+	obmsg, err := unpack(msg.Data)
 	if err != nil {
 		zed.Printf("ObserverClient HandleMsg Error json Unmarshal Error: %v\n", err)
 		return
