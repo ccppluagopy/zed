@@ -108,6 +108,45 @@ func (tm *Timer) NewItem(timeout time.Duration, cb func()) *TimeItem {
 	return item
 }
 
+func (tm *Timer) Schedule(delay time.Duration, internal time.Duration, cb func()) *TimeItem {
+	tm.Lock()
+	defer tm.Unlock()
+
+	var (
+		item *TimeItem
+		now  = time.Now()
+	)
+
+	item = &TimeItem{
+		Index:  len(tm.timers),
+		Expire: now.Add(delay),
+		Callback: func() {
+			now = time.Now()
+			item.Index = len(tm.timers)
+			item.Expire = now.Add(internal)
+			tm.timers = append(tm.timers, item)
+			heap.Fix(&(tm.timers), item.Index)
+
+			cb()
+
+			if head := tm.timers.Head(); head == item {
+				tm.signal.Reset(head.Expire.Sub(now))
+			}
+		},
+	}
+
+	tm.timers = append(tm.timers, item)
+	//zed.Println("=== 111 Index:", item.Index)
+	heap.Fix(&(tm.timers), item.Index)
+	//zed.Println("=== 222 Index:", item.Index)
+	if head := tm.timers.Head(); head == item {
+		//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
+		tm.signal.Reset(head.Expire.Sub(now))
+	}
+
+	return item
+}
+
 func (tm *Timer) DeleteItem(item *TimeItem) {
 	tm.Lock()
 	defer tm.Unlock()

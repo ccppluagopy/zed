@@ -61,6 +61,17 @@ func main() {
 		}
 	}
 
+	n := 0
+	var scheduleItem *timer.TimeItem
+	scheduleItem = tm.Schedule(0, time.Second, func() {
+		n++
+		fmt.Println("-------------------------- Schedule: ", n, " == ", scheduleItem.Index, time.Since(t0).Seconds())
+		if n >= 20 {
+			tm.DeleteItem(scheduleItem)
+		}
+
+	})
+
 	fmt.Println("******************")
 	fmt.Println("Delete 333333: ", item3.Index)
 	tm.DeleteItem(item3)
