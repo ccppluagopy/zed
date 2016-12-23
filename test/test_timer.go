@@ -63,9 +63,9 @@ func main() {
 
 	n := 0
 	var scheduleItem *timer.TimeItem
-	scheduleItem = tm.Schedule(0, time.Second, func() {
+	scheduleItem = tm.Schedule(time.Second*3, time.Second, func() {
 		n++
-		fmt.Println("-------------------------- Schedule: ", n, " == ", scheduleItem.Index, time.Since(t0).Seconds())
+		fmt.Println("-------------------------- Schedule: ", n, "Index:", scheduleItem.Index, "pass:", time.Since(t0).Seconds())
 		if n >= 20 {
 			tm.DeleteItem(scheduleItem)
 		}
