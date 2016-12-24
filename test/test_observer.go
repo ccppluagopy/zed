@@ -58,6 +58,7 @@ func main() {
 	go observer.NewOBClusterNode(mgrAddr, nodeAddr2, time.Second*25).Start()
 	go observer.NewOBClusterNode(mgrAddr, nodeAddr3, time.Second*25).Start()
 
+	time.Sleep(time.Second*3)
 	go xxx(nodeAddr1, "node 111", 1)
 	go xxx(nodeAddr2, "node 222", 2)
 	go xxx(nodeAddr3, "node 333", 3)
