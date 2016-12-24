@@ -5,6 +5,7 @@ package main
 import (
 	"fmt"
 	"github.com/ccppluagopy/zed"
+	zmysql "github.com/ccppluagopy/zed/mysql"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native" // Native engine
 	"sync"
@@ -22,7 +23,7 @@ type Student struct {
 	Age  int
 }
 
-func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
+func MysqlInsert(idx int, pool *zmysql.MysqlMgrPool, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	n := idx
@@ -46,30 +47,9 @@ func MysqlInsert(idx int, pool *zed.MysqlMgrPool, wg *sync.WaitGroup) {
 
 func main() {
 	zed.Init("./", "./log")
-	//zed.MakeNewLogDir("./")
-	const (
-		TagNull = iota
-		Tag1
-		Tag2
-		Tag3
-		TagMax
-	)
-	var LogTags = map[int]string{
-		TagNull: "zed",
-		Tag1:    "Tag1",
-		Tag2:    "Tag2",
-		Tag3:    "Tag3",
-	}
-	var LogConf = map[string]int{
-		"Info":   zed.LogFile,
-		"Warn":   zed.LogFile,
-		"Error":  zed.LogFile,
-		"Action": zed.LogFile,
-	}
 
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 3)
 
-	pool := zed.NewMysqlMgrPool("testmysqlpool", "127.0.0.1:3306", "test", "root", "", MYSQL_NUM)
+	pool := zmysql.NewMysqlMgrPool("testmysqlpool", "127.0.0.1:3306", "test", "root", "", MYSQL_NUM)
 	fmt.Println("pool: ", pool)
 	t1 := time.Now()
 
