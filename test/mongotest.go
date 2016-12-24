@@ -1,10 +1,11 @@
-package test
+//package test
 
-/*package main
+package main
 
 import (
 	"fmt"
 	"github.com/ccppluagopy/zed"
+	"github.com/ccppluagopy/zed/mongo"
 	"gopkg.in/mgo.v2"
 	"time"
 )
@@ -20,7 +21,7 @@ type Student struct {
 	Age  int
 }
 
-func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
+func MongoInsert(idx int, pool *mongo.MongoMgrPool, ch chan int) {
 	idx = idx * ACTION_NUM * 10
 	for i := 0; i < ACTION_NUM; i++ {
 		time.Sleep(time.Second * 3)
@@ -39,34 +40,11 @@ func MongoInsert(idx int, pool *zed.MongoMgrPool, ch chan int) {
 }
 
 func main() {
-	zed.Init("./", "./log", true, true)
-	const (
-		TagNull = iota
-		Tag1
-		Tag2
-		Tag3
-		TagMax
-	)
-	var LogTags = map[int]string{
-		TagNull: "zed",
-		Tag1:    "Tag1",
-		Tag2:    "Tag2",
-		Tag3:    "Tag3",
-	}
-	var LogConf = map[string]int{
-		"Info":   zed.LogFile,
-		"Warn":   zed.LogFile,
-		"Error":  zed.LogFile,
-		"Action": zed.LogFile,
-	}
+	zed.Init("./", "./log" )
 
-	zed.StartLogger(LogConf, true, TagMax, LogTags, 3, 3, 3, 3)
-	for i := 0; i < 5; i++ {
-		zed.LogError(Tag1, i, "log test %d", i)
-	}
 
 	ch := make(chan int)
-	pool := zed.NewMongoMgrPool("testmongopool", "127.0.0.1:27017", "test", "students", "usr", "passwd", MONGO_NUM)
+	pool := mongo.NewMongoMgrPool("testmongopool", "127.0.0.1:27017", "test", "students", "usr", "passwd", MONGO_NUM)
 
 	t1 := time.Now()
 
@@ -87,4 +65,4 @@ func main() {
 	fmt.Println(fmt.Sprintf("%d insert time used: ", COR_NUM*ACTION_NUM), time.Since(t1))
 	pool.Stop()
 }
-*/
+
