@@ -176,6 +176,7 @@ func ZLog(format string, v ...interface{}) {
 		zlogfile.Write(&s)
 		zlogfile.Save()
 	}*/
+	//s := fmt.Sprintf("[%s][ZLog] %s\n", time.Now().Format("20060102-150405"), fmt.Sprintf(format, v...))
 	s := strings.Join([]string{fmt.Sprintf("[%s]", time.Now().Format("20060102-150405")), "[ZLog][zed] ", fmt.Sprintf(format, v...), "\n"}, logSep)
 	Printf(s)
 }
