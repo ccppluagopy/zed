@@ -17,8 +17,8 @@ var (
 )
 
 type TimeItem struct {
-	Index    int
-	GroupIdx int
+	Index int
+	//GroupIdx int
 	Expire   time.Time
 	Callback func()
 }
@@ -165,6 +165,7 @@ func (tm *Timer) DeleteItem(item *TimeItem) {
 	}
 }
 
+/*
 func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeItem {
 	tm.Lock()
 	defer tm.Unlock()
@@ -180,6 +181,7 @@ func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeI
 
 	return item
 }
+*/
 
 func (tm *Timer) Size() int {
 	tm.Lock()
