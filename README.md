@@ -12,7 +12,7 @@
 * [loadbalance](https://github.com/ccppluagopy/zed/blob/master/test/test_loadbalance.go)
 
 
-## start a tcpserver
+## sample tcpserver
 ```go
 package main
 
@@ -26,7 +26,7 @@ func main() {
 }
 ```
 
-## start logger
+## sample logger
 ```go
 package main
 
@@ -76,7 +76,7 @@ func main() {
 }
 ```
 
-## start a timer
+## sample timer
 ```go
 package main
 
@@ -176,7 +176,7 @@ func main() {
 ```
 
 
-## use zsync
+## sample zsync
 ```go
 package main
 
@@ -199,7 +199,7 @@ func main() {
 }
 ```
 
-## use loadbalance
+## sample loadbalance
 ```go
 package main
 
@@ -232,7 +232,7 @@ func main() {
 }
 ```
 
-## use observer-cluster
+## sample observer-cluster
 ```go
 package main
 
