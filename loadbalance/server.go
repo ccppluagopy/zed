@@ -70,7 +70,7 @@ func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error
 			Num:  num,
 		}
 	} else {
-		log("LoadbalanceServer Addserver Error: serverTag %s has been exist", serverTag)
+		zed.ZLog("LoadbalanceServer Addserver Error: serverTag %s has been exist", serverTag)
 		return &LBError{
 			description: "LoadbalanceServer Addserver Error: serverTag %s has been exist",
 		}
@@ -106,7 +106,7 @@ func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) erro
 		}
 	}
 
-	log("LoadbalanceServer Increament Error: serverTag %s does not exist", serverTag)
+	zed.ZLog("LoadbalanceServer Increament Error: serverTag %s does not exist", serverTag)
 	return &LBError{
 		description: "LoadbalanceServer Increament Error: serverTag %s does not exist",
 	}
@@ -126,7 +126,7 @@ func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) erro
 		}
 	}
 
-	log("LoadbalanceServer UpdateLoad Error: serverTag %s does not exist", serverTag)
+	zed.ZLog("LoadbalanceServer UpdateLoad Error: serverTag %s does not exist", serverTag)
 	return &LBError{
 		description: "LoadbalanceServer UpdateLoad Error: serverTag %s does not exist",
 	}
@@ -202,7 +202,7 @@ func NewLoadbalanceServer(addr string) *LoadbalanceServer {
 
 	listener, e := net.Listen("tcp", addr)
 	if e != nil {
-		log("NewLoadbalanceServer Listen error: %v", e)
+		zed.ZLog("NewLoadbalanceServer Listen error: %v", e)
 		return nil
 	}
 
@@ -222,11 +222,11 @@ func GetServerAddr(server *LoadbalanceServer, serverType string) *ServerInfo {
 	reply := []LBRsp{}
 	err := server.GetServerAddr(args, &reply)
 	if err != nil {
-		log("loadbalance GetServerAddr Error:", err)
+		zed.ZLog("loadbalance GetServerAddr Error:", err)
 	}
 
 	if len(reply) == 1 {
-		//log("LoadbalanceClient GetServerAddr:", reply[0].Info.Addr, reply[0].Info.Num)
+		//zed.ZLog("LoadbalanceClient GetServerAddr:", reply[0].Info.Addr, reply[0].Info.Num)
 		return &(reply[0].Info)
 	}
 

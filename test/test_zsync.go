@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	//"github.com/ccppluagopy/zed"
-	"github.com/ccppluagopy/zed/zsync"
+	"github.com/ccppluagopy/zed"
+	//"github.com/ccppluagopy/zed/zsync"
 	"time"
 )
 
@@ -36,8 +36,8 @@ func main() {
 	}()*/
 	a, _ := xxmap[3]
 	fmt.Println("xxmap[3]:", a)
-	mt := zsync.Mutex{}
-	zsync.SetDebug(true)
+	mt := zed.Mutex{}
+	zed.SetMutexDebug(true)
 	fmt.Println("111")
 	mt.Lock()
 	fmt.Println("222")

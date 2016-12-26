@@ -61,47 +61,33 @@ func main() {
 		}
 	}
 
+	fmt.Println("000 Size: ", tm.Size())
+
+	tm.DeleteItem(item3)
+	tm.DeleteItem(item5)
+	tm.DeleteItem(item1)
+	tm.DeleteItem(item10)
+	tm.DeleteItem(item8)
+	fmt.Println("111 Size: ", tm.Size())
+
+	time.Sleep(time.Second * 10)
+
+	fmt.Println("222 Size: ", tm.Size())
+
 	n := 0
 	var scheduleItem *timer.TimeItem
 	scheduleItem = tm.Schedule(time.Second*3, time.Second, func() {
 		n++
-		fmt.Println("-------------------------- Schedule: ", n, "Index:", scheduleItem.Index, "pass:", time.Since(t0).Seconds())
-		if n >= 20 {
+		fmt.Println("Schedule: ", n, "pass:", time.Since(t0).Seconds())
+		if n >= 5 {
 			tm.DeleteItem(scheduleItem)
 		}
 
 	})
 
-	fmt.Println("******************")
-	fmt.Println("Delete 333333: ", item3.Index)
-	tm.DeleteItem(item3)
-	fmt.Println("Size: ", tm.Size())
+	fmt.Println("333 Size: ", tm.Size())
 
-	fmt.Println("******************")
-	fmt.Println("Delete 555555: ", item5.Index)
-	tm.DeleteItem(item5)
-	fmt.Println("Size: ", tm.Size())
+	time.Sleep(time.Second * 10)
 
-	fmt.Println("******************")
-	fmt.Println("Delete 111111: ", item1.Index)
-	tm.DeleteItem(item1)
-	fmt.Println("Size: ", tm.Size())
-
-	fmt.Println("******************")
-	fmt.Println("Delete 101010: ", item10.Index)
-	tm.DeleteItem(item10)
-	fmt.Println("Size: ", tm.Size())
-
-	fmt.Println("******************")
-	fmt.Println("Delete 888888: ", item8.Index)
-	tm.DeleteItem(item8)
-	fmt.Println("Size: ", tm.Size())
-	fmt.Println("******************")
-	/*fmt.Println(item3)
-	fmt.Println(item5)
-	fmt.Println(item8)*/
-	time.Sleep(time.Second * 12)
-
-	fmt.Println("Size: ", tm.Size())
-	time.Sleep(time.Hour)
+	fmt.Println("444 Size: ", tm.Size())
 }

@@ -165,6 +165,22 @@ func (tm *Timer) DeleteItem(item *TimeItem) {
 	}
 }
 
+func (tm *Timer) DeleteItemInCall(item *TimeItem) {
+	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
+	n := tm.timers.Len()
+	if item.Index > 0 && item.Index < n {
+		tm.timers.Remove(item.Index)
+	} else if item.Index == 0 {
+		tm.timers.Remove(item.Index)
+		if head := tm.timers.Head(); head != nil && head != item {
+			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
+			tm.signal.Reset(head.Expire.Sub(time.Now()))
+		}
+	} else {
+		ZLog("Timer DeleteItem Error: Invalid Index: %d", item.Index)
+	}
+}
+
 /*
 func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeItem {
 	tm.Lock()
