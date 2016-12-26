@@ -10,9 +10,7 @@ func client(n int, stype string, stag string, addr string, addr2 string) {
 	go func() {
 		client := lb.NewLoadbalanceClient(addr)
 		client.AddServer(stype, stag, addr2)
-		for i := 0; i < n; i++ {
-			client.UpdateLoad(stype, stag, 1)
-		}
+		client.UpdateLoad(stype, stag, n)
 		time.Sleep(time.Second * 2)
 		ret := client.GetServerAddr(stype)
 		fmt.Println(stype, stag, addr, " -- over ---", ret.Addr, ret.Num)
@@ -26,5 +24,6 @@ func main() {
 	client(2, "test server", "test server 2", addr, "0.0.0.0:2")
 	client(3, "test server", "test server 3", addr, "0.0.0.0:3")
 
-	time.Sleep(time.Hour)
+	time.Sleep(time.Second * 3)
+	fmt.Println("Over!")
 }

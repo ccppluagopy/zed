@@ -18,7 +18,6 @@ func xxx(addr string, data string, n int) {
 			}
 
 			event := "chat"
-			//obsc.Regist(event, nil)
 			obsc.Regist("xx", event, func(e interface{}, args []interface{}) {
 				msg, ok := args[0].([]byte)
 				if ok {
@@ -27,21 +26,8 @@ func xxx(addr string, data string, n int) {
 					fmt.Printf("xxx %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
 				}
 			})
-			//fmt.Println("-------- Addr: ", addr, obsc)
-			/*obsc.NewListener("xx", event, func(e interface{}, args []interface{}) {
-				msg, ok := args[0].([]byte)
-				if ok {
-					fmt.Printf("--- %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
-				} else {
-					fmt.Printf("xxx %s recv chatMsg: %s %s\n", selfkey, e, string(msg))
-				}
-
-			})*/
 
 			time.Sleep(time.Second * time.Duration(2))
-			/*fmt.Println("\n\n*************************************")
-			fmt.Println("*************************************")
-			fmt.Println("*************************************")*/
 			obsc.PublishAll(event, []byte(selfkey))
 		}()
 	}
@@ -58,7 +44,7 @@ func main() {
 	go observer.NewOBClusterNode(mgrAddr, nodeAddr2, time.Second*25).Start()
 	go observer.NewOBClusterNode(mgrAddr, nodeAddr3, time.Second*25).Start()
 
-	time.Sleep(time.Second*3)
+	time.Sleep(time.Second * 3)
 	go xxx(nodeAddr1, "node 111", 1)
 	go xxx(nodeAddr2, "node 222", 2)
 	go xxx(nodeAddr3, "node 333", 3)

@@ -80,7 +80,7 @@ func main() {
 		n++
 		fmt.Println("Schedule: ", n, "pass:", time.Since(t0).Seconds())
 		if n >= 5 {
-			tm.DeleteItem(scheduleItem)
+			tm.DeleteItemInCall(scheduleItem)
 		}
 
 	})
@@ -90,4 +90,6 @@ func main() {
 	time.Sleep(time.Second * 10)
 
 	fmt.Println("444 Size: ", tm.Size())
+
+	fmt.Println("Over!")
 }
