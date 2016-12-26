@@ -4,6 +4,13 @@
 * go get github.com/ccppluagopy/zed/loadbalance
 * go get github.com/ccppluagopy/zed/observer
  
+## samples
+* [timer](https://github.com/ccppluagopy/zed/blob/master/test/test_timer.go)
+* [zsync](https://github.com/ccppluagopy/zed/blob/master/test/test_zsync.go)
+* [logger](https://github.com/ccppluagopy/zed/blob/master/test/test_logger.go)
+* [observer](https://github.com/ccppluagopy/zed/blob/master/test/test_observer.go)
+* [loadbalance](https://github.com/ccppluagopy/zed/blob/master/test/test_loadbalance.go)
+
 
 ## start a tcpserver
 ```go
