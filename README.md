@@ -1,5 +1,9 @@
 ## Install
 * go get github.com/ccppluagopy/zed
+* go get github.com/ccppluagopy/zed/timer
+* go get github.com/ccppluagopy/zed/loadbalance
+* go get github.com/ccppluagopy/zed/observer
+ 
 
 ## start a tcpserver
 ```go
