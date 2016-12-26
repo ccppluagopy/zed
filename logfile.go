@@ -118,16 +118,22 @@ func (logf *logfile) Close() {
 	}
 }
 
-func MakeNewLogDir() {
+func MakeDir(path string) error {
+	err := os.Mkdir(path, 0777)
+	return err
+}
+
+func MakeNewLogDir() bool {
 	logdir = worklogdir + time.Now().Format("20060102-150405") + "/"
-	err := os.Mkdir(logdir, 0777)
+	err := MakeDir(logdir)
 	if err != nil {
 		ZLog("Error when MakeNewLogDir: %s: %v", logdir, err)
-	} else {
-		ZLog("MakeNewLogDir %s  %s Success", worklogdir, logdir)
+		return false
 	}
+	ZLog("MakeNewLogDir %s  %s Success", worklogdir, logdir)
 
 	logdirInited = true
+	return true
 }
 
 func CreateLogFile(taskType string) *logfile {

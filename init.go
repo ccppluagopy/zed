@@ -16,6 +16,7 @@ func Init(workDir string, logDir string) {
 	ZLog("Init, Working Dir:\"%s\", Log Dir:\"%s\"", workDir, logDir)
 	workdir = workDir
 	worklogdir = logDir
+	MakeDir(logDir)
 
 	//showClientData = showClient
 	/*
