@@ -13,11 +13,6 @@ const (
 )
 
 func PanicHandle(needLog bool, args ...interface{}) interface{} {
-
-	/*if len(args) > 0 {
-		ZLog(args[0].(string))
-		Println(args[0].(string))
-	}*/
 	if err := recover(); err != nil {
 		errstr := fmt.Sprintf("%sruntime error: %v\ntraceback:\n", separator, err)
 
@@ -36,14 +31,9 @@ func PanicHandle(needLog bool, args ...interface{}) interface{} {
 
 		if needLog {
 			ZLog(errstr)
-			//Println(errstr)
 		}
 
-		//time.Sleep(time.Second)
-		//os.Exit(0)
-		//Println(":::::::::::::", len(args))
 		if len(args) > 0 {
-			//Println(":::::::::::::", len(args), args[0])
 			cb, ok := args[0].(func())
 			if ok {
 				defer func() {

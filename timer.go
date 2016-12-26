@@ -2,34 +2,22 @@ package zed
 
 import (
 	//"fmt"
+	"sync"
 	"time"
 )
 
-/*
-timerWheel := Timer.NewTimerWheel(int64(tickTime), int64(time.Second), 2)
-cb1 := func() {
-	fmt.Println("cb1")
-}
-cb2 := func() {
-	fmt.Println("cb2")
-}
-timerWheel.NewTimer("cb1", cb1, true)
-time.Sleep(time.Second * 1)
-timerWheel.NewTimer("cb2", cb2, true)
-*/
+type TimerWheel struct {
+	sync.Mutex
+	running   bool
+	currWheel int64
+	wheels    []wheel
+	born      int64
+	lastTick  int64
+	internal  int64
+	wheelNum  int64
 
-/*
-timerMgr := Timer.NewTimerMgr(int64(tickTime))
-
-cb1 := func() {
-	fmt.Println("cb1")
+	timers map[interface{}]*WTimer
 }
-cb2 := func() {
-	fmt.Println("cb2")
-}
-timerMgr.NewTimer("cb1", int64(time.Second), cb1, true)
-timerMgr.NewTimer("cb2", int64(time.Second*2), cb2, true)
-*/
 
 func wtimerHandler(handler WTimerCallBack, timer *WTimer) {
 	defer PanicHandle(true)
