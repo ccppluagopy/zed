@@ -7,14 +7,14 @@ import (
 )
 
 var (
-	mtxdebug                          = false
-	mtxlockTimeout                    = (time.Second * 5)
-	mtxtimerWheel  *TimerWheel        = nil
-	mtxmutexs      map[string]*WTimer = nil
-	mtxlock                           = &sync.Mutex{}
+	mtxdebug                            = false
+	mtxlockTimeout                      = (time.Second * 5)
+	locktimer      *Timer               = nil
+	mtxmutexs      map[string]*TimeItem = nil
+	mtxlock                             = &sync.Mutex{}
 )
 
-func getLockTimer(key string) *WTimer {
+func getLockTimer(key string) *TimeItem {
 	mtxlock.Lock()
 	defer mtxlock.Unlock()
 	if timer, ok := mtxmutexs[key]; ok {
@@ -23,7 +23,7 @@ func getLockTimer(key string) *WTimer {
 	return nil
 }
 
-func saveLockTimer(key string, timer *WTimer) {
+func saveLockTimer(key string, timer *TimeItem) {
 	mtxlock.Lock()
 	defer mtxlock.Unlock()
 	mtxmutexs[key] = timer
@@ -38,11 +38,11 @@ func unsaveLockTimer(key string) {
 func SetMutexDebug(flag bool, args ...interface{}) {
 	mtxdebug = flag
 	if mtxdebug {
-		if mtxtimerWheel == nil {
-			mtxtimerWheel = NewTimerWheel(time.Second, 15)
+		if locktimer == nil {
+			locktimer = NewTimer()
 		}
 		if mtxmutexs == nil {
-			mtxmutexs = make(map[string]*WTimer)
+			mtxmutexs = make(map[string]*TimeItem)
 		}
 	}
 	if len(args) == 1 {
@@ -66,13 +66,13 @@ func (mt *Mutex) Lock() {
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
-			timer = mtxtimerWheel.NewTimer(key, mtxlockTimeout, func(t *WTimer) {
+			timer = locktimer.NewItem(mtxlockTimeout, func() {
 				Printf("zsync.Mutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				Println("now: ", t1.UnixNano())
 				Println("this Call :", stack)
 				Println("last Call :", mt.lastCall)
 				unsaveLockTimer(key)
-			}, 0)
+			})
 			saveLockTimer(key, timer)
 		}
 	}
@@ -83,7 +83,7 @@ func (mt *Mutex) Lock() {
 		{
 			key := Sprintf("%vl", &mt)
 			if timer := getLockTimer(key); timer != nil {
-				mtxtimerWheel.DeleteTimer(timer)
+				locktimer.DeleteItem(timer)
 				unsaveLockTimer(key)
 				mt.lastCall = GetStackInfo()
 			}
@@ -97,13 +97,13 @@ func (mt *Mutex) Lock() {
 			if timer := getLockTimer(mt.unlockkey); timer == nil {
 				t1 := time.Now()
 				//stack := GetStackInfo()
-				timer = mtxtimerWheel.NewTimer(mt.unlockkey, mtxlockTimeout, func(t *WTimer) {
+				timer = locktimer.NewItem(mtxlockTimeout, func() {
 					Printf("zsync.Mutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					Println("now: ", t1.UnixNano())
 					//Println("this Call :", stack)
 					Println("last Call :", mt.lastCall)
 					unsaveLockTimer(mt.unlockkey)
-				}, 0)
+				})
 				saveLockTimer(mt.unlockkey, timer)
 			}
 		}
@@ -116,7 +116,7 @@ func (mt *Mutex) Unlock() {
 		//key := Sprintf("%vul", &mt.Mutex)
 		//Println("Unlock key:", mt.unlockkey)
 		if timer := getLockTimer(mt.unlockkey); timer != nil {
-			mtxtimerWheel.DeleteTimer(timer)
+			locktimer.DeleteItem(timer)
 			unsaveLockTimer(mt.unlockkey)
 		}
 	}
@@ -134,13 +134,13 @@ func (rwmt *RWMutex) Lock() {
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
-			timer = mtxtimerWheel.NewTimer(key, mtxlockTimeout, func(t *WTimer) {
+			timer = locktimer.NewItem(mtxlockTimeout, func() {
 				Printf("zsync.RWMutex Warn: Lock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				Println("now: ", t1.UnixNano())
 				Println("this Call :", stack)
 				Println("last Call :", rwmt.lastCall)
 				unsaveLockTimer(key)
-			}, 0)
+			})
 			saveLockTimer(key, timer)
 		}
 
@@ -151,7 +151,7 @@ func (rwmt *RWMutex) Lock() {
 	if mtxdebug {
 		key := Sprintf("%vl", &rwmt)
 		if timer := getLockTimer(key); timer != nil {
-			mtxtimerWheel.DeleteTimer(timer)
+			locktimer.DeleteItem(timer)
 			unsaveLockTimer(key)
 			rwmt.lastCall = GetStackInfo()
 		}
@@ -163,13 +163,13 @@ func (rwmt *RWMutex) Lock() {
 			if timer := getLockTimer(rwmt.unlockkey); timer == nil {
 				t1 := time.Now()
 				//stack := GetStackInfo()
-				timer = mtxtimerWheel.NewTimer(rwmt.unlockkey, mtxlockTimeout, func(t *WTimer) {
+				timer = locktimer.NewItem(mtxlockTimeout, func() {
 					Printf("zsync.RWMutex Warn: Wait Unlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					Println("now: ", t1.UnixNano())
 					//Println("this Call :", stack)
 					Println("last Call :", rwmt.lastCall)
 					unsaveLockTimer(rwmt.unlockkey)
-				}, 0)
+				})
 				saveLockTimer(rwmt.unlockkey, timer)
 			}
 		}
@@ -180,7 +180,7 @@ func (rwmt *RWMutex) Unlock() {
 	rwmt.RWMutex.Unlock()
 	if mtxdebug {
 		if timer := getLockTimer(rwmt.unlockkey); timer != nil {
-			mtxtimerWheel.DeleteTimer(timer)
+			locktimer.DeleteItem(timer)
 			unsaveLockTimer(rwmt.unlockkey)
 		}
 	}
@@ -192,13 +192,13 @@ func (rwmt *RWMutex) RLock() {
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
-			timer := mtxtimerWheel.NewTimer(key, mtxlockTimeout, func(t *WTimer) {
+			timer := locktimer.NewItem(mtxlockTimeout, func() {
 				Printf("zsync.RWMutex Warn: RLock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 				Println("now: ", t1.UnixNano())
 				Println("this Call :", stack)
 				Println("last Call :", rwmt.lastCall)
 				unsaveLockTimer(key)
-			}, 0)
+			})
 			saveLockTimer(key, timer)
 		}
 	}
@@ -208,7 +208,7 @@ func (rwmt *RWMutex) RLock() {
 	if mtxdebug {
 		key := Sprintf("%vrl", &rwmt)
 		if timer := getLockTimer(key); timer != nil {
-			mtxtimerWheel.DeleteTimer(timer)
+			locktimer.DeleteItem(timer)
 			unsaveLockTimer(key)
 			rwmt.lastCall = GetStackInfo()
 		}
@@ -218,7 +218,7 @@ func (rwmt *RWMutex) RLock() {
 			if timer := getLockTimer(key2); timer == nil {
 				t1 := time.Now()
 				stack := GetStackInfo()
-				timer := mtxtimerWheel.NewTimer(key2, mtxlockTimeout, func(t *WTimer) {
+				timer := locktimer.NewTimer(key2, mtxlockTimeout, func() {
 					Printf("zsync.RWMutex Warn: Wait RUnlock Timeout(%v seconds), May Be DeadLock!\n", time.Since(t1).Seconds())
 					Println("now: ", time.Now().UnixNano())
 					Println(stack)
@@ -235,7 +235,7 @@ func (rwmt *RWMutex) RUnlock() {
 	/*if mtxdebug {
 		key := Sprintf("%vrul", &rwmt)
 		if timer := getLockTimer(key); timer != nil {
-			mtxtimerWheel.DeleteTimer(timer)
+			locktimer.DeleteItem(timer)
 			unsaveLockTimer(key)
 		}
 	}*/
