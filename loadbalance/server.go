@@ -138,11 +138,11 @@ func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *LBRsp) error {
 	}
 }
 
-func (server *LoadbalanceServer) GetMinLoadServerInfo(args *LBArgs, reply *LBRsp) error {
+func (server *LoadbalanceServer) GetMinLoadServerInfoByType(args *LBArgs, reply *LBRsp) error {
 	server.mutex.Lock()
 	defer server.mutex.Unlock()
 
-	//fmt.Println("LoadbalanceServer.GetMinLoadServerInfo 000")
+	//fmt.Println("LoadbalanceServer.GetMinLoadServerInfoByType 000")
 
 	var info *ServerInfo = nil
 
@@ -158,17 +158,17 @@ func (server *LoadbalanceServer) GetMinLoadServerInfo(args *LBArgs, reply *LBRsp
 		*reply = LBRsp{
 			Infos: []ServerInfo{*info},
 		}
-		//fmt.Println("LoadbalanceServer.GetMinLoadServerInfo 444: ", args.ServerType, info.Addr, info.Num)
+		//fmt.Println("LoadbalanceServer.GetMinLoadServerInfoByType 444: ", args.ServerType, info.Addr, info.Num)
 	}
 
 	return nil
 }
 
-func (server *LoadbalanceServer) GetAllServers(args *LBArgs, reply *LBRsp) error {
+func (server *LoadbalanceServer) GetServersInfoByType(args *LBArgs, reply *LBRsp) error {
 	server.mutex.Lock()
 	defer server.mutex.Unlock()
 
-	//fmt.Println("LoadbalanceServer.GetAllServerAddr 000")
+	//fmt.Println("LoadbalanceServer.GetServersInfoByType 000")
 
 	tmpreply := *reply
 	if servers, ok := server.Servers[args.ServerType]; ok {
@@ -176,7 +176,7 @@ func (server *LoadbalanceServer) GetAllServers(args *LBArgs, reply *LBRsp) error
 			tmpreply.Infos = append(tmpreply.Infos, *info)
 		}
 
-		//fmt.Println("LoadbalanceServer.GetAllServerAddr 444: ", args.ServerType, info.Addr, info.Num)
+		//fmt.Println("LoadbalanceServer.GetServersInfoByType 444: ", args.ServerType, info.Addr, info.Num)
 	}
 
 	return nil
@@ -253,18 +253,18 @@ func StopLBServer(server *LoadbalanceServer) {
 	zed.ZLog("LoadbalanceServer Stop()")
 }
 
-func GetMinLoadServerInfo(server *LoadbalanceServer, serverType string) *ServerInfo {
+func GetMinLoadServerInfoByType(server *LoadbalanceServer, serverType string) *ServerInfo {
 	args := &LBArgs{
 		ServerType: serverType,
 	}
 	reply := LBRsp{}
-	err := server.GetMinLoadServerInfo(args, &reply)
+	err := server.GetMinLoadServerInfoByType(args, &reply)
 	if err != nil {
-		zed.ZLog("loadbalance GetMinLoadServerInfo Error:", err)
+		zed.ZLog("loadbalance GetMinLoadServerInfoByType Error:", err)
 	}
 
 	if len(reply.Infos) == 1 {
-		//zed.ZLog("LoadbalanceClient GetMinLoadServerInfo:", reply[0].Info.Addr, reply[0].Info.Num)
+		//zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType:", reply[0].Info.Addr, reply[0].Info.Num)
 		return &(reply.Infos[0])
 	}
 

@@ -13,7 +13,7 @@ func client(n int, stype string, stag string, addr string, addr2 string) {
 		client.AddServer(stype, stag, addr2)
 		client.UpdateLoad(stype, stag, n)
 		time.Sleep(time.Second * 2)
-		ret := client.GetMinLoadServerInfo(stype)
+		ret := client.GetMinLoadServerInfoByType(stype)
 		fmt.Println(stype, stag, addr, " -- over ---", ret.Addr, ret.Num)
 	}()
 }
