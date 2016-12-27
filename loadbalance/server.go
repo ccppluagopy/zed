@@ -58,13 +58,13 @@ func (server *LoadbalanceServer) AddServer(args *LBArgs, reply *([]LBRsp)) error
 
 	servers, ok := server.Servers[serverType]
 	if !ok {
-		fmt.Println("LoadbalanceServer.AddServer 111: ", serverType, serverTag, addr)
+		//fmt.Println("LoadbalanceServer.AddServer 111: ", serverType, serverTag, addr)
 		servers = make(map[string]*ServerInfo)
 		server.Servers[serverType] = servers
 	}
 
 	if _, ok2 := servers[serverTag]; !ok2 {
-		fmt.Println("LoadbalanceServer.AddServer 222: ", servers)
+		//fmt.Println("LoadbalanceServer.AddServer 222: ", servers)
 		servers[serverTag] = &ServerInfo{
 			Addr: addr,
 			Num:  num,
@@ -106,7 +106,7 @@ func (server *LoadbalanceServer) Increament(args *LBArgs, reply *([]LBRsp)) erro
 		}
 	}
 
-	zed.ZLog("LoadbalanceServer Increament Error: serverTag %s does not exist", serverTag)
+	//zed.ZLog("LoadbalanceServer Increament Error: serverTag %s does not exist", serverTag)
 	return &LBError{
 		description: "LoadbalanceServer Increament Error: serverTag %s does not exist",
 	}
@@ -126,7 +126,7 @@ func (server *LoadbalanceServer) UpdateLoad(args *LBArgs, reply *([]LBRsp)) erro
 		}
 	}
 
-	zed.ZLog("LoadbalanceServer UpdateLoad Error: serverTag %s does not exist", serverTag)
+	//zed.ZLog("LoadbalanceServer UpdateLoad Error: serverTag %s does not exist", serverTag)
 	return &LBError{
 		description: "LoadbalanceServer UpdateLoad Error: serverTag %s does not exist",
 	}
@@ -161,6 +161,8 @@ func (server *LoadbalanceServer) GetServerAddr(args *LBArgs, reply *([]LBRsp)) e
 func (server *LoadbalanceServer) Stop() {
 	server.listener.Close()
 	server.ticker.Stop()
+	zed.ZLog("NewLoadbalanceServer Stop()")
+
 }
 
 func (server *LoadbalanceServer) startHeartbeat() {
@@ -211,6 +213,8 @@ func NewLoadbalanceServer(addr string) *LoadbalanceServer {
 	zed.NewCoroutine(func() {
 		http.Serve(server.listener, nil)
 	})
+
+	zed.ZLog("NewLoadbalanceServer Start on: %s", addr)
 
 	return server
 }
