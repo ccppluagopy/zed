@@ -79,23 +79,46 @@ func (client *LoadbalanceClient) DeleteServer(serverType string, serverTag strin
 	}
 }
 
-func (client *LoadbalanceClient) GetServerAddr(serverType string) *ServerInfo {
+func (client *LoadbalanceClient) GetMinLoadServerInfo(serverType string) *ServerInfo {
 	args := &LBArgs{
 		ServerType: serverType,
 	}
 
-	reply := []LBRsp{}
-	err := client.Client.Call("LoadbalanceServer.GetServerAddr", args, &reply)
+	reply := LBRsp{}
+	err := client.Client.Call("LoadbalanceServer.GetMinLoadServerInfo", args, &reply)
 	if err != nil {
-		zed.ZLog("LoadbalanceClient GetServerAddr Error:", err)
+		zed.ZLog("LoadbalanceClient GetMinLoadServerInfo Error:", err)
 	}
 
-	if len(reply) == 1 {
-		//zed.ZLog("LoadbalanceClient GetServerAddr:", reply[0].Info.Addr, reply[0].Info.Num)
-		return &(reply[0].Info)
+	if len(reply.Infos) == 1 {
+		//zed.ZLog("LoadbalanceClient GetMinLoadServerInfo:", reply[0].Info.Addr, reply[0].Info.Num)
+		return &(reply.Infos[0])
 	}
 
 	return nil
+}
+
+func (client *LoadbalanceClient) GetAllServerInfo(serverType string) []ServerInfo {
+	args := &LBArgs{
+		ServerType: serverType,
+	}
+
+	reply := LBRsp{}
+	err := client.Client.Call("LoadbalanceServer.GetMinLoadServerInfo", args, &reply)
+	if err != nil {
+		zed.ZLog("LoadbalanceClient GetMinLoadServerInfo Error:", err)
+	}
+
+	//if len(reply.Info) == 1 {
+	//zed.ZLog("LoadbalanceClient GetMinLoadServerInfo:", reply[0].Info.Addr, reply[0].Info.Num)
+	return reply.Infos
+	//}
+
+	return nil
+}
+
+func (client *LoadbalanceClient) Stop() {
+	client.Client.Close()
 }
 
 /*
