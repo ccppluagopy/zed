@@ -83,6 +83,7 @@ func (mgr *OBClusterMgr) Stop() {
 		c.Stop()
 	}
 	mgr.Listener.Close()
+	zed.ZLog("OBClusterMgr(%s) Stop()", mgr.Addr)
 }
 
 func (mgr *OBClusterMgr) DeleteNode(args *OBAgrs, reply *([]OBRsp)) error {
@@ -111,6 +112,7 @@ func NewOBClusterMgr(addr string) *OBClusterMgr {
 
 	mgr.Listener = listener
 
+	zed.ZLog("ClusterMgr Start on: %s", addr)
 	http.Serve(listener, nil)
 
 	return mgr
@@ -147,12 +149,14 @@ func (node *OBClusterNode) Start() bool {
 		return false
 	}
 
+	zed.ZLog("OBClusterNode Start on: %s", node.NodeAddr)
 	return true
 }
 
 func (node *OBClusterNode) Stop() {
 	node.Client.Close()
 	node.Server.Stop()
+	zed.ZLog("OBClusterNode(%s) Stop()", node.NodeAddr)
 }
 
 func NewOBClusterNode(mgraddr string, nodeaddr string, heartbeat time.Duration) *OBClusterNode {

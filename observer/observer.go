@@ -337,7 +337,8 @@ func (observer *ObserverServer) handleRegistCluster(client *zed.TcpClient) bool 
 		client.AddCloseCB("ClusterStop", func(c *zed.TcpClient) {
 			observer.Lock()
 			defer observer.Unlock()
-			delete(observer.ClusterNodes, c)
+			//delete(observer.ClusterNodes, c)
+			observer.Stop()
 		})
 		client.SendMsgAsync(NewNetMsg(&OBMsg{
 			OP: CLUSTER_RSP,
