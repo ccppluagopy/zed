@@ -52,6 +52,7 @@ func (obclient *ObserverClient) Stop() {
 	obclient.Lock()
 	defer obclient.Unlock()
 	if obclient.running {
+		zed.ZLog("ObserverClient(%s) Stop()", obclient.Client.Info())
 		obclient.running = false
 		obclient.ticker.Stop()
 		obclient.Client.Stop()
@@ -182,7 +183,7 @@ func (obclient *ObserverClient) HandleMsg(msg *zed.NetMsg) {
 	//obmsg := OBMsg{}
 	obmsg, err := unpack(msg.Data)
 	if err != nil {
-		zed.Printf("ObserverClient HandleMsg Error json Unmarshal Error: %v\n", err)
+		zed.ZLog("ObserverClient HandleMsg Error json Unmarshal Error: %v", err)
 		return
 	}
 

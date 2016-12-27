@@ -263,8 +263,10 @@ func xxx(addr string, data string, n int) {
 				}
 			})
 
-			time.Sleep(time.Second * 2)
+			time.Sleep(time.Second * 1)
 			obsc.PublishAll(event, []byte(selfkey))
+			time.Sleep(time.Second * 1)
+			obsc.Stop()
 		}()
 	}
 }
@@ -287,4 +289,5 @@ func main() {
 
 	time.Sleep(time.Hour)
 }
+
 ```

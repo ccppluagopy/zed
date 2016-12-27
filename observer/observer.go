@@ -397,6 +397,7 @@ func (observer *ObserverServer) HandleMsg(msg *zed.NetMsg) {
 func (observer *ObserverServer) Start(addr string) {
 	//zed.NewCoroutine(func() {
 	observer.Addr = addr
+	zed.ZLog("ObserverServer Start on: %s", addr)
 	observer.Server.Start(addr)
 	//})
 }
