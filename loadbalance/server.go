@@ -162,7 +162,6 @@ func (server *LoadbalanceServer) Stop() {
 	server.listener.Close()
 	server.ticker.Stop()
 	zed.ZLog("NewLoadbalanceServer Stop()")
-
 }
 
 func (server *LoadbalanceServer) startHeartbeat() {
