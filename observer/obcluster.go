@@ -26,9 +26,10 @@ func (mgrErr *OBClusterError) Error() string {
 }
 
 type OBClusterMgr struct {
-	mutex   sync.Mutex
-	Addr    string
-	Clients map[string]*ObserverClient
+	mutex    sync.Mutex
+	Addr     string
+	Listener net.Listener
+	Clients  map[string]*ObserverClient
 }
 
 func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
@@ -77,6 +78,13 @@ func (mgr *OBClusterMgr) AddNode(args *OBAgrs, reply *([]OBRsp)) error {
 	return nil
 }
 
+func (mgr *OBClusterMgr) Stop() {
+	for _, c := range mgr.Clients {
+		c.Stop()
+	}
+	mgr.Listener.Close()
+}
+
 func (mgr *OBClusterMgr) DeleteNode(args *OBAgrs, reply *([]OBRsp)) error {
 	mgr.mutex.Lock()
 	defer mgr.mutex.Unlock()
@@ -101,6 +109,8 @@ func NewOBClusterMgr(addr string) *OBClusterMgr {
 		return nil
 	}
 
+	mgr.Listener = listener
+
 	http.Serve(listener, nil)
 
 	return mgr
@@ -110,6 +120,7 @@ type OBClusterNode struct {
 	MgrAddr  string
 	NodeAddr string
 	Server   *ObserverServer
+	Client   *rpc.Client
 }
 
 func (node *OBClusterNode) Start() bool {
@@ -117,10 +128,13 @@ func (node *OBClusterNode) Start() bool {
 	time.Sleep(time.Second / 2)
 
 	client, err := rpc.DialHTTP("tcp", node.MgrAddr)
+
 	if err != nil {
 		zed.ZLog("OBClusterNode Start DialHTTP Error: %v", err)
 		return false
 	}
+
+	node.Client = client
 
 	args := &OBAgrs{
 		Addr:      node.NodeAddr,
@@ -134,6 +148,11 @@ func (node *OBClusterNode) Start() bool {
 	}
 
 	return true
+}
+
+func (node *OBClusterNode) Stop() {
+	node.Client.Close()
+	node.Server.Stop()
 }
 
 func NewOBClusterNode(mgraddr string, nodeaddr string, heartbeat time.Duration) *OBClusterNode {
