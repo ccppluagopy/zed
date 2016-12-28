@@ -167,7 +167,9 @@ func (task *logtask) stop() {
 func (task *logtask) save() {
 	task.Lock()
 	defer task.Unlock()
-	task.logFile.Save()
+	if task.logType == LogFile {
+		task.logFile.Save()
+	}
 }
 
 func ZLog(format string, v ...interface{}) {
@@ -183,11 +185,7 @@ func ZLog(format string, v ...interface{}) {
 
 func LogInfoSave(loggerIdx int) {
 	loggerIdx = loggerIdx % infoLoggerNum
-
-	arrTaskInfo[loggerIdx].Lock()
-	defer arrTaskInfo[loggerIdx].Unlock()
-
-	arrTaskInfo[loggerIdx].logFile.Save()
+	arrTaskInfo[loggerIdx].save()
 }
 
 func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
@@ -237,11 +235,7 @@ func LogInfo(tag int, loggerIdx int, format string, v ...interface{}) {
 
 func LogWarnSave(loggerIdx int) {
 	loggerIdx = loggerIdx % warnLoggerNum
-
-	arrTaskWarn[loggerIdx].Lock()
-	defer arrTaskWarn[loggerIdx].Unlock()
-
-	arrTaskWarn[loggerIdx].logFile.Save()
+	arrTaskWarn[loggerIdx].save()
 }
 
 func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
@@ -292,11 +286,7 @@ func LogWarn(tag int, loggerIdx int, format string, v ...interface{}) {
 
 func LogErrorSave(loggerIdx int) {
 	loggerIdx = loggerIdx % errorLoggerNum
-
-	arrTaskError[loggerIdx].Lock()
-	defer arrTaskError[loggerIdx].Unlock()
-
-	arrTaskError[loggerIdx].logFile.Save()
+	arrTaskError[loggerIdx].save()
 }
 
 func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
@@ -346,11 +336,7 @@ func LogError(tag int, loggerIdx int, format string, v ...interface{}) {
 
 func LogActionSave(loggerIdx int) {
 	loggerIdx = loggerIdx % errorLoggerNum
-
-	arrTaskAction[loggerIdx].Lock()
-	defer arrTaskAction[loggerIdx].Unlock()
-
-	arrTaskAction[loggerIdx].logFile.Save()
+	arrTaskAction[loggerIdx].save()
 }
 
 func LogAction(tag int, loggerIdx int, format string, v ...interface{}) {
