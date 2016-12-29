@@ -3,7 +3,7 @@ package zed
 var (
 	workdir    = "./"
 	logdir     = ""
-	worklogdir = "./log"
+	worklogdir = "./logs/"
 
 	/*
 		showClientData = false

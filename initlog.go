@@ -11,7 +11,7 @@ import (
 type LogConfig interface {
 	GetDebug() bool
 	GetMaskSignal() bool
-	GetWorkDir() string
+	//GetWorkDir() string
 	GetLogDir() string
 	GetLogLevel() int
 	GetLogConf() map[string]int
@@ -24,7 +24,7 @@ type DefaultLogConfig struct {
 	Debug      bool
 	MaskSignal bool
 
-	WorkDir      string
+	//WorkDir      string
 	LogDir       string
 	LogLevel     int
 	LogConf      map[string]int
@@ -39,9 +39,13 @@ func (conf *DefaultLogConfig) GetDebug() bool {
 func (conf *DefaultLogConfig) GetMaskSignal() bool {
 	return conf.MaskSignal
 }
+
+/*
 func (conf *DefaultLogConfig) GetWorkDir() string {
 	return conf.WorkDir
 }
+*/
+
 func (conf *DefaultLogConfig) GetLogDir() string {
 	return conf.LogDir
 }
@@ -75,7 +79,12 @@ func InitLog(logconf LogConfig) {
 			}
 		}
 	*/
-	Init(logconf.GetWorkDir(), logconf.GetLogDir())
+	//Init(logconf.GetWorkDir(), logconf.GetLogDir())
+	//workdir = workDir
+	worklogdir = logconf.GetLogDir()
+	MakeDir(worklogdir)
+	MakeNewLogDir()
+
 	SetLogLevel(logconf.GetLogLevel())
 	StartLogger(logconf.GetLogConf(), logconf.GetLogTags(), logconf.GetDebug())
 	StartAliveLog(logconf.GetAliveLogTime(), logconf.GetAliveLogStr())
