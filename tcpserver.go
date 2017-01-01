@@ -4,12 +4,13 @@ import (
 	//"encoding/binary"
 	//"fmt"
 	"net"
-	//"sync"
+	"sync"
 	"time"
 )
 
 var (
-	servers = make(map[string]*TcpServer)
+	servers      = make(map[string]*TcpServer)
+	serversMutex = sync.Mutex{}
 )
 
 func (server *TcpServer) startListener(addr string) {
@@ -401,6 +402,9 @@ func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
 }
 
 func NewTcpServer(name string) *TcpServer {
+	serversMutex.Lock()
+	defer serversMutex.Unlock()
+
 	if _, ok := servers[name]; ok {
 		ZLog("NewTcpServer Error: TcpServer %s already exists.", name)
 		return nil
@@ -443,6 +447,9 @@ func NewTcpServer(name string) *TcpServer {
 }
 
 func GetTcpServerByName(name string) (*TcpServer, bool) {
+	serversMutex.Lock()
+	defer serversMutex.Unlock()
+
 	server, ok := servers[name]
 	if !ok {
 		ZLog("GetTcpServerByName Error: TcpServer %s doesn't exists.", name)

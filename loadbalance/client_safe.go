@@ -1,5 +1,6 @@
 package loadbalance
 
+/*
 import (
 	"github.com/ccppluagopy/zed"
 	"net/rpc"
@@ -13,7 +14,6 @@ type LoadbalanceClient struct {
 }
 
 func NewLoadbalanceClient(addr string) *LoadbalanceClient {
-
 	client := LoadbalanceClient{
 		Addr: addr,
 	}
@@ -255,7 +255,7 @@ func (client *LoadbalanceClient) Stop() {
 
 	client.Client.Close()
 }
-
+*/
 /*
 func main() {
 	time.Sleep(time.Second * 3)
