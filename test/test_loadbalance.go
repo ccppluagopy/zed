@@ -25,22 +25,23 @@ func client(n int, stype string, stag string, addr string, addr2 string) {
 
 func timeout(addr string) {
 	client := lb.NewLoadbalanceClient(addr)
+	//t1 := time.Now()
 	for i := 1; i < 1000; i++ {
-		fmt.Println(" -- xxx 000 ---", 5*i)
+		fmt.Println(" -- xxx 000 ---", 5*i, time.Now())
 		time.Sleep(time.Minute * 5 * time.Duration(i))
-		fmt.Println(" -- xxx 111 ---", 5*i)
+		fmt.Println(" -- xxx 111 ---", 5*i, time.Now())
 		//client.GetMinLoadServerInfoByType("test server")
 		ret, err := client.GetMinLoadServerInfoByType("test server")
-		fmt.Println(" -- xxx 222 ---", 5*i, "minutes:", ret.Addr, ret.Num, err)
+		fmt.Println(" -- xxx 222 ---", 5*i, "minutes:", ret.Addr, ret.Num, err, time.Now())
 	}
 }
 func main() {
-	addr := "127.0.0.1:8888"
+	addr := "127.0.0.1:9888"
 	server := lb.NewLoadbalanceServer(addr, time.Second*10)
 
-	addr1 := "127.0.0.1:10001"
-	addr2 := "127.0.0.1:10002"
-	addr3 := "127.0.0.1:10003"
+	addr1 := "127.0.0.1:20001"
+	addr2 := "127.0.0.1:20002"
+	addr3 := "127.0.0.1:20003"
 	client(1, "test server", "test server 1", addr, addr1)
 	client(2, "test server", "test server 2", addr, addr2)
 	client(3, "test server", "test server 3", addr, addr3)
