@@ -6,16 +6,25 @@ import (
 	"sync"
 )
 
+type LBClientError struct {
+}
+
+func (e *LBClientError) Error() string {
+	return "LoadbalanceClient Is Not Running."
+}
+
 type LoadbalanceClient struct {
 	sync.Mutex
-	Addr   string
-	Client *rpc.Client
+	Addr    string
+	Client  *rpc.Client
+	running bool
 }
 
 func NewLoadbalanceClient(addr string) *LoadbalanceClient {
 
 	client := LoadbalanceClient{
-		Addr: addr,
+		Addr:    addr,
+		running: true,
 	}
 
 	if err := client.Start(); err != nil {
@@ -36,223 +45,242 @@ func (client *LoadbalanceClient) AddServer(serverType string, serverTag string, 
 	client.Lock()
 	defer client.Unlock()
 
-	redo := false
+	if client.running {
+		redo := false
 
-REDO:
+	REDO:
 
-	args := &LBArgs{
-		ServerType: serverType,
-		ServerTag:  serverTag,
-		Addr:       addr,
-	}
-
-	err := client.Client.Call("LoadbalanceServer.AddServer", args, nil)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient AddServer Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient AddServer Error: %v", err)
-				return err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient AddServer Error: %v", err)
-			return err
+		args := &LBArgs{
+			ServerType: serverType,
+			ServerTag:  serverTag,
+			Addr:       addr,
 		}
 
+		err := client.Client.Call("LoadbalanceServer.AddServer", args, nil)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient AddServer Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient AddServer Error: %v", err)
+					return err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient AddServer Error: %v", err)
+				return err
+			}
+
+		}
+
+		return nil
 	}
 
-	return nil
+	return &LBClientError{}
 }
 
 func (client *LoadbalanceClient) Increament(serverType string, serverTag string, num int) error {
 	client.Lock()
 	defer client.Unlock()
 
-	redo := false
+	if client.running {
 
-REDO:
+		redo := false
 
-	args := &LBArgs{
-		ServerType: serverType,
-		ServerTag:  serverTag,
-		Num:        num,
-	}
+	REDO:
 
-	err := client.Client.Call("LoadbalanceServer.Increament", args, nil)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient Increament Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient Increament Error: %v", err)
-				return err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient Increament Error: %v", err)
-			return err
+		args := &LBArgs{
+			ServerType: serverType,
+			ServerTag:  serverTag,
+			Num:        num,
 		}
 
+		err := client.Client.Call("LoadbalanceServer.Increament", args, nil)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient Increament Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient Increament Error: %v", err)
+					return err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient Increament Error: %v", err)
+				return err
+			}
+
+		}
+
+		return err
 	}
 
-	return err
+	return &LBClientError{}
 }
 
 func (client *LoadbalanceClient) UpdateLoad(serverType string, serverTag string, num int) error {
 	client.Lock()
 	defer client.Unlock()
 
-	redo := false
+	if client.running {
+		redo := false
 
-REDO:
+	REDO:
 
-	args := &LBArgs{
-		ServerType: serverType,
-		ServerTag:  serverTag,
-		Num:        num,
-	}
-
-	err := client.Client.Call("LoadbalanceServer.UpdateLoad", args, nil)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient UpdateLoad Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient UpdateLoad Error: %v", err)
-				return err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient UpdateLoad Error: %v", err)
-			return err
+		args := &LBArgs{
+			ServerType: serverType,
+			ServerTag:  serverTag,
+			Num:        num,
 		}
 
-	}
+		err := client.Client.Call("LoadbalanceServer.UpdateLoad", args, nil)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient UpdateLoad Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient UpdateLoad Error: %v", err)
+					return err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient UpdateLoad Error: %v", err)
+				return err
+			}
 
-	return err
+		}
+
+		return err
+	}
+	return &LBClientError{}
 }
 
 func (client *LoadbalanceClient) DeleteServer(serverType string, serverTag string) error {
 	client.Lock()
 	defer client.Unlock()
+	if client.running {
+		redo := false
 
-	redo := false
+	REDO:
 
-REDO:
-
-	args := &LBArgs{
-		ServerType: serverType,
-		ServerTag:  serverTag,
-	}
-
-	err := client.Client.Call("LoadbalanceServer.DeleteServer", args, nil)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient DeleteServer Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient DeleteServer Error: %v", err)
-				return err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient DeleteServer Error: %v", err)
-			return err
+		args := &LBArgs{
+			ServerType: serverType,
+			ServerTag:  serverTag,
 		}
 
-	}
+		err := client.Client.Call("LoadbalanceServer.DeleteServer", args, nil)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient DeleteServer Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient DeleteServer Error: %v", err)
+					return err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient DeleteServer Error: %v", err)
+				return err
+			}
 
-	return err
+		}
+
+		return err
+	}
+	return &LBClientError{}
 }
 
 func (client *LoadbalanceClient) GetMinLoadServerInfoByType(serverType string) (*ServerInfo, error) {
 	client.Lock()
 	defer client.Unlock()
+	if client.running {
+		redo := false
 
-	redo := false
+	REDO:
 
-REDO:
-
-	args := &LBArgs{
-		ServerType: serverType,
-	}
-
-	reply := LBRsp{}
-	err := client.Client.Call("LoadbalanceServer.GetMinLoadServerInfoByType", args, &reply)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Error: %v", err)
-				return nil, err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Error: %v", err)
-			return nil, err
+		args := &LBArgs{
+			ServerType: serverType,
 		}
 
-	}
+		reply := LBRsp{}
+		err := client.Client.Call("LoadbalanceServer.GetMinLoadServerInfoByType", args, &reply)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Error: %v", err)
+					return nil, err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient GetMinLoadServerInfoByType Error: %v", err)
+				return nil, err
+			}
 
-	if len(reply.Infos) == 1 {
-		return &(reply.Infos[0]), nil
-	}
+		}
 
-	return nil, err
+		if len(reply.Infos) == 1 {
+			return &(reply.Infos[0]), nil
+		}
+
+		return nil, err
+	}
+	return nil, &LBClientError{}
 }
 
 func (client *LoadbalanceClient) GetServersInfoByType(serverType string) ([]ServerInfo, error) {
 	client.Lock()
 	defer client.Unlock()
 
-	redo := false
+	if client.running {
+		redo := false
 
-REDO:
+	REDO:
 
-	args := &LBArgs{
-		ServerType: serverType,
-	}
-
-	reply := LBRsp{}
-	err := client.Client.Call("LoadbalanceServer.GetServersInfoByType", args, &reply)
-	if err != nil {
-		if !redo {
-			redo = true
-			zed.ZLog("LoadbalanceClient GetServersInfoByType Warn: %v", err)
-			err = client.Start()
-			if err != nil {
-				zed.ZLog("LoadbalanceClient GetServersInfoByType Error: %v", err)
-				return nil, err
-			} else {
-				goto REDO
-			}
-		} else {
-			zed.ZLog("LoadbalanceClient GetServersInfoByType Error: %v", err)
-			return nil, err
+		args := &LBArgs{
+			ServerType: serverType,
 		}
 
-	}
+		reply := LBRsp{}
+		err := client.Client.Call("LoadbalanceServer.GetServersInfoByType", args, &reply)
+		if err != nil {
+			if !redo {
+				redo = true
+				zed.ZLog("LoadbalanceClient GetServersInfoByType Warn: %v", err)
+				err = client.Start()
+				if err != nil {
+					zed.ZLog("LoadbalanceClient GetServersInfoByType Error: %v", err)
+					return nil, err
+				} else {
+					goto REDO
+				}
+			} else {
+				zed.ZLog("LoadbalanceClient GetServersInfoByType Error: %v", err)
+				return nil, err
+			}
 
-	return reply.Infos, err
+		}
+
+		return reply.Infos, err
+	}
+	return nil, &LBClientError{}
 }
 
 func (client *LoadbalanceClient) Stop() {
 	client.Lock()
 	defer client.Unlock()
-
+	client.running = false
 	client.Client.Close()
 }
 
