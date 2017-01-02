@@ -45,7 +45,7 @@ func (client *LoadbalanceClient) AddServer(serverType string, serverTag string, 
 	client.Lock()
 	defer client.Unlock()
 
-	if client.running {
+	if client.running && client.Client != nil {
 		redo := false
 
 	REDO:
@@ -85,7 +85,7 @@ func (client *LoadbalanceClient) Increament(serverType string, serverTag string,
 	client.Lock()
 	defer client.Unlock()
 
-	if client.running {
+	if client.running && client.Client != nil {
 
 		redo := false
 
@@ -126,7 +126,7 @@ func (client *LoadbalanceClient) UpdateLoad(serverType string, serverTag string,
 	client.Lock()
 	defer client.Unlock()
 
-	if client.running {
+	if client.running && client.Client != nil {
 		redo := false
 
 	REDO:
@@ -164,7 +164,7 @@ func (client *LoadbalanceClient) UpdateLoad(serverType string, serverTag string,
 func (client *LoadbalanceClient) DeleteServer(serverType string, serverTag string) error {
 	client.Lock()
 	defer client.Unlock()
-	if client.running {
+	if client.running && client.Client != nil {
 		redo := false
 
 	REDO:
@@ -201,7 +201,7 @@ func (client *LoadbalanceClient) DeleteServer(serverType string, serverTag strin
 func (client *LoadbalanceClient) GetMinLoadServerInfoByType(serverType string) (*ServerInfo, error) {
 	client.Lock()
 	defer client.Unlock()
-	if client.running {
+	if client.running && client.Client != nil {
 		redo := false
 
 	REDO:
@@ -211,6 +211,7 @@ func (client *LoadbalanceClient) GetMinLoadServerInfoByType(serverType string) (
 		}
 
 		reply := LBRsp{}
+		zed.Println("LoadbalanceClient.Client: ", client.Client)
 		err := client.Client.Call("LoadbalanceServer.GetMinLoadServerInfoByType", args, &reply)
 		if err != nil {
 			if !redo {
@@ -243,7 +244,7 @@ func (client *LoadbalanceClient) GetServersInfoByType(serverType string) ([]Serv
 	client.Lock()
 	defer client.Unlock()
 
-	if client.running {
+	if client.running && client.Client != nil {
 		redo := false
 
 	REDO:
@@ -280,8 +281,13 @@ func (client *LoadbalanceClient) GetServersInfoByType(serverType string) ([]Serv
 func (client *LoadbalanceClient) Stop() {
 	client.Lock()
 	defer client.Unlock()
-	client.running = false
-	client.Client.Close()
+	if client.running {
+		client.running = false
+		if client.Client != nil {
+			client.Client.Close()
+			client.Client = nil
+		}
+	}
 }
 
 /*
