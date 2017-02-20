@@ -69,6 +69,9 @@ func (client *TcpClient) Stop() {
 
 			if client.chSend != nil {
 				close(client.chSend)
+				for _ = range client.chSend {
+
+				}
 				client.chSend = nil
 			}
 
