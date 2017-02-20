@@ -285,8 +285,6 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 		running: true,
 	}
 
-	parent.Init()
-
 	return client
 }
 
@@ -305,6 +303,9 @@ func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int) *TcpClien
 	}
 
 	client := newTcpClient(dele, conn, idx)
+
+	parent.Init()
+
 	if client != nil && client.start() {
 		return client
 	}
