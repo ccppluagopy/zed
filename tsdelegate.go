@@ -26,6 +26,10 @@ type ZTcpClientDelegate interface {
 	SetIOBufLen(int, int)
 	SetRecvBufLen(int)
 	SetSendBufLen(int)
+	NoDelay() bool
+	SetNoDelay(bool)
+	KeepAlive() bool
+	SetKeepAlive(bool)
 	SetCientAliveTime(time.Duration)
 	SetMaxPackLen(int)
 	NewConnCB() func(*TcpClient)
@@ -53,6 +57,8 @@ type DefaultTCDelegate struct {
 	sendBlockTime     time.Duration
 	sendBufLen        int
 	aliveTime         time.Duration
+	noDelay           bool
+	keepAlive         bool
 	delegate          ZTcpClientDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
@@ -287,6 +293,18 @@ func (dele *DefaultTCDelegate) SetSendBufLen(sendBL int) {
 	dele.sendBufLen = sendBL
 }
 
+func (dele *DefaultTCDelegate) SetNoDelay(nodelay bool) {
+	dele.Lock()
+	defer dele.Unlock()
+	dele.noDelay = nodelay
+}
+
+func (dele *DefaultTCDelegate) SetKeepAlive(keppalive bool) {
+	dele.Lock()
+	defer dele.Unlock()
+	dele.keepAlive = keppalive
+}
+
 func (dele *DefaultTCDelegate) SetCientAliveTime(aliveT time.Duration) {
 	dele.Lock()
 	defer dele.Unlock()
@@ -331,6 +349,14 @@ func (dele *DefaultTCDelegate) RecvBufLen() int {
 
 func (dele *DefaultTCDelegate) SendBufLen() int {
 	return dele.sendBufLen
+}
+
+func (dele *DefaultTCDelegate) NoDelay() bool {
+	return dele.noDelay
+}
+
+func (dele *DefaultTCDelegate) KeepAlive() bool {
+	return dele.keepAlive
 }
 
 func (dele *DefaultTCDelegate) RecvBlockTime() time.Duration {

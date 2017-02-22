@@ -259,6 +259,12 @@ func (client *TcpClient) start() bool {
 		}
 		return false
 	}
+	if err := (*client.conn).SetNoDelay(client.parent.NoDelay()); err != nil {
+		if showClientData {
+			ZLog("%s SetNoDelay Err: %v.", client.Info(), err)
+		}
+		return false
+	}
 
 	/*NewCoroutine(func() {
 		client.writer()
@@ -305,9 +311,9 @@ func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int) *TcpClien
 		return nil
 	}
 
-	client := newTcpClient(dele, conn, idx)
+	//dele.Init()
 
-	parent.Init()
+	client := newTcpClient(dele, conn, idx)
 
 	if client != nil && client.start() {
 		return client

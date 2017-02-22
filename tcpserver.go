@@ -308,6 +308,18 @@ func (server *TcpServer) SetCientAliveTime(aliveT time.Duration) {
 	}
 }
 
+func (server *TcpServer) SetNoDelay(nodelay bool) {
+	if server.delegate != nil {
+		server.delegate.SetNoDelay(nodelay)
+	}
+}
+
+func (server *TcpServer) SetKeepAlive(keppalive bool) {
+	if server.delegate != nil {
+		server.delegate.SetKeepAlive(keppalive)
+	}
+}
+
 func (server *TcpServer) SetMaxPackLen(maxPL int) {
 	if server.delegate != nil {
 		server.delegate.SetMaxPackLen(maxPL)
