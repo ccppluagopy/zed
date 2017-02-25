@@ -152,9 +152,18 @@ func (tm *Timer) DeleteItem(item *TimeItem) {
 	defer tm.Unlock()
 	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
 	n := tm.timers.Len()
+	if n == 0 {
+		ZLog("Timer DeleteItem Error: Timer Size Is 0!")
+	}
 	if item.Index > 0 && item.Index < n {
+		if item != tm.timers[item.Index] {
+			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+		}
 		tm.timers.Remove(item.Index)
 	} else if item.Index == 0 {
+		if item != tm.timers[item.Index] {
+			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+		}
 		tm.timers.Remove(item.Index)
 		if head := tm.timers.Head(); head != nil && head != item {
 			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
@@ -168,9 +177,18 @@ func (tm *Timer) DeleteItem(item *TimeItem) {
 func (tm *Timer) DeleteItemInCall(item *TimeItem) {
 	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
 	n := tm.timers.Len()
+	if n == 0 {
+		ZLog("Timer DeleteItem Error: Timer Size Is 0!")
+	}
 	if item.Index > 0 && item.Index < n {
+		if item != tm.timers[item.Index] {
+			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+		}
 		tm.timers.Remove(item.Index)
 	} else if item.Index == 0 {
+		if item != tm.timers[item.Index] {
+			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+		}
 		tm.timers.Remove(item.Index)
 		if head := tm.timers.Head(); head != nil && head != item {
 			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
