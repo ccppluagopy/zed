@@ -66,6 +66,7 @@ func main() {
 	tm.DeleteItem(item3)
 	tm.DeleteItem(item5)
 	tm.DeleteItem(item1)
+	tm.DeleteItem(item1)
 	tm.DeleteItem(item10)
 	tm.DeleteItem(item8)
 	fmt.Println("111 Size: ", tm.Size())
