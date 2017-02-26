@@ -1,11 +1,11 @@
 package main
 
-// go/src/net/http/httptest/server_test.go  server.go中的server改下Start端口直接用 //
 import (
 	"fmt"
-	"net/http"
-	//"time"
+	"github.com/ccppluagopy/zed/zhttp"
 	"net"
+	"net/http"
+	"time"
 )
 
 func serve8888(w http.ResponseWriter, r *http.Request) {
@@ -14,7 +14,11 @@ func serve8888(w http.ResponseWriter, r *http.Request) {
 
 func serve9999(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(r.Host + " " + r.URL.String() + " " + r.Method))
+	//r.Context().Done()
 	r.Header.Add("key", "head-9999")
+	fmt.Println("--------------------")
+	fmt.Println("body: ", r.Response, r.Context())
+	fmt.Println("====================")
 }
 
 func serverHttp(addr string, handler func(http.ResponseWriter, *http.Request)) {
@@ -27,13 +31,11 @@ func serverHttp(addr string, handler func(http.ResponseWriter, *http.Request)) {
 
 	server := &http.Server{Handler: http.HandlerFunc(handler)}
 	server.Serve(l)
-
-	l.Close()
-	server.SetKeepAlivesEnabled(false)
-
 }
 
 func main() {
-	go serverHttp("127.0.0.1:8888", serve8888)
-	serverHttp("127.0.0.1:9999", serve9999)
+	go zhttp.NewServer("127.0.0.1:8888", serve8888)
+	zhttp.NewServer("127.0.0.1:9999", serve9999)
+
+	time.Sleep(time.Hour)
 }
