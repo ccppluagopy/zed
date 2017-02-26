@@ -23,7 +23,7 @@ func readfile(path string) string {
 	return string(buf)
 }
 
-func TestRedisCluster() {
+func TestRedis() {
 	redispool = zredis.NewRedisMgrPool("xx", "127.0.0.1:6379", 0, "", 1)
 	path := "./test_redis.lua"
 	mgr := redispool.GetMgr(0)
@@ -63,5 +63,5 @@ func TestRedisCluster() {
 }
 
 func main() {
-	TestRedisCluster()
+	TestRedis()
 }
