@@ -1,5 +1,6 @@
 package main
 
+// go/src/net/http/httptest/server_test.go  server.go中的server改下Start端口直接用 //
 import (
 	"fmt"
 	"net/http"
@@ -26,6 +27,10 @@ func serverHttp(addr string, handler func(http.ResponseWriter, *http.Request)) {
 
 	server := &http.Server{Handler: http.HandlerFunc(handler)}
 	server.Serve(l)
+
+	l.Close()
+	server.SetKeepAlivesEnabled(false)
+
 }
 
 func main() {

@@ -32,8 +32,8 @@ type ZTcpClientDelegate interface {
 	SetKeepAlive(bool)
 	SetCientAliveTime(time.Duration)
 	SetMaxPackLen(int)
-	NewConnCB() func(*TcpClient)
-	SetNewConnCB(cb func(*TcpClient))
+	OnNewConn(*TcpClient)
+	//SetNewConnCB(cb func(*TcpClient))
 
 	ShowClientData() bool
 	MaxPackLen() int
@@ -42,6 +42,8 @@ type ZTcpClientDelegate interface {
 	RecvBlockTime() time.Duration
 	SendBlockTime() time.Duration
 	AliveTime() time.Duration
+
+	OnServerStop()
 }
 
 type DefaultTCDelegate struct {
@@ -371,10 +373,14 @@ func (dele *DefaultTCDelegate) AliveTime() time.Duration {
 	return dele.aliveTime
 }
 
-func (dele *DefaultTCDelegate) NewConnCB() func(*TcpClient) {
-	return dele.newConnCB
+func (dele *DefaultTCDelegate) OnNewConn(client *TcpClient) {
+	//return dele.newConnCB
 }
 
-func (dele *DefaultTCDelegate) SetNewConnCB(cb func(*TcpClient)) {
+/*func (dele *DefaultTCDelegate) SetNewConnCB(cb func(*TcpClient)) {
 	dele.newConnCB = cb
+}*/
+
+func (dele *DefaultTCDelegate) OnServerStop() {
+
 }

@@ -57,8 +57,12 @@ func (server *TcpServer) startListener(addr string) {
 				server.ClientNum = server.ClientNum + 1
 
 				//server.onNewClient(client)
-				if onnew := server.delegate.NewConnCB(); onnew != nil {
+				/*if onnew := server.delegate.NewConnCB(); onnew != nil {
 					onnew(client)
+				}*/
+
+				if server.delegate != nil {
+					server.delegate.OnNewConn(client)
 				}
 
 				/*for _, cb := range server.newConnCBMap {
@@ -128,8 +132,8 @@ func (server *TcpServer) Stop() {
 		delete(server.handlerMap, k)
 	}
 
-	if server.onStopCB != nil {
-		server.onStopCB()
+	if server.delegate != nil {
+		server.delegate.OnServerStop()
 	}
 
 	/*for k, _ := range server.clientIdMap {
@@ -187,11 +191,11 @@ func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
 	server.msgFilter = filter
 }
 
-func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
+/*func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
 	if server.delegate != nil {
 		server.delegate.SetNewConnCB(cb)
 	}
-}
+}*/
 
 /*func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
 	server.onConnCloseCB = cb
