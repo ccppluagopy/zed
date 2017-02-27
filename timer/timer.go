@@ -49,9 +49,11 @@ func (tm *Timers) Remove(i int) {
 	n := tm.Len() - 1
 	if n != i {
 		(*tm).Swap(i, n)
+		(*tm)[n] = nil
 		*tm = (*tm)[:n]
 		heap.Fix(tm, i)
 	} else {
+		(*tm)[n] = nil
 		*tm = (*tm)[:n]
 	}
 
@@ -252,6 +254,12 @@ func (tm *Timer) Size() int {
 	return len(tm.timers)
 }
 
+func (tm *Timer) Stop() {
+	tm.Lock()
+	defer tm.Unlock()
+	tm.signal.Stop()
+}
+
 func NewTimer() *Timer {
 	tm := &Timer{
 		signal: time.NewTimer(TIME_FOREVER),
@@ -277,8 +285,11 @@ func NewTimer() *Timer {
 	}
 
 	go func() {
+		ok := false
 		for {
-			<-tm.signal.C
+			if _, ok = <-tm.signal.C; !ok {
+				break
+			}
 			once()
 		}
 	}()
