@@ -117,7 +117,7 @@ func (client *TcpClient) writer() {
 					client.Lock()
 					defer client.Unlock()
 					defer func() {
-						if err := PanicHandle(true); err != nil {
+						if err := HandlePanic(true); err != nil {
 							client.Stop()
 							return
 						}
@@ -146,7 +146,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	client.Lock()
 	defer client.Unlock()
 	defer func() {
-		if err := PanicHandle(true); err != nil {
+		if err := HandlePanic(true); err != nil {
 			client.conn.Close()
 			return
 		}

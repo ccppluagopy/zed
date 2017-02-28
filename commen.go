@@ -13,7 +13,7 @@ import (
 
 func NewCoroutine(cb ClosureCB) {
 	go func() {
-		defer PanicHandle(true)
+		defer HandlePanic(true)
 		cb()
 	}()
 }
@@ -23,7 +23,7 @@ func NewCoroutine(cb interface{}, args ...interface{}) {
 	f := reflect.ValueOf(cb)
 	if f.Kind() == reflect.Func {
 		go func() {
-			defer PanicHandle(true)
+			defer HandlePanic(true)
 			n := len(args)
 			if n > 0 {
 				refargs := make([]reflect.Value, n)

@@ -2,8 +2,8 @@ package timer
 
 import (
 	"container/heap"
-	//"fmt"
-	"github.com/ccppluagopy/zed"
+	"fmt"
+	//"github.com/ccppluagopy/zed"
 	"sync"
 	"time"
 )
@@ -28,7 +28,6 @@ type Timers []*TimeItem
 func (tm Timers) Len() int { return len(tm) }
 
 func (tm Timers) Less(i, j int) bool {
-	//zed.Println("Less i j:", i, j)
 	return tm[i].Expire.Before(tm[j].Expire)
 }
 
@@ -99,11 +98,8 @@ func (tm *Timer) NewItem(timeout time.Duration, cb func()) *TimeItem {
 		Callback: cb,
 	}
 	tm.timers = append(tm.timers, item)
-	//zed.Println("=== 111 Index:", item.Index)
 	heap.Fix(&(tm.timers), item.Index)
-	//zed.Println("=== 222 Index:", item.Index)
 	if head := tm.timers.Head(); head == item {
-		//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
 		tm.signal.Reset(head.Expire.Sub(time.Now()))
 	}
 
@@ -138,11 +134,8 @@ func (tm *Timer) Schedule(delay time.Duration, internal time.Duration, cb func()
 	}
 
 	tm.timers = append(tm.timers, item)
-	//zed.Println("=== 111 Index:", item.Index)
 	heap.Fix(&(tm.timers), item.Index)
-	//zed.Println("=== 222 Index:", item.Index)
 	if head := tm.timers.Head(); head == item {
-		//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
 		tm.signal.Reset(head.Expire.Sub(now))
 	}
 
@@ -152,60 +145,54 @@ func (tm *Timer) Schedule(delay time.Duration, internal time.Duration, cb func()
 func (tm *Timer) DeleteItem(item *TimeItem) {
 	tm.Lock()
 	defer tm.Unlock()
-	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
 	n := tm.timers.Len()
 	if n == 0 {
-		zed.ZLog("Timer DeleteItem Error: Timer Size Is 0!")
+		fmt.Println("Timer DeleteItem Error: Timer Size Is 0!")
 		return
 	}
 	if item.Index > 0 && item.Index < n {
 		if item != tm.timers[item.Index] {
-			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+			fmt.Println("Timer DeleteItem Error: Invalid Item!")
 			return
 		}
 		tm.timers.Remove(item.Index)
 	} else if item.Index == 0 {
 		if item != tm.timers[item.Index] {
-			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+			fmt.Println("Timer DeleteItem Error: Invalid Item!")
 			return
 		}
 		tm.timers.Remove(item.Index)
 		if head := tm.timers.Head(); head != nil && head != item {
-			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
 			tm.signal.Reset(head.Expire.Sub(time.Now()))
 		}
 	} else {
-		zed.ZLog("Timer DeleteItem Error: Invalid Index: %d", item.Index)
+		fmt.Println("Timer DeleteItem Error: Invalid Index: %d", item.Index)
 	}
 }
 
 func (tm *Timer) DeleteItemInCall(item *TimeItem) {
-	/*tm.Lock()
-	defer tm.Unlock()*/
-	//zed.Println("DeleteItem: ", item.Index, item.Expire.Sub(t0))
 	n := tm.timers.Len()
 	if n == 0 {
-		zed.ZLog("Timer DeleteItem Error: Timer Size Is 0!")
+		fmt.Println("Timer DeleteItem Error: Timer Size Is 0!")
 		return
 	}
 	if item.Index > 0 && item.Index < n {
 		if item != tm.timers[item.Index] {
-			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+			fmt.Println("Timer DeleteItem Error: Invalid Item!")
 			return
 		}
 		tm.timers.Remove(item.Index)
 	} else if item.Index == 0 {
 		if item != tm.timers[item.Index] {
-			zed.ZLog("Timer DeleteItem Error: Invalid Item!")
+			fmt.Println("Timer DeleteItem Error: Invalid Item!")
 			return
 		}
 		tm.timers.Remove(item.Index)
 		if head := tm.timers.Head(); head != nil && head != item {
-			//zed.Println("=== 333 Index:", head.Index, head.Expire.Sub(time.Now()))
 			tm.signal.Reset(head.Expire.Sub(time.Now()))
 		}
 	} else {
-		zed.ZLog("Timer DeleteItem Error: Invalid Index: %d", item.Index)
+		fmt.Println("Timer DeleteItem Error: Invalid Index: %d", item.Index)
 	}
 }
 
@@ -215,38 +202,20 @@ func (tm *Timer) ResetItem(item *TimeItem, delay time.Duration) {
 
 	n := tm.timers.Len()
 	if n == 0 {
-		zed.ZLog("Timer ResetItem Error: Timer Size Is 0!")
+		fmt.Println("Timer ResetItem Error: Timer Size Is 0!")
 		return
 	}
 	if item.Index < n {
 		if item != tm.timers[item.Index] {
-			zed.ZLog("Timer ResetItem Error: Invalid Item!")
+			fmt.Println("Timer ResetItem Error: Invalid Item!")
 			return
 		}
 		item.Expire = time.Now().Add(delay)
 		heap.Fix(&(tm.timers), item.Index)
 	} else {
-		zed.ZLog("Timer ResetItem Error: Invalid Item!")
+		fmt.Println("Timer ResetItem Error: Invalid Item!")
 	}
 }
-
-/*
-func (tm *Timer) NewGroupItem(timeout time.Duration, cb func(), gidx int) *TimeItem {
-	tm.Lock()
-	defer tm.Unlock()
-
-	item := &TimeItem{
-		Index:    tm.timers.Len(),
-		GroupIdx: gidx,
-		Expire:   time.Now().Add(timeout),
-		Callback: cb,
-	}
-	tm.timers = append(tm.timers, item)
-	heap.Fix(&(tm.timers), item.Index)
-
-	return item
-}
-*/
 
 func (tm *Timer) Size() int {
 	tm.Lock()
@@ -269,8 +238,9 @@ func NewTimer() *Timer {
 	once := func() {
 		tm.Lock()
 		defer func() {
+			recover()
 			tm.Unlock()
-			zed.PanicHandle(true)
+			//zed.HandlePanic(true)
 		}()
 
 		if item := tm.timers.Pop(); item != nil {

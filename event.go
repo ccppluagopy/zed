@@ -14,7 +14,7 @@ var (
 )
 
 func eventHandler(handler EventHandler, event interface{}, args []interface{}) {
-	defer PanicHandle(true)
+	defer HandlePanic(true)
 	handler(event, args)
 }
 

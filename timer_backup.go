@@ -6,12 +6,12 @@ import (
 )
 
 func wtimerHandler(handler WTimerCallBack, timer *WTimer) {
-	defer PanicHandle(true)
+	defer HandlePanic(true)
 	handler(timer)
 }
 
 func timerHandler(handler TimerCallBack) {
-	defer PanicHandle(true)
+	defer HandlePanic(true)
 	handler()
 }
 

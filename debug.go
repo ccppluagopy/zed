@@ -12,7 +12,7 @@ const (
 	separator = "---------------------------------------\n"
 )
 
-func PanicHandle(needLog bool, args ...interface{}) interface{} {
+func HandlePanic(needLog bool, args ...interface{}) interface{} {
 	if err := recover(); err != nil {
 		errstr := fmt.Sprintf("%sruntime error: %v\ntraceback:\n", separator, err)
 

@@ -58,7 +58,7 @@ func (obclient *ObserverClient) Stop() {
 		obclient.Client.Stop()
 		if obclient.onStop != nil {
 			zed.NewCoroutine(func() {
-				defer zed.PanicHandle(true)
+				defer zed.HandlePanic(true)
 				obclient.onStop()
 			})
 		}

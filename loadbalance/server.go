@@ -199,7 +199,7 @@ func (server *LoadbalanceServer) startHeartbeat() {
 			case _, ok := <-server.ticker.C:
 				if ok {
 					func() {
-						defer zed.PanicHandle(true)
+						defer zed.HandlePanic(true)
 						for _, servers := range server.Servers {
 							for tag, info := range servers {
 								if !zed.Ping(info.Addr) {

@@ -215,7 +215,7 @@ func (dele *DefaultTCDelegate) Init() {
 }
 
 func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
-	/*defer PanicHandle(true, func() {
+	/*defer HandlePanic(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()
 	})*/

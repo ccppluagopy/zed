@@ -20,12 +20,12 @@ type TimerWheel struct {
 }
 
 func wtimerHandler(handler WTimerCallBack, timer *WTimer) {
-	defer PanicHandle(true)
+	defer HandlePanic(true)
 	handler(timer)
 }
 
 func timerHandler(handler TimerCallBack) {
-	defer PanicHandle(true)
+	defer HandlePanic(true)
 	handler()
 }
 
@@ -227,7 +227,7 @@ func NewOnceTimer(delay time.Duration, cb func()) *OnceTimer {
 			return
 		case <-time.After(delay):
 			func() {
-				defer PanicHandle(true)
+				defer HandlePanic(true)
 				cb()
 			}()
 		}

@@ -120,7 +120,7 @@ func (server *TcpServer) Start(addr string) {
 func (server *TcpServer) Stop() {
 	server.Lock()
 	defer server.Unlock()
-	defer PanicHandle(true, "TcpServer Stop().")
+	defer HandlePanic(true, "TcpServer Stop().")
 
 	if !server.running {
 		return
@@ -220,7 +220,7 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 
 func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	if server.msgFilter != nil {
-		defer PanicHandle(true, func() {
+		defer HandlePanic(true, func() {
 			ZLog("HandleMsg %s panic err!", msg.Client.Info())
 			msg.Client.Stop()
 		})
@@ -236,7 +236,7 @@ func (server *TcpServer) HandleMsg(msg *NetMsg) {
 	/*
 		cb, ok := server.handlerMap[msg.Cmd]
 		if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
-			defer PanicHandle(true, func() {
+			defer HandlePanic(true, func() {
 				ZLog("HandleMsg %s panic err!", msg.Client.Info())
 				msg.Client.Stop()
 			})

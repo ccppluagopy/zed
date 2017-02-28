@@ -260,7 +260,7 @@ func NewTimer() *Timer {
 		tm.Lock()
 		defer func() {
 			tm.Unlock()
-			PanicHandle(true)
+			HandlePanic(true)
 		}()
 
 		if item := tm.timers.Pop(); item != nil {
