@@ -65,6 +65,8 @@ type DefaultTCDelegate struct {
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
 	newConnCB         func(*TcpClient)
+
+	tag string
 }
 
 func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
@@ -207,6 +209,8 @@ func (dele *DefaultTCDelegate) Init() {
 		dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
 	}
 
+	dele.tag = "DefaultTCDelegate"
+
 	dele.SetShowClientData(false)
 }
 
@@ -222,13 +226,13 @@ func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
 			return
 		} else {
 			if dele.showClientData {
-				ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
+				ZLog("%s HandleMsg Error, %s Msg Cmd: %d, Data: %v.", dele.tag, msg.Client.Info(), msg.Cmd, msg.Data)
 			}
 			msg.Client.Stop()
 		}
 	} else {
 		if dele.showClientData {
-			ZLog("DefaultTCDelegate HandleMsg Error: No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
+			ZLog("%s HandleMsg Error: No Handler For Cmd %d, %s", dele.tag, msg.Cmd, msg.Client.Info())
 		}
 	}
 }
@@ -237,7 +241,7 @@ func (dele *DefaultTCDelegate) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	dele.Lock()
 	defer dele.Unlock()
 
-	ZLog("TcpServer DefaultTCDelegate AddMsgHandler, Cmd: %d", cmd)
+	ZLog("%s AddMsgHandler, Cmd: %d", dele.tag, cmd)
 	if dele.HandlerMap == nil {
 		dele.HandlerMap = make(map[CmdType]MsgHandler)
 	}
@@ -248,7 +252,7 @@ func (dele *DefaultTCDelegate) RemoveMsgHandler(cmd CmdType) {
 	dele.Lock()
 	defer dele.Unlock()
 
-	ZLog("TcpServer DefaultTCDelegate RemoveMsgHandler, Cmd: %d", cmd)
+	ZLog("%s RemoveMsgHandler, Cmd: %d", dele.tag, cmd)
 
 	delete(dele.HandlerMap, cmd)
 }
@@ -375,6 +379,10 @@ func (dele *DefaultTCDelegate) AliveTime() time.Duration {
 
 func (dele *DefaultTCDelegate) OnNewConn(client *TcpClient) {
 	//return dele.newConnCB
+}
+
+func (dele *DefaultTCDelegate) SetTag(tag string) {
+	dele.tag = tag
 }
 
 /*func (dele *DefaultTCDelegate) SetNewConnCB(cb func(*TcpClient)) {
