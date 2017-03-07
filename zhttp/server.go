@@ -21,6 +21,11 @@ import (
 	"time"
 )
 
+type ConnHandler interface {
+	OnNewConn(c net.Conn)
+	OnConnClosed(c net.Conn)
+}
+
 // A Server is an HTTP server listening on a system-chosen port on the
 // local loopback interface, for use in end-to-end HTTP tests.
 type Server struct {
@@ -43,6 +48,12 @@ type Server struct {
 	mu     sync.Mutex // guards closed and conns
 	closed bool
 	conns  map[net.Conn]http.ConnState // except terminal states
+
+	connHandler ConnHandler
+}
+
+func (server *Server) SetConnHandler(handler ConnHandler) {
+	server.connHandler = handler
 }
 
 func newLocalListener(addr string) net.Listener {
@@ -246,6 +257,9 @@ func (s *Server) wrap() {
 		switch cs {
 		case http.StateNew:
 			s.wg.Add(1)
+			if s.connHandler != nil {
+				s.connHandler.OnNewConn(c)
+			}
 			if _, exists := s.conns[c]; exists {
 				panic("invalid state transition")
 			}
@@ -315,5 +329,8 @@ func (s *Server) forgetConn(c net.Conn) {
 	if _, ok := s.conns[c]; ok {
 		delete(s.conns, c)
 		s.wg.Done()
+		if s.connHandler != nil {
+			s.connHandler.OnConnClosed(c)
+		}
 	}
 }
