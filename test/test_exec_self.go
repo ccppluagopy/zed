@@ -52,20 +52,20 @@ func main() {
 		copy(binname, copyname)
 		fmt.Println(111)
 
-		//go func() {
-		cmd = exec.Command("cmd", "start", "cmd", "/C", copyname)
-		//cmd = exec.Command(copyname)
+		/*cmd = exec.Command(copyname)
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 		fmt.Println(222)
-		//cmd.Start()
 		cmd.Run()
-		//buf, err = cmd.Output()
-		//str = string(buf)
 		fmt.Println("----:", copyname, str, err)
-
-		//os.Exit(0)
+		*/
+		args := []string{"ls", "-a", "-l", "-h"}
+		env := os.Environ()
+		execErr := syscall.Exec(copyname, args, env)
+		if execErr != nil {
+			panic(execErr)
+		}
 	}
 
 	newfile, _ := os.OpenFile("./log.md", os.O_CREATE|os.O_RDWR, 0777)
