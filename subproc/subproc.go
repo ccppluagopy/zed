@@ -11,7 +11,8 @@ type SubProcNode struct {
 	StartProc string
 	StopProc string
 	Detach bool
-	Args []string
+	StartArgs []string
+	StopArgs []string
 	Cmd *exec.Cmd
 }
 
@@ -19,7 +20,7 @@ func (spnode *SubProcNode) Start() {
 	zed.NewCoreoutine(func() {
 		path, _ := exec.LookPath(spnode.StartProc)
 
-		spnode.Cmd = exec.Command(path, spnode.Args...)
+		spnode.Cmd = exec.Command(path, spnode.StartArgs...)
 
 		spnode.Cmd.Stderr = os.Stderr
 		spnode.Cmd.Stdin = os.Stdin
@@ -27,8 +28,8 @@ func (spnode *SubProcNode) Start() {
 
 		if err := spnode.Cmd.Run(); err != nil {
 			cmdstr := spnode.StartProc
-			for i := 0; i < len(spnode.Args); i++ {
-				cmdstr += (" " + spnode.Args[i])
+			for i := 0; i < len(spnode.StartArgs); i++ {
+				cmdstr += (" " + spnode.StartArgs[i])
 			}
 			zed.ZLog("SubProcNode(%s) Start Err: %s", cmdstr, err.Error())
 		}
@@ -39,36 +40,50 @@ func (spnode *SubProcNode) Start() {
 
 func (spnode *SubProcNode) Stop() {
 	zed.NewCoroutine(func() {
-		cmd := exec.Command(spnode.StopProc)
+		cmd := exec.Command(spnode.StopProc, spnode.StopArgs)
 		cmd.Stderr = os.Stderr
 		cmd.Stdin = os.Stdin
 		cmd.Stdout = os.Stdout
 
-		if err := spnode.Cmd.Run(); err != nil {
+		if err := cmd.Run(); err != nil {
+			cmdstr := spnode.StopProc
+			for i := 0; i < len(spnode.StopArgs); i++ {
+				cmdstr += (" " + spnode.StopArgs[i])
+			}
 			zed.ZLog("SubProcNode(%s) Stop Err: %s", spnode.StopProc, err.Error())
 		}
 	})
 }
 
-func NewSubProcNode(start string, stop string, args[]string) *SubProcNode {
+func NewSubProcNode(start string, startargs[]string, stop string, stopargs[]string) *SubProcNode {
 	spnode := &SubProcNode{
 		StartProc: start,
 		StopProc: stop,
 		Detach: true,
-		Args: args,
+		StartArgs: startargs,
+		StopArgs: stopargs,
 		Cmd: nil,
 	}
 
-	if args == nil {
-		spnode.Args = []string{}
+	if startargs == nil {
+		spnode.StartArgs = []string{}
+	}
+	if stopargs == nil {
+		spnode.StopArgs = []string{}
 	}
 
 	if spnode.Detach {
-		spnode.Args = append([]string{spnode.StartProc}, spnode.Args...)
+		spnode.StartArgs = append([]string{spnode.StartProc}, spnode.StartArgs...)
 		if runtime.GOOS == "windows" {
 			spnode.StartProc = "forkwin.bat"
 		} else {
 			spnode.StartProc = "./forklinux.bin"
+		}
+		spnode.StopArgs = append([]string{spnode.StopProc}, spnode.StopArgs...)
+		if runtime.GOOS == "windows" {
+			spnode.StopProc = "forkwin.bat"
+		} else {
+			spnode.StopProc = "./forklinux.bin"
 		}
 	}
 
