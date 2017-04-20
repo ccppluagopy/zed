@@ -41,7 +41,7 @@ var (
 	logfilesubnum          = 0
 	logfilesize            = 0
 
-	maxfilesize   = (1000 * 1000 * 100)
+	maxfilesize   = (1024 * 1024 * 32)
 	loginfotype   = LogCmd
 	logwarntype   = LogCmd
 	logerrortype  = LogCmd

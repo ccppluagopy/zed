@@ -1,11 +1,11 @@
 package main
 
 import (
-	"github.com/ccppluagopy/zed"
+	zed "github.com/ccppluagopy/zed/logger"
 )
 
 func main() {
-	workDir := "./"
+	//workDir := "./"
 	logDir := "./logs/"
 
 	const (
@@ -31,16 +31,22 @@ func main() {
 		"ActionCorNum": 5,
 	}
 
-	zed.Init(workDir, logDir)
-	zed.StartLogger(LogConf, LogTags, true)
-
-	for i := 0; i < 100; i++ {
-		if i%2 == 0 {
-			zed.LogInfo(Tag1, i, "test log i: %d", i)
-		} else {
-			zed.LogInfo(Tag2, i, "test log i: %d", i)
+	zed.SetLogDir(logDir)
+	zed.StartLogger(LogConf, LogTags)
+	test := func() {
+		i := 0
+		for {
+			if i%2 == 0 {
+				zed.LogInfo(Tag1, "test log i: %d", i)
+			} else {
+				zed.LogInfo(Tag2, "test log i: %d", i)
+			}
+			i++
 		}
 	}
 
+	go test()
+	go test()
+	test()
 	zed.StopLogger()
 }
