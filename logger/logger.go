@@ -28,6 +28,7 @@ const(
 const(
 	TAG_NULL = "--"
 	LOG_FILE_NAME_FORMAT = "20060102-15"
+	LOG_STR_FORMAT = "2006-01-02 15:04:05.000"
 	logsep = ""
 )
 
@@ -187,7 +188,7 @@ func syncLogFile() {
 func LogInfo(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_INFO >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL){
-			s:= strings.Join([]string{time.Now().Format("2006-01-02 15:04:05.000"), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n", logsep)
+			s:= strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n", logsep)
 			switch loginfotype {
 			case LogFile:
 				writetofile(s)
@@ -205,6 +206,234 @@ func LogInfo(tag int, format string, v ...interface{}) {
 		}
 	}
 }
+
+
+func LogWarn(tag int, format string, v ...interface{}) {
+	if LOG_LEVEL_WARN >= loglevel {
+		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL){
+			s:= strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  WARN] ", Sprintf(format, v...), "\n", logsep)
+			switch logwarntype {
+			case LogFile:
+				writetofile(s)
+				break
+			case LogCmd:
+				Printf(s)
+				break
+			case LogCmdFile:
+				Printf(s)
+				writetofile(s)
+				break
+			default:
+				break
+			}
+		}
+	}
+}
+
+func LogError(tag int, format string, v ...interface{}) {
+	if LOG_LEVEL_ERROR >= loglevel {
+		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL){
+			s:= strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ ERROR] ", Sprintf(format, v...), "\n", logsep)
+			switch logerrortype {
+			case LogFile:
+				writetofile(s)
+				break
+			case LogCmd:
+				Printf(s)
+				break
+			case LogCmdFile:
+				Printf(s)
+				writetofile(s)
+				break
+			default:
+				break
+			}
+		}
+	}
+}
+
+
+func LogAction(tag int, format string, v ...interface{}) {
+	if LOG_LEVEL_ACTION >= loglevel {
+		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL){
+			s:= strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ACTION] ", Sprintf(format, v...), "\n", logsep)
+			switch logactiontype {
+			case LogFile:
+				writetofile(s)
+				break
+			case LogCmd:
+				Printf(s)
+				break
+			case LogCmdFile:
+				Printf(s)
+				writetofile(s)
+				break
+			default:
+				break
+			}
+		}
+	}
+}
+
+func Save() {
+	if chsynclogfile != nil {
+		chsynclogfile <- struct{}{}
+	}
+}
+
+func startSync() {
+	logmtx.Lock()
+	defer logmtx.Unlock()
+
+	if chsynclogfile != nil{
+		return
+	}
+
+	chsynclogfile = make(chan struct{})
+
+	go func(){
+		defer func(){
+			recover()
+		}()
+
+		logtimer = time.NewTimer(syncinterval)
+		
+		for{
+			select{
+			case _, ok := <-logtimer.C:
+				syncLogFile()
+				if !ok {
+					return
+				}
+			case _, ok := <-chsynclogfile:
+				syncLogFile()
+				if !ok {
+					return
+				}
+			}
+			logtimer.Reset(syncinterval)
+		}
+	}()
+}
+
+func StartLogger(conf map[string]int, tags map[int]string){
+	Println("===========================================")
+	Println("Logger Start")
+	if conf == nil {
+		conf = logconf
+	}
+	if conf != nil {
+		Println("logconf:")
+		if lt, ok := conf["Info"]; !ok || lt <= LOG_NONE || lt >= LOGMAX {
+			Println("StartLogger Error: Invalid Info LogType")
+			return
+		}else{
+			str := "LogCmd"
+			if lt == LogFile{
+				str = "LogFile"
+			} else if lt == LogCmdFile {
+				str = "LogCmdFile"
+			}
+			loginfotype = lt
+			Println("	", "Info	", str)
+		}
+		if lt, ok := conf["Warn"]; !ok || lt <= LOG_NONE || lt >= LOGMAX {
+			Println("StartLogger Error: Invalid Warn LogType")
+			return
+		}else{
+			str := "LogCmd"
+			if lt == LogFile{
+				str = "LogFile"
+			} else if lt == LogCmdFile {
+				str = "LogCmdFile"
+			}
+			logwarntype = lt
+			Println("	", "Warn	", str)
+		}
+		if lt, ok := conf["Error"]; !ok || lt <= LOG_NONE || lt >= LOGMAX {
+			Println("StartLogger Error: Invalid Error LogType")
+			return
+		}else{
+			str := "LogCmd"
+			if lt == LogFile{
+				str = "LogFile"
+			} else if lt == LogCmdFile {
+				str = "LogCmdFile"
+			}
+			logerrortype = lt
+			Println("	", "Error	", str)
+		}
+		if lt, ok := conf["Action"]; !ok || lt <= LOG_NONE || lt >= LOGMAX {
+			Println("StartLogger Error: Invalid Action LogType")
+			return
+		}else{
+			str := "LogCmd"
+			if lt == LogFile{
+				str = "LogFile"
+			} else if lt == LogCmdFile {
+				str = "LogCmdFile"
+			}
+			logactiontype = lt
+			Println("	", "Action	", str)
+		}
+		logconf = conf
+	}
+	if tags != nil && len(tags) > 0 {
+		maxtaglen := 0
+		for _, v := range tags {
+			if v[:len(TAG_NULL)] != TAG_NULL {
+				if len(v) > maxtaglen {
+					maxtaglen = len(v)
+				}
+			}
+		}
+		maxtaglen = maxtaglen + 1
+		for k, v := range tags {
+			if v[:len(TAG_NULL)] != TAG_NULL {
+				if len(v) < maxtaglen {
+					newv := v
+					for i:=0; i<maxtaglen; i++{
+						newv = " " + newv
+					}
+					tags[k] = newv
+				}
+			}
+		}
+		logtags = tags
+	Println(" - - - - - - - - - - - - - - - - - - - - - - - - - -")
+	Println("logtags:")
+	for i:=0; ; i++ {
+		if tag, ok := logtags[i]; ok {
+			Println("	", i, tag)	
+		}else{
+			break
+		}
+	}
+	Println(" - - - - - - - - - - - - - - - - - - - - - - - - - -")
+	
+	if !initLogDirAndFiles(){
+		Println("StartLogger Failed")
+	}else{
+		Printf("initLogDirAndFile %s Success\n", currlogdir)
+	}
+
+	Println("===========================================")
+}
+
+func StopLogger() {
+	if logtimer != nil {
+		logtimer.Stop()
+		logtimer = nil
+	}
+	if chsynclogfile != nil{
+		close(chsynclogfile)
+		chsynclogfile = nil
+	}
+	Println("Logger Stop!")
+}
+
+
+
 
 
 
