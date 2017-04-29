@@ -70,7 +70,7 @@ var (
 	}
 
 	logtimer      *time.Timer   = nil
-	chsynclogfile chan struct{} = nil
+	//chsynclogfile chan struct{} = nil
 )
 
 func NewFile(path string) (*os.File, error) {
@@ -274,20 +274,18 @@ func LogAction(tag int, format string, v ...interface{}) {
 }
 
 func Save() {
-	if chsynclogfile != nil {
-		chsynclogfile <- struct{}{}
-	}
+	syncLogFile()
 }
 
 func startSync() {
 	logmtx.Lock()
 	defer logmtx.Unlock()
 
-	if chsynclogfile != nil {
+	if logfile == nil {//|| chsynclogfile != nil {
 		return
 	}
 
-	chsynclogfile = make(chan struct{})
+	//chsynclogfile = make(chan struct{})
 
 	go func() {
 		defer func() {
@@ -303,12 +301,12 @@ func startSync() {
 				if !ok {
 					return
 				}
-			case _, ok := <-chsynclogfile:
+			/*case _, ok := <-chsynclogfile:
 				syncLogFile()
 				if !ok {
 					return
 				}
-			}
+			}*/
 			logtimer.Reset(syncinterval)
 		}
 	}()
@@ -416,6 +414,8 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		Printf("initLogDirAndFile %s Success\n", currlogdir)
 	}
 
+	startSync()
+
 	Println("===========================================")
 }
 
@@ -424,9 +424,9 @@ func StopLogger() {
 		logtimer.Stop()
 		logtimer = nil
 	}
-	if chsynclogfile != nil {
+	/*if chsynclogfile != nil {
 		close(chsynclogfile)
 		chsynclogfile = nil
-	}
+	}*/
 	Println("Logger Stop!")
 }
