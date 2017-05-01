@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -33,13 +34,14 @@ const (
 )
 
 var (
-	logmtx                 = sync.Mutex{}
-	logdir                 = "./logs/"
-	currlogdir             = ""
-	logfile       *os.File = nil
-	logfilename            = ""
-	logfilesubnum          = 0
-	logfilesize            = 0
+	logmtx                      = sync.Mutex{}
+	logdir                      = "./logs/"
+	currlogdir                  = ""
+	logfile       *os.File      = nil
+	filewriter    *bufio.Writer = nil
+	logfilename                 = ""
+	logfilesubnum               = 0
+	logfilesize                 = 0
 
 	maxfilesize   = (1024 * 1024 * 32)
 	loginfotype   = LogCmd
@@ -69,7 +71,7 @@ var (
 		"Action": LogCmd,
 	}
 
-	logtimer      *time.Timer   = nil
+	logtimer *time.Timer = nil
 	//chsynclogfile chan struct{} = nil
 )
 
@@ -79,6 +81,12 @@ func NewFile(path string) (*os.File, error) {
 		Println("zlog NewFile Error: %s, %s", path, err.Error())
 		return nil, err
 	}
+	if filewriter == nil {
+		filewriter = bufio.NewWriter(file)
+	} else {
+		filewriter.Reset(file)
+	}
+
 	return file, err
 }
 
@@ -170,7 +178,9 @@ func writetofile(str string) {
 	defer logmtx.Unlock()
 
 	checkFile()
-	n, err := logfile.WriteString(str)
+
+	n, err := filewriter.WriteString(str)
+	//Println(n, err, str)
 	if err != nil || n != len(str) {
 		Printf("zlog writetofile Failed: %d/%d wrote, Error: %v", n, len(str), err)
 	} else {
@@ -182,7 +192,8 @@ func syncLogFile() {
 	logmtx.Lock()
 	defer logmtx.Unlock()
 
-	logfile.Sync()
+	filewriter.Flush()
+	//logfile.Sync()
 }
 
 func LogInfo(tag int, format string, v ...interface{}) {
@@ -281,7 +292,7 @@ func startSync() {
 	logmtx.Lock()
 	defer logmtx.Unlock()
 
-	if logfile == nil {//|| chsynclogfile != nil {
+	if logfile == nil { //|| chsynclogfile != nil {
 		return
 	}
 
@@ -295,12 +306,13 @@ func startSync() {
 		logtimer = time.NewTimer(syncinterval)
 
 		for {
-			select {
-			case _, ok := <-logtimer.C:
-				syncLogFile()
-				if !ok {
-					return
-				}
+			//select {
+			//case _, ok := <-logtimer.C:
+			_, ok := <-logtimer.C
+			syncLogFile()
+			if !ok {
+				return
+			}
 			/*case _, ok := <-chsynclogfile:
 				syncLogFile()
 				if !ok {

@@ -2,6 +2,7 @@ package main
 
 import (
 	zed "github.com/ccppluagopy/zed/logger"
+	"time"
 )
 
 func main() {
@@ -36,6 +37,7 @@ func main() {
 	test := func() {
 		i := 0
 		for {
+			time.Sleep(time.Second)
 			if i%2 == 0 {
 				zed.LogInfo(Tag1, "test log i: %d", i)
 			} else {
