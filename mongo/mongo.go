@@ -157,15 +157,17 @@ func (mongoMgr *MongoMgr) Stop() {
 	return mongoMgr.Collection
 }*/
 
-func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
-	defer func() {
-		if err := recover(); err != nil {
-			/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
-			zed.LogStackInfo()
-			mongoMgr.Restart()
-		}
-	}()
+func (mongoMgr *MongoMgr) HandlePanic() {
+	if err := recover(); err != nil {
+		/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
+		zed.LogStackInfo()
+		mongoMgr.Restart()
+	}
+}
 
+func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
+	defer mongoMgr.HandlePanic()
+	
 	if mongoMgr.running {
 		c := mongoMgr.Collection
 		if c != nil {
@@ -192,7 +194,6 @@ func (mongoMgr *MongoMgr) heartbeat() {
 	} else {
 
 	}
-}
 
 func NewMongoMgr(name string, addr string, dbname string, cname string, usr string, passwd string) *MongoMgr {
 	mgr, ok := mongoMgrs[name]
@@ -209,7 +210,8 @@ func NewMongoMgr(name string, addr string, dbname string, cname string, usr stri
 			running:    false,
 			restarting: false,
 		}
-		ok := mgr.Start()
+
+}		ok := mgr.Start()
 		if !ok {
 			zed.ZLog("NewMongoMgr %s mgr.Start() Error.!", name)
 			return nil

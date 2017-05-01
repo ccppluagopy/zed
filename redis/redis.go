@@ -213,14 +213,16 @@ func (redismgr *RedisMgr) Start() bool {
 	return true
 }
 
-//DBAction ...
+func (redismgr *RedisMgr) HandlePanic() {
+	if err := recover(); err != nil {
+		/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
+		zed.LogStackInfo()
+		redismgr.Restart()
+	}
+}
+
 func (redismgr *RedisMgr) DBAction(cb func(*redis.Client) bool) bool {
-	defer func() {
-		if err := recover(); err != nil {
-			zed.LogStackInfo()
-			redismgr.Restart()
-		}
-	}()
+	defer redismgr.HandlePanic()
 
 	if redismgr.running {
 		client := redismgr.client

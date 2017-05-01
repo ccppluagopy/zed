@@ -125,7 +125,7 @@ func (msqlMgr *MysqlMgr) Start() bool {
 
 		//msqlMgr.DB, err = msqlMgr.Session.Use()
 		if err != nil {
-			zed.ZLog("MysqlMgr Start err: %v addr: %s dbname: %s", err, msqlMgr.addr, msqlMgr.dbname) 
+			zed.ZLog("MysqlMgr Start err: %v addr: %s dbname: %s", err, msqlMgr.addr, msqlMgr.dbname)
 			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
 				msqlMgr.tryCount = msqlMgr.tryCount + 1
 				time.Sleep(time.Second * 1)
@@ -185,17 +185,18 @@ func (msqlMgr *MysqlMgr) Stop() {
 	}
 }
 
+func (msqlMgr *MysqlMgr) HandlePanic() {
+	if err := recover(); err != nil {
+		/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
+		zed.LogStackInfo()
+		msqlMgr.Restart()
+	}
+}
+
 func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
 	msqlMgr.Lock()
-
-	defer func() {
-		msqlMgr.Unlock()
-		if err := recover(); err != nil {
-			/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
-			zed.LogStackInfo()
-			msqlMgr.Restart()
-		}
-	}()
+	defer msqlMgr.Unlock()
+	defer msqlMgr.HandlePanic()
 
 	//db := msqlMgr.DB
 	if msqlMgr.running {
