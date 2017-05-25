@@ -10,4 +10,9 @@ https://github.com/3irdparty/sslconfig
 let's encrypt免费证书？
 https://letsencrypt.org/
 
+RSA算法原理
+http://www.ruanyifeng.com/blog/2013/06/rsa_algorithm_part_one.html
+http://www.ruanyifeng.com/blog/2013/07/rsa_algorithm_part_two.html
+
+
 https://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations
