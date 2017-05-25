@@ -7,5 +7,7 @@ https://imququ.com/post/sth-about-switch-to-https-2.html
 cloudflare/sslconfig
 https://github.com/3irdparty/sslconfig
 
+let's encrypt免费证书？
+https://letsencrypt.org/
 
 https://wiki.mozilla.org/Security/Server_Side_TLS#Recommended_configurations
