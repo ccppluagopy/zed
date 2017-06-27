@@ -21,10 +21,10 @@ func (spnode *SubProcNode) Start() {
 		path, _ := exec.LookPath(spnode.StartProc)
 
 		spnode.Cmd = exec.Command(path, spnode.StartArgs...)
-
-		spnode.Cmd.Stderr = os.Stderr
-		spnode.Cmd.Stdin = os.Stdin
-		spnode.Cmd.Stdout = os.Stdout
+		stdout, err := cmd.StdoutPipe()
+		cmd.Start()
+		r := bufio.NewReader(stdout)
+		line, _, err := r.ReadLine()
 
 		if err := spnode.Cmd.Run(); err != nil {
 			cmdstr := spnode.StartProc
