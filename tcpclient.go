@@ -160,7 +160,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	//client.SendMsgAsync(msg)
 }
 
-func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
+func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) bool {
 	if client.parent.ShowClientData() {
 		ZLog("[SendAsync_00] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	}
@@ -187,7 +187,7 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 			case client.chSend <- asyncmsg:
 				break
 			case <-time.After(time.Second):
-				break
+				return false
 			}
 			//Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
 		}
@@ -195,6 +195,7 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 	if client.parent.ShowClientData() {
 		ZLog("[SendAsync_02] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 	}
+	return true
 }
 
 func (client *TcpClient) reader() {
