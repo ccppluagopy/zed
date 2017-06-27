@@ -4,8 +4,8 @@ import (
 	//"encoding/binary"
 	"fmt"
 	//"io"
-
 	"net"
+	"time"
 	//"sync"
 	//"time"
 )
@@ -48,7 +48,8 @@ func (client *TcpClient) IsRunning() bool {
 
 func (client *TcpClient) Stop() {
 	//LogStackInfo()
-	NewCoroutine(func() {
+	//NewCoroutine(func() {
+	time.AfterFunc(1, func() {
 		client.Lock()
 		defer client.Unlock()
 		showClientData := client.parent.ShowClientData()
@@ -182,7 +183,12 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) {
 		}
 		if client.chSend != nil {
 			//Println("aaaaaaa", client.Info(), msg.Cmd, msg.Len, client.chSend)
-			client.chSend <- asyncmsg
+			select {
+			case client.chSend <- asyncmsg:
+				break
+			case <-time.After(time.Second):
+				break
+			}
 			//Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
 		}
 	}
