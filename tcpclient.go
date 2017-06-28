@@ -50,6 +50,7 @@ func (client *TcpClient) Stop() {
 	//LogStackInfo()
 	//NewCoroutine(func() {
 	time.AfterFunc(1, func() {
+		defer HandlePanic(true)
 		client.Lock()
 		defer client.Unlock()
 		showClientData := client.parent.ShowClientData()
