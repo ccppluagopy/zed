@@ -115,13 +115,14 @@ func (s *Server) Start() {
 }
 
 // StartTLS starts TLS on a server from NewUnstartedServer.
-/*func (s *Server) StartTLS() {
+func (s *Server) StartTLS(certfile string, keyfile string) error {
 	if s.URL != "" {
-		panic("Server already started")
+		return errors.New("Server already started")
 	}
-	cert, err := tls.X509KeyPair(internal.LocalhostCert, internal.LocalhostKey)
+	
+	cert, err := tls.LoadX509KeyPair(certfile, keyfile)
 	if err != nil {
-		panic(fmt.Sprintf("httptest: NewTLSServer: %v", err))
+		return err
 	}
 
 	existingConfig := s.TLS
@@ -139,7 +140,42 @@ func (s *Server) Start() {
 	s.URL = "https://" + s.Listener.Addr().String()
 	s.wrap()
 	s.goServe()
-}*/
+}
+
+func (s *Server) StartTLSWithMutiCerts(certfiles []string, keyfiles []string) error {
+	if s.URL != "" {
+		return errors.New("Server already started")
+	}
+	
+	existingConfig := s.TLS
+	s.TLS = new(tls.Config)
+	if existingConfig != nil {
+		*s.TLS = *existingConfig
+	}
+	if s.TLS.NextProtos == nil {
+		s.TLS.NextProtos = []string{"http/1.1"}
+	}
+	
+	if len(s.TLS.Certificates) == 0 {
+		if len(certfiles) == len(keyfiles) {
+			certs := []tls.Certificate{}		
+			for i:= 0; i < len(certfiles); i++ {
+				cert, err := tls.LoadX509KeyPair(certfiles[i], keyfiles[i])
+				if err != nil {
+					return err
+				}
+				certs = append(certs, cert)
+			}
+			s.TLS.Certificates = certs
+			s.TLS.BuildNameToCertificate()
+		}
+	}	
+	
+	s.Listener = tls.NewListener(s.Listener, s.TLS)
+	s.URL = "https://" + s.Listener.Addr().String()
+	s.wrap()
+	return s.goServe()
+}
 
 // NewTLSServer starts and returns a new Server using TLS.
 // The caller should call Close when finished, to shut it down.
@@ -241,10 +277,8 @@ func (s *Server) CloseClientConnections() {
 
 func (s *Server) goServe() {
 	s.wg.Add(1)
-	go func() {
-		defer s.wg.Done()
-		s.Config.Serve(s.Listener)
-	}()
+	defer s.wg.Done()
+	return s.Config.Serve(s.Listener)
 }
 
 // wrap installs the connection state-tracking hook to know which
