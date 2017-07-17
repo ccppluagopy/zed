@@ -124,12 +124,13 @@ func (client *TcpClient) writer() {
 							return
 						}
 					}()
-					parent.SendMsg(client, asyncMsg.msg)
-					if asyncMsg.cb != nil {
-						NewCoroutine(func() {
+					time.AfterFunc(1, func() {
+						parent.SendMsg(client, asyncMsg.msg)
+						if asyncMsg.cb != nil {
+							defer HandlePanic(true)
 							asyncMsg.cb()
-						})
-					}
+						}
+					})
 					return true
 				}() {
 					return
@@ -187,7 +188,7 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) bool {
 			select {
 			case client.chSend <- asyncmsg:
 				break
-			case <-time.After(time.Second):
+			case <-time.After(time.Second*2):
 				return false
 			}
 			//Println("bbbbbbb", client.Info(), msg.Cmd, msg.Len, client.chSend)
