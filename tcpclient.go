@@ -306,7 +306,7 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 	
 	if runtime.GOOS != "windows" && conn != nil {
 		file, _ := conn.File()
-		client.Idx = file.Fd()
+		client.Idx = int(file.Fd())
 	}
 
 	return client
