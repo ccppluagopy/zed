@@ -13,12 +13,43 @@ var (
 	serversMutex = sync.Mutex{}
 )
 
+func (server *TcpServer) acceptConn() bool {
+	conn, err := server.listener.AcceptTCP()
+	defer conn.Close()
+	if !server.running {
+		return false
+	}
+	if err != nil {
+		//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
+		ZLog("TcpServer Accept error: %v\n", err)
+	} else {
+		client = newTcpClient(server.delegate, conn, server.ClientNum)
+		if client.start() {
+			server.ClientNum = server.ClientNum + 1
+
+			//server.onNewClient(client)
+			/*if onnew := server.delegate.NewConnCB(); onnew != nil {
+				onnew(client)
+			}*/
+
+			if server.delegate != nil {
+				server.delegate.OnNewConn(client)
+			}
+
+			/*for _, cb := range server.newConnCBMap {
+				cb(client)
+			}*/
+		}
+	}
+	return true
+}
+
 func (server *TcpServer) startListener(addr string) {
 	defer Println("TcpServer Stopped.")
 	var (
 		tcpAddr *net.TCPAddr
 		err     error
-		client  *TcpClient
+		//client  *TcpClient
 	)
 
 	tcpAddr, err = net.ResolveTCPAddr("tcp4", addr)
@@ -43,32 +74,8 @@ func (server *TcpServer) startListener(addr string) {
 	ZLog("TcpServer Running on: %s", tcpAddr.String())
 	//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Running on: %s", tcpAddr.String())
 	for {
-		conn, err := server.listener.AcceptTCP()
-
-		if !server.running {
+		if !server.acceptConn() {
 			break
-		}
-		if err != nil {
-			//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
-			ZLog("TcpServer Accept error: %v\n", err)
-		} else {
-			client = newTcpClient(server.delegate, conn, server.ClientNum)
-			if client.start() {
-				server.ClientNum = server.ClientNum + 1
-
-				//server.onNewClient(client)
-				/*if onnew := server.delegate.NewConnCB(); onnew != nil {
-					onnew(client)
-				}*/
-
-				if server.delegate != nil {
-					server.delegate.OnNewConn(client)
-				}
-
-				/*for _, cb := range server.newConnCBMap {
-					cb(client)
-				}*/
-			}
 		}
 	}
 
