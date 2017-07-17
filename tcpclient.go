@@ -5,6 +5,7 @@ import (
 	"fmt"
 	//"io"
 	"net"
+	"runtime"
 	"time"
 	//"sync"
 	//"time"
@@ -301,6 +302,11 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 		//Data:    nil,
 		Valid:   false,
 		running: true,
+	}
+	
+	if runtime.GOOS != "windows" && conn != nil {
+		file, _ := conn.File()
+		client.Idx = file.Fd()
 	}
 
 	return client
