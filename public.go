@@ -76,10 +76,12 @@ type TcpClient struct {
 	Idx    int
 	Addr   string
 	//Data    interface{}
-	chSend  chan *AsyncMsg
-	closeCB map[interface{}]ClientCloseCB
-	Valid   bool
-	running bool
+	chSend          chan *AsyncMsg
+	closeCB         map[interface{}]ClientCloseCB
+	Valid           bool
+	running         bool
+	EnableReconnect bool
+	onConnected     func(*TcpClient)
 }
 
 type TcpServer struct {

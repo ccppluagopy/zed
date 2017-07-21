@@ -9,7 +9,23 @@ import (
 	"net"
 	"runtime"
 	"strings"
+	"time"
 )
+
+func Async(cb func(), args ...interface{}) {
+	time.AfterFunc(1, func() {
+		if len(args) == 1 {
+			if panichandler, ok := args[0].(func()); ok {
+				defer panichandler()
+			} else {
+				defer HandlePanic(true)
+			}
+		} else {
+			defer HandlePanic(true)
+		}
+		cb()
+	})
+}
 
 func NewCoroutine(cb ClosureCB) {
 	go func() {

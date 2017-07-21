@@ -49,6 +49,7 @@ type ZTcpClientDelegate interface {
 type DefaultTCDelegate struct {
 	sync.Mutex
 	//Mutex
+	inited     bool
 	Server     *TcpServer
 	HandlerMap map[CmdType]MsgHandler
 
@@ -133,23 +134,18 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 		err      error
 	)
 
-	if msg.Len > 0 && (msg.Data == nil || msg.Len != len(msg.Data)) {
-		if dele.showClientData {
-			ZLog("SendMsg Err: msg.Len(%d) != len(Data)%v", msg.Len, msg.Data)
-		}
-		goto Exit
-	}
+	msg.Len = len(msg.Data)
 
 	if msg.Len > dele.maxPackLen {
 		if dele.showClientData {
-			ZLog("SendMsg Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
+			ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
 		}
 		goto Exit
 	}
 
 	if err := (*client.conn).SetWriteDeadline(time.Now().Add(dele.sendBlockTime)); err != nil {
 		if dele.showClientData {
-			ZLog("%s SetWriteDeadline Err: %v.", client.Info(), err)
+			ZLog("%s SetWriteDeadline Error: %v.", client.Info(), err)
 		}
 		goto Exit
 	}
@@ -165,12 +161,15 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 
 	if err == nil && writeLen == len(buf) {
 		if dele.showClientData {
-			ZLog("[Send_2] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
 		}
 		return true
 	}
 
 Exit:
+	if dele.showClientData {
+		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd, msg.Len, err.Error())
+	}
 	client.Stop()
 	return false
 }
@@ -186,6 +185,16 @@ func (dele *DefaultTCDelegate) MsgFilter(msg *NetMsg) bool {
 }
 */
 func (dele *DefaultTCDelegate) Init() {
+	dele.Lock()
+	inited := dele.inited
+	dele.Unlock()
+	if inited {
+		return
+	}
+	dele.Lock()
+	dele.inited = true
+	dele.Unlock()
+
 	if dele.AliveTime() == 0 {
 		dele.SetCientAliveTime(DEFAULT_KEEP_ALIVE_TIME)
 	}

@@ -23,7 +23,7 @@ func (server *TcpServer) acceptConn() bool {
 		//LogInfo(LOG_IDX, LOG_IDX, "TcpServer Accept error: %v\n", err)
 		ZLog("TcpServer Accept error: %v\n", err)
 	} else {
-		client = newTcpClient(server.delegate, conn, server.ClientNum)
+		client := newTcpClient(server.delegate, conn, server.ClientNum)
 		if client.start() {
 			server.ClientNum = server.ClientNum + 1
 
