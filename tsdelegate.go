@@ -10,16 +10,14 @@ import (
 type ZTcpClientDelegate interface {
 	Init()
 
-	RecvMsg(*TcpClient) *NetMsg
-	SendMsg(*TcpClient, *NetMsg) bool
-	HandleMsg(*NetMsg)
+	RecvMsg(*TcpClient) NetMsgDef
+	SendMsg(*TcpClient, NetMsgDef) bool
+	HandleMsg(NetMsgDef)
 
 	SetServer(*TcpServer)
 	AddMsgHandler(cmd CmdType, cb MsgHandler)
 	RemoveMsgHandler(cmd CmdType)
 	SetShowClientData(bool)
-	SetDataInSupervisor(func(msg *NetMsg))
-	SetDataOutSupervisor(func(msg *NetMsg))
 	SetIOBlockTime(time.Duration, time.Duration)
 	SetRecvBlockTime(time.Duration)
 	SetSendBlockTime(time.Duration)
@@ -70,13 +68,15 @@ type DefaultTCDelegate struct {
 	tag string
 }
 
-func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
+func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) NetMsgDef {
 	var (
-		head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
 		err     error
-		msg     *NetMsg
-		msgLen  = 0
+		msg     = &NetMsg{
+			Client: client,
+			buf:    make([]byte, PACK_HEAD_LEN),
+		}
+		dataLen = 0
 		//server  = dele.Server
 	)
 
@@ -87,7 +87,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		goto Exit
 	}
 
-	readLen, err = io.ReadFull(client.conn, head)
+	readLen, err = io.ReadFull(client.conn, msg.buf)
 	if err != nil || readLen < PACK_HEAD_LEN {
 		if dele.showClientData {
 			ZLog("RecvMsg %s Read Head Err: %v %d.", client.Info(), err, readLen)
@@ -102,20 +102,16 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		goto Exit
 	}
 
-	msg = &NetMsg{
-		Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-		Client: client,
-	}
+	dataLen = int(binary.LittleEndian.Uint32(msg.buf[0:4]))
 
-	msgLen = int(binary.LittleEndian.Uint32(head[0:4]))
-	if msgLen > dele.maxPackLen {
-		ZLog("RecvMsg Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
-		goto Exit
-	}
-	if msgLen > 0 {
-		msg.Data = make([]byte, msgLen)
-		readLen, err := io.ReadFull(client.conn, msg.Data)
-		if err != nil || readLen != int(msgLen) {
+	if dataLen > 0 {
+		if dataLen+PACK_HEAD_LEN > dele.maxPackLen {
+			ZLog("RecvMsg Read Body Err: Msg Len(%d) > MAXPACK_LEN(%d)", dataLen+PACK_HEAD_LEN, dele.maxPackLen)
+			goto Exit
+		}
+		msg.buf = append(msg.buf, make([]byte, dataLen)...)
+		readLen, err := io.ReadFull(client.conn, msg.buf[PACK_HEAD_LEN:])
+		if err != nil || readLen != dataLen {
 			if dele.showClientData {
 				ZLog("RecvMsg %s Read Body Err: %v.", client.Info(), err)
 			}
@@ -129,16 +125,23 @@ Exit:
 	return nil
 }
 
-func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
+func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 	var (
 		writeLen = 0
 		buf      []byte
 		err      error
 	)
 
-	msgLen := len(msg.Data)
+	msgLen := msg.MsgLen()
 
 	if msgLen > dele.maxPackLen {
+		if dele.showClientData {
+			ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
+		}
+		goto Exit
+	}
+
+	if msgLen < PACK_HEAD_LEN {
 		if dele.showClientData {
 			ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
 		}
@@ -152,16 +155,11 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 		goto Exit
 	}
 
-	buf = make([]byte, PACK_HEAD_LEN+msgLen)
-	binary.LittleEndian.PutUint32(buf, uint32(msgLen))
-	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-	if msgLen > 0 {
-		copy(buf[PACK_HEAD_LEN:], msg.Data)
-	}
-
+	buf = msg.GetSendBuf()
+	binary.LittleEndian.PutUint32(buf, uint32(msg.DataLen()))
 	writeLen, err = client.conn.Write(buf)
 
-	if err == nil && writeLen == len(buf) {
+	if err == nil && writeLen == msgLen {
 		if dele.showClientData {
 			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msgLen)
 		}
@@ -225,25 +223,25 @@ func (dele *DefaultTCDelegate) Init() {
 	dele.SetShowClientData(false)
 }
 
-func (dele *DefaultTCDelegate) HandleMsg(msg *NetMsg) {
+func (dele *DefaultTCDelegate) HandleMsg(msg NetMsgDef) {
 	/*defer HandlePanic(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()
 	})*/
-
-	cb, ok := dele.HandlerMap[msg.Cmd]
+	client := msg.GetClient()
+	cb, ok := dele.HandlerMap[msg.Cmd()]
 	if ok {
 		if cb(msg) {
 			return
 		} else {
 			if dele.showClientData {
-				ZLog("%s HandleMsg Error, %s Msg Cmd: %d, Data: %v.", dele.tag, msg.Client.Info(), msg.Cmd, msg.Data)
+				ZLog("%s HandleMsg Error, %s Msg Cmd: %d, Data: %v.", dele.tag, client.Info(), msg.Cmd(), string(msg.GetData()))
 			}
-			msg.Client.Stop()
+			client.Stop()
 		}
 	} else {
 		if dele.showClientData {
-			ZLog("%s HandleMsg Error: No Handler For Cmd %d, %s", dele.tag, msg.Cmd, msg.Client.Info())
+			ZLog("%s HandleMsg Error: No Handler For Cmd %d, %s", dele.tag, msg.Cmd(), client.Info())
 		}
 	}
 }

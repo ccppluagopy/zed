@@ -34,7 +34,7 @@ type WTimerCallBack func(timer *WTimer)
 
 //type DBErrorHandler func()
 
-type MsgHandler func(msg *NetMsg) bool
+type MsgHandler func(msg NetMsgDef) bool
 
 type ClientCloseCB func(client *TcpClient)
 
@@ -48,10 +48,10 @@ type EventMgr struct {
 }
 
 type NetMsg struct {
-	Cmd    CmdType
-	Len    int
+	//Cmd    CmdType
+	//Len    int
 	Client *TcpClient
-	Data   []byte
+	buf    []byte
 }
 
 type ZClientDelegate interface {

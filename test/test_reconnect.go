@@ -10,9 +10,9 @@ type Delegate struct {
 	zed.DefaultTCDelegate
 }
 
-func (dele *Delegate) HandleMsg(msg *zed.NetMsg) {
+func (dele *Delegate) HandleMsg(msg zed.NetMsgDef) {
 	time.Sleep(time.Second)
-	msg.Client.SendMsg(msg)
+	msg.GetClient().SendMsg(msg)
 }
 
 func main() {
@@ -23,10 +23,7 @@ func main() {
 	dele.SetShowClientData(true)
 
 	client := zed.NewTcpClient(&dele, "127.0.0.1:3333", 1, true, func(c *zed.TcpClient) {
-		c.SendMsg(&zed.NetMsg{
-			Cmd:  333,
-			Data: []byte("hello world"),
-		})
+		c.SendMsg(zed.NewNetMsg(333, []byte("hello world")))
 	})
 	zed.Println("----------- 222")
 	client.Connect()

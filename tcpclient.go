@@ -12,7 +12,7 @@ import (
 )
 
 type AsyncMsg struct {
-	msg *NetMsg
+	msg NetMsgDef
 	cb  func()
 }
 
@@ -123,7 +123,7 @@ func (client *TcpClient) writer() {
 	}
 }
 
-func (client *TcpClient) SendMsg(msg *NetMsg) {
+func (client *TcpClient) SendMsg(msg NetMsgDef) {
 	client.Lock()
 	defer client.Unlock()
 	defer func() {
@@ -140,7 +140,7 @@ func (client *TcpClient) SendMsg(msg *NetMsg) {
 	//client.SendMsgAsync(msg)
 }
 
-func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) bool {
+func (client *TcpClient) SendMsgAsync(msg NetMsgDef, argv ...interface{}) bool {
 	client.Lock()
 	defer client.Unlock()
 	if client.running {
@@ -160,12 +160,12 @@ func (client *TcpClient) SendMsgAsync(msg *NetMsg, argv ...interface{}) bool {
 			select {
 			case client.chSend <- asyncmsg:
 				if client.parent.ShowClientData() {
-					ZLog("[SendAsync][Info] %s Cmd: %d Len: %d Success", client.Info(), msg.Cmd, msg.Len)
+					ZLog("[SendAsync][Info] %s Cmd: %d Len: %d Success", client.Info(), msg.Cmd, msg.MsgLen())
 				}
 				break
 			case <-time.After(time.Second * 2):
 				if client.parent.ShowClientData() {
-					ZLog("[SendAsync][Error] %s Cmd: %d Len: %d Timeout", client.Info(), msg.Cmd, msg.Len)
+					ZLog("[SendAsync][Error] %s Cmd: %d Len: %d Timeout", client.Info(), msg.Cmd, msg.MsgLen())
 				}
 				return false
 			}
@@ -181,18 +181,15 @@ func (client *TcpClient) reader() {
 		/*head    = make([]byte, PACK_HEAD_LEN)
 		readLen = 0
 		err     error*/
-		msg    *NetMsg
 		parent = client.parent
 	)
 
 	for {
-
-		msg = parent.RecvMsg(client)
-		if msg == nil {
+		msgdef := parent.RecvMsg(client)
+		if msgdef == nil {
 			goto Exit
 		}
-
-		parent.HandleMsg(msg)
+		parent.HandleMsg(msgdef)
 	}
 
 Exit:

@@ -225,42 +225,6 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 
 }
 
-func (server *TcpServer) HandleMsg(msg *NetMsg) {
-	if server.msgFilter != nil {
-		defer HandlePanic(true, func() {
-			ZLog("HandleMsg %s panic err!", msg.Client.Info())
-			msg.Client.Stop()
-		})
-
-		if server.msgFilter(msg) {
-			if server.delegate != nil {
-				server.delegate.HandleMsg(msg)
-			}
-		} else {
-			msg.Client.Stop()
-		}
-	}
-	/*
-		cb, ok := server.handlerMap[msg.Cmd]
-		if ok && ((server.msgFilter == nil) || server.msgFilter(msg)) {
-			defer HandlePanic(true, func() {
-				ZLog("HandleMsg %s panic err!", msg.Client.Info())
-				msg.Client.Stop()
-			})
-			if cb(msg) {
-				return
-			} else {
-				ZLog("HandleMsg Error, %s Msg Cmd: %d, Data: %v.", msg.Client.Info(), msg.Cmd, msg.Data)
-			}
-
-		} else {
-			ZLog("No Handler For Cmd %d, %s", msg.Cmd, msg.Client.Info())
-		}
-
-		msg.Client.Stop()
-	*/
-}
-
 /*
 func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
 	server.RLock()
@@ -337,24 +301,6 @@ func (server *TcpServer) SetMaxPackLen(maxPL int) {
 	}
 }
 
-func (server *TcpServer) SetDataInSupervisor(dataInSupervisor func(msg *NetMsg)) {
-	if server.delegate != nil {
-		server.delegate.SetDataInSupervisor(dataInSupervisor)
-	}
-}
-
-func (server *TcpServer) SetDataOutSupervisor(dataOutSupervisor func(msg *NetMsg)) {
-	if server.delegate != nil {
-		server.delegate.SetDataOutSupervisor(dataOutSupervisor)
-	}
-}
-
-func (server *TcpServer) SetShowClientData(show bool) {
-	if server.delegate != nil {
-		server.delegate.SetShowClientData(show)
-	}
-}
-
 func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
 	server.Lock()
 	defer server.Unlock()
@@ -384,44 +330,6 @@ func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
 	*/
 	server.delegate = delegate
 	delegate.SetServer(server)
-}
-
-func (server *TcpServer) RecvMsg(client *TcpClient) *NetMsg {
-	if server.delegate != nil {
-		msg := server.delegate.RecvMsg(client)
-		if msg != nil {
-			if server.dataInSupervisor != nil {
-				server.dataInSupervisor(msg)
-			}
-		}
-		return msg
-	}
-	return nil
-}
-
-type SendMsgError struct {
-}
-
-func (err *SendMsgError) Error() string {
-	return "SendMsg Failed Error"
-}
-
-func (server *TcpServer) SendMsg(client *TcpClient, msg *NetMsg) {
-	if server.delegate != nil {
-		/*client.Lock()
-		defer client.Unlock()
-		if client.running {*/
-		//msg.Client = client
-		if server.delegate.SendMsg(client, msg) {
-			if server.dataOutSupervisor != nil {
-				server.dataOutSupervisor(msg)
-			}
-		} else {
-			ZLog("SendMsg Failed, Client: %s %d %d %s", client.Info(), msg.Cmd, msg.Len, string(msg.Data))
-			panic(&SendMsgError{})
-		}
-		//}
-	}
 }
 
 func NewTcpServer(name string) *TcpServer {
