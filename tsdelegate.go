@@ -76,6 +76,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 		readLen = 0
 		err     error
 		msg     *NetMsg
+		msgLen  = 0
 		//server  = dele.Server
 	)
 
@@ -103,17 +104,18 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) *NetMsg {
 
 	msg = &NetMsg{
 		Cmd:    CmdType(binary.LittleEndian.Uint32(head[4:8])),
-		Len:    int(binary.LittleEndian.Uint32(head[0:4])),
 		Client: client,
 	}
-	if msg.Len > dele.maxPackLen {
-		ZLog("RecvMsg Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
+
+	msgLen = int(binary.LittleEndian.Uint32(head[0:4]))
+	if msgLen > dele.maxPackLen {
+		ZLog("RecvMsg Read Body Err: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
 		goto Exit
 	}
-	if msg.Len > 0 {
-		msg.Data = make([]byte, msg.Len)
+	if msgLen > 0 {
+		msg.Data = make([]byte, msgLen)
 		readLen, err := io.ReadFull(client.conn, msg.Data)
-		if err != nil || readLen != int(msg.Len) {
+		if err != nil || readLen != int(msgLen) {
 			if dele.showClientData {
 				ZLog("RecvMsg %s Read Body Err: %v.", client.Info(), err)
 			}
@@ -134,11 +136,11 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 		err      error
 	)
 
-	msg.Len = len(msg.Data)
+	msgLen := len(msg.Data)
 
-	if msg.Len > dele.maxPackLen {
+	if msgLen > dele.maxPackLen {
 		if dele.showClientData {
-			ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msg.Len, dele.maxPackLen)
+			ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
 		}
 		goto Exit
 	}
@@ -150,10 +152,10 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 		goto Exit
 	}
 
-	buf = make([]byte, PACK_HEAD_LEN+msg.Len)
-	binary.LittleEndian.PutUint32(buf, uint32(msg.Len))
+	buf = make([]byte, PACK_HEAD_LEN+msgLen)
+	binary.LittleEndian.PutUint32(buf, uint32(msgLen))
 	binary.LittleEndian.PutUint32(buf[4:8], uint32(msg.Cmd))
-	if msg.Len > 0 {
+	if msgLen > 0 {
 		copy(buf[PACK_HEAD_LEN:], msg.Data)
 	}
 
@@ -161,14 +163,14 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg *NetMsg) bool {
 
 	if err == nil && writeLen == len(buf) {
 		if dele.showClientData {
-			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msg.Len)
+			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msgLen)
 		}
 		return true
 	}
 
 Exit:
 	if dele.showClientData {
-		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd, msg.Len, err.Error())
+		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd, msgLen, err.Error())
 	}
 	client.Stop()
 	return false
