@@ -43,6 +43,19 @@ func (mgr *ObjMgr) Delete(k ObjKey) {
 	delete(container.keyvalues, k)
 }
 
+func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
+	for _, container := range mgr.containers {
+		func() {
+			container.RLock()
+			defer container.RUnlock()
+			for k, v := range container.keyvalues {
+				cb(k, v)
+			}
+		}()
+	}
+
+}
+
 func NewObjMgr(bucketNum int) *ObjMgr {
 	mgr := &ObjMgr{
 		size:       bucketNum,

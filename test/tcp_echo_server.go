@@ -43,13 +43,13 @@ func HandleConn(conn net.Conn) {
 			fmt.Printf("Client %s Stop: %s\n", conn.RemoteAddr().String(), err.Error())
 			break
 		}
-		fmt.Println("[Recv]", string(buf[:reqLen]))
+		fmt.Println("[Recv]", string(buf[8:reqLen]))
 
 		_, err = conn.Write(buf[:reqLen])
 		if err != nil {
 			fmt.Printf("Client %s Stop: %s\n", conn.RemoteAddr().String(), err.Error())
 			break
 		}
-		fmt.Println("[Send]", string(buf[:reqLen]))
+		fmt.Println("[Send]", string(buf[8:reqLen]))
 	}
 }
