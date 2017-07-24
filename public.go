@@ -47,12 +47,7 @@ type EventMgr struct {
 	valid bool
 }
 
-type NetMsg struct {
-	//Cmd    CmdType
-	//Len    int
-	Client *TcpClient
-	buf    []byte
-}
+
 
 type ZClientDelegate interface {
 	ShowClientData() bool

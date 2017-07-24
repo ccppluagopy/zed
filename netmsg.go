@@ -2,6 +2,7 @@ package zed
 
 import (
 	"encoding/binary"
+	"sync/atomic"
 )
 
 type NetMsgDef interface {
@@ -16,6 +17,15 @@ type NetMsgDef interface {
 	GetData() []byte
 	SetData([]byte)
 	GetSendBuf() []byte
+}
+
+type NetMsg struct {
+	//Cmd    CmdType
+	//Len    int
+	encrypted int32
+	Client *TcpClient
+	buf    []byte
+	
 }
 
 func (msg *NetMsg) Clone() *NetMsg {
@@ -35,11 +45,15 @@ func (msg *NetMsg) DeepClone() *NetMsg {
 }
 
 func (msg *NetMsg) Encrypt() {
+	if atomic.CompareAndSwapInt32(&(msg.encrypted), 0, 1) {
 
+	}
 }
 
 func (msg *NetMsg) Decrypt() {
-
+	if atomic.CompareAndSwapInt32(&(msg.encrypted), 1, 0) {
+		
+	}
 }
 
 func (msg *NetMsg) GetCmd() CmdType {
