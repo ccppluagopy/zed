@@ -26,8 +26,8 @@ func HandleSignal(maskAll bool, handler func(sig os.Signal)) {
 				}
 			}
 
-			signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
-
+			//signal.Notify(chSignal, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT)
+			signal.Notify(chSignal)
 			for {
 				sig = <-chSignal
 				if sig == nil {
