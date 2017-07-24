@@ -97,10 +97,10 @@ func NewFile(path string) (*os.File, error) {
 
 func checkFile() bool {
 	var err error = nil
-	currfilename := Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+	currfilename := Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
 	if logfilename != currfilename {
 		logfilesubnum = 0
-		logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+		logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
 		if logfile != nil {
 			logfile.Close()
 		}
@@ -110,6 +110,9 @@ func checkFile() bool {
 			return false
 		} else {
 			logfilesize = 0
+			if logtimer != nil {
+				logtimer.Reset(syncinterval)
+			}
 			return true
 		}
 	}
@@ -117,10 +120,10 @@ func checkFile() bool {
 	if logfilesize > maxfilesize {
 		if logfilename == currfilename {
 			logfilesubnum++
-			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+			logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
 		} else {
 			logfilesubnum = 0
-			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+			logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
 		}
 		if logfile != nil {
 			logfile.Close()
@@ -131,6 +134,9 @@ func checkFile() bool {
 			return false
 		}
 		logfilesize = 0
+		if logtimer != nil {
+			logtimer.Reset(syncinterval)
+		}
 	}
 	return true
 }
@@ -272,15 +278,6 @@ func Save() {
 }
 
 func startSync() {
-	logmtx.Lock()
-	defer logmtx.Unlock()
-
-	if logfile == nil { //|| chsynclogfile != nil {
-		return
-	}
-
-	//chsynclogfile = make(chan struct{})
-
 	go func() {
 		defer func() {
 			recover()
