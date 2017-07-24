@@ -55,13 +55,15 @@ func (msg *NetMsg) GetClient() *TcpClient {
 }
 
 func (msg *NetMsg) GetData() []byte {
-	return msg.buf
+	return msg.buf[PACK_HEAD_LEN:]
 }
 
 func (msg *NetMsg) SetData(data []byte) {
 	needLen := len(data) - len(msg.buf) + PACK_HEAD_LEN
 	if needLen > 0 {
 		msg.buf = append(msg.buf, make([]byte, needLen)...)
+	}else if needLen < 0{
+		msg.buf = msg.buf[len(data) + PACK_HEAD_LEN:]
 	}
 	copy(msg.buf[PACK_HEAD_LEN:], data)
 }
