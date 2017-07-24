@@ -305,7 +305,7 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 			if lt & LogCmd != 0 {
 				str += "Cmd "
 			} 
-			if lt & LogFile {
+			if lt & LogFile != 0 {
 				str += "File"
 			}
 			loginfotype = lt
@@ -316,7 +316,7 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 			if lt & LogCmd != 0 {
 				str += "Cmd "
 			} 
-			if lt & LogFile {
+			if lt & LogFile != 0 {
 				str += "File"
 			}
 			logwarntype = lt
@@ -327,7 +327,7 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 			if lt & LogCmd != 0 {
 				str += "Cmd "
 			} 
-			if lt & LogFile {
+			if lt & LogFile != 0 {
 				str += "File"
 			}
 			logerrortype = lt
@@ -338,7 +338,7 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 			if lt & LogCmd != 0 {
 				str += "Cmd "
 			} 
-			if lt & LogFile {
+			if lt & LogFile != 0 {
 				str += "File"
 			}
 			logactiontype = lt
