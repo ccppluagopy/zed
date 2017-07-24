@@ -5,6 +5,8 @@ import (
 )
 
 type NetMsgDef interface {
+	Encrypt()
+	Decrypt()
 	GetCmd() CmdType
 	SetCmd(CmdType)
 	GetClient() *TcpClient
@@ -30,6 +32,14 @@ func (msg *NetMsg) DeepClone() *NetMsg {
 		//Cmd:    msg.Cmd,
 		buf: append([]byte{}, msg.buf...),
 	}
+}
+
+func (msg *NetMsg) Encrypt() {
+
+}
+
+func (msg *NetMsg) Decrypt() {
+
 }
 
 func (msg *NetMsg) GetCmd() CmdType {
