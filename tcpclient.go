@@ -17,7 +17,7 @@ type AsyncMsg struct {
 }
 
 func (client *TcpClient) Info() string {
-	return fmt.Sprintf("Client(ID: %v-Addr: %s)", client.Idx, client.Addr)
+	return fmt.Sprintf("Client(Idx: %v, Addr: %s <-> %s)", client.Idx, client.conn.LocalAddr().String(), client.Addr)
 }
 
 func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
@@ -279,13 +279,15 @@ func (client *TcpClient) Connect() {
 	}
 
 	client.running = true
-	if client.onConnected != nil {
+	if client.EnableReconnect {
 		Async(func() {
 			HandlePanic(true)
 			client.AddCloseCB("__auto__reconnect__", func(c *TcpClient) {
 				c.Connect()
 			})
 		})
+	}
+	if client.onConnected != nil {
 		Async(func() {
 			HandlePanic(true)
 			client.onConnected(client)
