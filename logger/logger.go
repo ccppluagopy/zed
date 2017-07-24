@@ -386,6 +386,7 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		Printf("initLogDirAndFile %s Success\n", currlogdir)
 	}
 
+	checkFile()
 	startSync()
 
 	Println("===========================================")
