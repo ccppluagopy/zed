@@ -17,7 +17,7 @@ type AsyncMsg struct {
 }
 
 func (client *TcpClient) Info() string {
-	return fmt.Sprintf("Client(ID: %v-Addr: %s)", client.ID, client.Addr)
+	return fmt.Sprintf("Client(ID: %v-Addr: %s)", client.Idx, client.Addr)
 }
 
 func (client *TcpClient) AddCloseCB(key interface{}, cb ClientCloseCB) {
@@ -305,7 +305,7 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 	client := &TcpClient{
 		conn:   conn,
 		parent: parent,
-		ID:     NullID,
+		//ID:     NullID,
 		Idx:    idx,
 		//Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),

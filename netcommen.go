@@ -4,11 +4,7 @@ import (
 	"time"
 )
 
-/*type ClientIDType uint32
 
-const (
-	NullID = 0
-)*/
 
 const (
 	PACK_HEAD_LEN = 8

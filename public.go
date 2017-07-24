@@ -14,16 +14,12 @@ const (
 	LogCmd  = 1
 	LogFile = 2
 
-	//NullID = 0
-	NullID = "NULL"
-
 	TAG_NULL = "--"
 )
 
-type CmdType uint32
 
 //type ClientIDType uint32
-type ClientIDType string
+//type ClientIDType string
 
 type NewConnCB func(client *TcpClient)
 
@@ -67,7 +63,7 @@ type TcpClient struct {
 	sync.Mutex
 	conn   *net.TCPConn
 	parent ZTcpClientDelegate
-	ID     ClientIDType
+	//ID     ClientIDType
 	Idx    int
 	Addr   string
 	//Data    interface{}
@@ -85,7 +81,7 @@ type TcpServer struct {
 	showClientData    bool
 	ClientNum         int
 	listener          *net.TCPListener
-	handlerMap        map[CmdType]MsgHandler
+	handlerMap        map[uint32]MsgHandler
 	clients           map[*TcpClient]*TcpClient
 	msgFilter         func(*NetMsg) bool
 	onNewConnCB       func(client *TcpClient)

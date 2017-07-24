@@ -96,7 +96,7 @@ const (
 	OBS_CMD_PUBLIC
 )
 
-func SendError(client *zed.TcpClient, cmd zed.CmdType, errNum int) {
+func SendError(client *zed.TcpClient, cmd zed.uint32, errNum int) {
 	if desc, ok := errconfig[errNum]; ok {
 		rsp := make(map[string]string)
 

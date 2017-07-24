@@ -8,8 +8,8 @@ import (
 type NetMsgDef interface {
 	Encrypt()bool
 	Decrypt()bool
-	GetCmd() CmdType
-	SetCmd(CmdType)
+	GetCmd() uint32
+	SetCmd(uint32)
 	GetClient() *TcpClient
 	GetMsgLen() int
 	GetHeadLen() int
@@ -20,7 +20,7 @@ type NetMsgDef interface {
 }
 
 type NetMsg struct {
-	//Cmd    CmdType
+	//Cmd    uint32
 	//Len    int
 	encrypted int32
 	Client *TcpClient
@@ -58,11 +58,11 @@ func (msg *NetMsg) Decrypt()bool {
 	return true
 }
 
-func (msg *NetMsg) GetCmd() CmdType {
-	return CmdType(binary.BigEndian.Uint32(msg.buf[4:]))
+func (msg *NetMsg) GetCmd() uint32 {
+	return uint32(binary.BigEndian.Uint32(msg.buf[4:]))
 }
 
-func (msg *NetMsg) SetCmd(cmd CmdType) {
+func (msg *NetMsg) SetCmd(cmd uint32) {
 	binary.BigEndian.PutUint32(msg.buf[4:], uint32(cmd))
 }
 
@@ -100,7 +100,7 @@ func (msg *NetMsg) GetDataLen() int {
 	return len(msg.buf) - PACK_HEAD_LEN
 }
 
-func NewNetMsg(cmd CmdType, data []byte) *NetMsg {
+func NewNetMsg(cmd uint32, data []byte) *NetMsg {
 	msg := NetMsg{
 		buf: append(make([]byte, PACK_HEAD_LEN), data...),
 	}

@@ -267,7 +267,7 @@ func (client *MutexClient) ReadMsg() *zed.NetMsg {
 	}*/
 
 	msg = &zed.NetMsg{
-		Cmd:  zed.CmdType(binary.LittleEndian.Uint32(head[4:8])),
+		Cmd:  zed.uint32(binary.LittleEndian.Uint32(head[4:8])),
 		Len:  0,
 		Data: nil,
 	}

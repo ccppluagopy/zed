@@ -170,7 +170,7 @@ func (server *TcpServer) RemoveNewConnCB(name string) {
 	delete(server.newConnCBMap, name)
 }
 */
-func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
+func (server *TcpServer) AddMsgHandler(cmd uint32, cb MsgHandler) {
 	server.Lock()
 	defer server.Unlock()
 
@@ -182,7 +182,7 @@ func (server *TcpServer) AddMsgHandler(cmd CmdType, cb MsgHandler) {
 	}
 }
 
-func (server *TcpServer) RemoveMsgHandler(cmd CmdType) {
+func (server *TcpServer) RemoveMsgHandler(cmd uint32) {
 	server.Lock()
 	defer server.Unlock()
 
@@ -198,23 +198,6 @@ func (server *TcpServer) SetMsgFilter(filter func(*NetMsg) bool) {
 	server.msgFilter = filter
 }
 
-/*func (server *TcpServer) SetNewConnCB(cb func(*TcpClient)) {
-	if server.delegate != nil {
-		server.delegate.SetNewConnCB(cb)
-	}
-}*/
-
-/*func (server *TcpServer) SetConnCloseCB(cb func(*TcpClient)) {
-	server.onConnCloseCB = cb
-}
-*/
-func (server *TcpServer) onNewClient(client *TcpClient) {
-	/*server.Lock()
-	defer server.Unlock()
-
-	server.clients[client] = client*/
-}
-
 func (server *TcpServer) SetServerStopCB(cb func()) {
 	server.Lock()
 	defer server.Unlock()
@@ -225,45 +208,6 @@ func (server *TcpServer) OnClientMsgError(msg *NetMsg) {
 
 }
 
-/*
-func (server *TcpServer) GetClientById(id ClientIDType) *TcpClient {
-	server.RLock()
-	defer server.RUnlock()
-
-	if c, ok := server.idClientMap[id]; ok {
-		return c
-	}
-
-	return nil
-}
-
-func (server *TcpServer) AddClient(client *TcpClient) {
-	if client.ID != NullID {
-		server.Lock()
-		defer server.Unlock()
-
-		server.idClientMap[client.ID] = client
-		server.clientIdMap[client] = client.ID
-	}
-}
-
-func (server *TcpServer) RemoveClient(client *TcpClient) {
-	//if client.ID != NullID {
-	server.Lock()
-	defer server.Unlock()
-
-	delete(server.idClientMap, client.ID)
-	delete(server.clientIdMap, client)
-	//}
-}
-
-func (server *TcpServer) GetClientNum(client *TcpClient) (int, int) {
-	server.RLock()
-	defer server.RUnlock()
-
-	return len(server.clientIdMap), server.ClientNum
-}
-*/
 
 func (server *TcpServer) SetIOBlockTime(recvBT time.Duration, sendBT time.Duration) {
 	if server.delegate != nil {
@@ -346,7 +290,7 @@ func NewTcpServer(name string) *TcpServer {
 		ClientNum: 0,
 		listener:  nil,
 		//newConnCBMap: make(map[string]func(client *TcpClient)),
-		handlerMap: make(map[CmdType]MsgHandler),
+		handlerMap: make(map[uint32]MsgHandler),
 		clients:    make(map[*TcpClient]*TcpClient),
 		//clientIdMap: make(map[*TcpClient]uint32),
 		//idClientMap: make(map[uint32]*TcpClient),

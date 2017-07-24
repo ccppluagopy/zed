@@ -16,7 +16,7 @@ const (
 	TAG_NULL = "--"
 )
 
-type CmdType uint32
+type uint32 uint32
 
 type ClientIDType string
 
@@ -50,7 +50,7 @@ type EventMgr struct {
 }
 
 type NetMsg struct {
-	Cmd    CmdType
+	Cmd    uint32
 	Len    int
 	Client *TcpClient
 	Data   []byte
@@ -75,7 +75,7 @@ type TcpServer struct {
 	showClientData    bool
 	ClientNum         int
 	listener          *net.TCPListener
-	handlerMap        map[CmdType]MsgHandler
+	handlerMap        map[uint32]MsgHandler
 	clients           map[int]*TcpClient
 	msgFilter         func(*NetMsg) bool
 	onNewConnCB       func(client *TcpClient)

@@ -15,8 +15,8 @@ type ZTcpClientDelegate interface {
 	HandleMsg(NetMsgDef)
 
 	SetServer(*TcpServer)
-	AddMsgHandler(cmd CmdType, cb MsgHandler)
-	RemoveMsgHandler(cmd CmdType)
+	AddMsgHandler(cmd uint32, cb MsgHandler)
+	RemoveMsgHandler(cmd uint32)
 	SetShowClientData(bool)
 	SetIOBlockTime(time.Duration, time.Duration)
 	SetRecvBlockTime(time.Duration)
@@ -49,7 +49,7 @@ type DefaultTCDelegate struct {
 	//Mutex
 	inited     bool
 	Server     *TcpServer
-	HandlerMap map[CmdType]MsgHandler
+	HandlerMap map[uint32]MsgHandler
 
 	showClientData    bool
 	maxPackLen        int
@@ -254,18 +254,18 @@ func (dele *DefaultTCDelegate) HandleMsg(msg NetMsgDef) {
 	}
 }
 
-func (dele *DefaultTCDelegate) AddMsgHandler(cmd CmdType, cb MsgHandler) {
+func (dele *DefaultTCDelegate) AddMsgHandler(cmd uint32, cb MsgHandler) {
 	dele.Lock()
 	defer dele.Unlock()
 
 	ZLog("%s AddMsgHandler, Cmd: %d", dele.tag, cmd)
 	if dele.HandlerMap == nil {
-		dele.HandlerMap = make(map[CmdType]MsgHandler)
+		dele.HandlerMap = make(map[uint32]MsgHandler)
 	}
 	dele.HandlerMap[cmd] = cb
 }
 
-func (dele *DefaultTCDelegate) RemoveMsgHandler(cmd CmdType) {
+func (dele *DefaultTCDelegate) RemoveMsgHandler(cmd uint32) {
 	dele.Lock()
 	defer dele.Unlock()
 

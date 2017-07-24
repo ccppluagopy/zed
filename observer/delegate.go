@@ -47,7 +47,7 @@ func (dele *OBDelaget) RecvMsg(client *zed.TcpClient) *zed.NetMsg {
 	//zed.ZLog("OBsever recved head: %v.", head)
 
 	msg = &zed.NetMsg{
-		Cmd:    zed.CmdType(0),
+		Cmd:    zed.uint32(0),
 		Len:    int(binary.LittleEndian.Uint32(head[0:PACK_HEAD_LEN])),
 		Client: client,
 	}
