@@ -5,6 +5,7 @@ import (
 	"io"
 	"sync"
 	"time"
+	"sync/atomic"
 )
 
 type ZTcpClientDelegate interface {
@@ -47,7 +48,7 @@ type ZTcpClientDelegate interface {
 type DefaultTCDelegate struct {
 	sync.Mutex
 	//Mutex
-	inited     bool
+	inited     int32
 	Server     *TcpServer
 	HandlerMap map[uint32]MsgHandler
 
@@ -75,6 +76,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) NetMsgDef {
 		msg     = &NetMsg{
 			Client: client,
 			buf:    make([]byte, PACK_HEAD_LEN),
+			encrypted: 1,
 		}
 		dataLen = 0
 		//server  = dele.Server
@@ -193,42 +195,34 @@ func (dele *DefaultTCDelegate) MsgFilter(msg *NetMsg) bool {
 }
 */
 func (dele *DefaultTCDelegate) Init() {
-	dele.Lock()
-	inited := dele.inited
-	dele.Unlock()
-	if inited {
-		return
-	}
-	dele.Lock()
-	dele.inited = true
-	dele.Unlock()
+	if atomic.CompareAndSwapInt32(&(dele.inited), 0, 1) {
+		if dele.AliveTime() == 0 {
+			dele.SetCientAliveTime(DEFAULT_KEEP_ALIVE_TIME)
+		}
 
-	if dele.AliveTime() == 0 {
-		dele.SetCientAliveTime(DEFAULT_KEEP_ALIVE_TIME)
-	}
+		if dele.RecvBlockTime() == 0 {
+			dele.SetRecvBlockTime(DEFAULT_RECV_BLOCK_TIME)
+		}
 
-	if dele.RecvBlockTime() == 0 {
-		dele.SetRecvBlockTime(DEFAULT_RECV_BLOCK_TIME)
-	}
+		if dele.SendBlockTime() == 0 {
+			dele.SetSendBlockTime(DEFAULT_SEND_BLOCK_TIME)
+		}
 
-	if dele.SendBlockTime() == 0 {
-		dele.SetSendBlockTime(DEFAULT_SEND_BLOCK_TIME)
-	}
+		if dele.MaxPackLen() == 0 {
+			dele.SetMaxPackLen(DEFAULT_MAX_PACK_LEN)
+		}
 
-	if dele.MaxPackLen() == 0 {
-		dele.SetMaxPackLen(DEFAULT_MAX_PACK_LEN)
-	}
+		if dele.RecvBufLen() == 0 {
+			dele.SetRecvBufLen(DEFAULT_RECV_BUF_LEN)
+		}
+		if dele.SendBufLen() == 0 {
+			dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
+		}
 
-	if dele.RecvBufLen() == 0 {
-		dele.SetRecvBufLen(DEFAULT_RECV_BUF_LEN)
-	}
-	if dele.SendBufLen() == 0 {
-		dele.SetSendBufLen(DEFAULT_SEND_BUF_LEN)
-	}
+		dele.tag = "DefaultTCDelegate"
 
-	dele.tag = "DefaultTCDelegate"
-
-	dele.SetShowClientData(false)
+		dele.SetShowClientData(false)
+	}
 }
 
 func (dele *DefaultTCDelegate) HandleMsg(msg NetMsgDef) {
