@@ -161,14 +161,14 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 
 	if err == nil && writeLen == msgLen {
 		if dele.showClientData {
-			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd, msgLen)
+			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd(), msgLen)
 		}
 		return true
 	}
 
 Exit:
 	if dele.showClientData {
-		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd, msgLen, err.Error())
+		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd(), msgLen, err.Error())
 	}
 	client.Stop()
 	return false
