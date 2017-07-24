@@ -71,20 +71,25 @@ var (
 		"Action": LogCmd,
 	}
 
-	logtimer *time.Timer = nil
+	logtimer    *time.Timer = nil
+	enablebufio             = true
 	//chsynclogfile chan struct{} = nil
 )
 
 func NewFile(path string) (*os.File, error) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
+
 	if err != nil {
 		Println("zlog NewFile Error: %s, %s", path, err.Error())
 		return nil, err
 	}
-	if filewriter == nil {
-		filewriter = bufio.NewWriter(file)
-	} else {
-		filewriter.Reset(file)
+
+	if enablebufio {
+		if filewriter == nil {
+			filewriter = bufio.NewWriter(file)
+		} else {
+			filewriter.Reset(file)
+		}
 	}
 
 	return file, err
@@ -178,8 +183,15 @@ func writetofile(str string) {
 	defer logmtx.Unlock()
 
 	checkFile()
-
-	n, err := filewriter.WriteString(str)
+	var (
+		n   int
+		err error
+	)
+	if enablebufio {
+		n, err = filewriter.WriteString(str)
+	} else {
+		n, err = logfile.WriteString(str)
+	}
 	//Println(n, err, str)
 	if err != nil || n != len(str) {
 		Printf("zlog writetofile Failed: %d/%d wrote, Error: %v", n, len(str), err)
@@ -191,8 +203,11 @@ func writetofile(str string) {
 func syncLogFile() {
 	logmtx.Lock()
 	defer logmtx.Unlock()
-
-	filewriter.Flush()
+	if enablebufio {
+		filewriter.Flush()
+	} else {
+		logfile.Sync()
+	}
 	//logfile.Sync()
 }
 
@@ -292,9 +307,14 @@ func startSync() {
 	}()
 }
 
-func StartLogger(conf map[string]int, tags map[int]string) {
+func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) {
 	Println("===========================================")
 	Println("Logger Start")
+	if len(args) == 1 {
+		if enable, ok := args[0].(bool); ok {
+			enablebufio = enable
+		}
+	}
 	if conf == nil {
 		conf = logconf
 	}
