@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	LOG_NONE = iota
-	LogCmd
-	LogFile
-	LogCmdFile
-	LOG_MAX
+	//LOG_NONE = iota
+	LogCmd = 0x1 << 0
+	LogFile = 0x1 << 1
+	LogCmdFile = 0x1 <<2
+	//LOG_MAX
 )
 
 const (
@@ -200,19 +200,11 @@ func LogInfo(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_INFO >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
-			switch loginfotype {
-			case LogFile:
+			if loginfotype & LogFile !=0 {
 				writetofile(s)
-				break
-			case LogCmd:
+			}
+			if loginfotype & LogCmd !=0 {
 				Printf(s)
-				break
-			case LogCmdFile:
-				Printf(s)
-				writetofile(s)
-				break
-			default:
-				break
 			}
 		}
 	}
@@ -222,19 +214,11 @@ func LogWarn(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_WARN >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  WARN] ", Sprintf(format, v...), "\n"}, logsep)
-			switch logwarntype {
-			case LogFile:
+			if logwarntype & LogFile !=0 {
 				writetofile(s)
-				break
-			case LogCmd:
+			}
+			if logwarntype & LogCmd !=0 {
 				Printf(s)
-				break
-			case LogCmdFile:
-				Printf(s)
-				writetofile(s)
-				break
-			default:
-				break
 			}
 		}
 	}
@@ -244,19 +228,11 @@ func LogError(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ERROR >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ ERROR] ", Sprintf(format, v...), "\n"}, logsep)
-			switch logerrortype {
-			case LogFile:
+			if logerrortype & LogFile !=0 {
 				writetofile(s)
-				break
-			case LogCmd:
+			}
+			if logerrortype & LogCmd !=0 {
 				Printf(s)
-				break
-			case LogCmdFile:
-				Printf(s)
-				writetofile(s)
-				break
-			default:
-				break
 			}
 		}
 	}
@@ -266,19 +242,11 @@ func LogAction(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ACTION >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ACTION] ", Sprintf(format, v...), "\n"}, logsep)
-			switch logactiontype {
-			case LogFile:
+			if logactiontype & LogFile !=0 {
 				writetofile(s)
-				break
-			case LogCmd:
+			}
+			if logactiontype & LogCmd !=0 {
 				Printf(s)
-				break
-			case LogCmdFile:
-				Printf(s)
-				writetofile(s)
-				break
-			default:
-				break
 			}
 		}
 	}
@@ -332,54 +300,46 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 	}
 	if conf != nil {
 		Println("logconf:")
-		if lt, ok := conf["Info"]; !ok || lt <= LOG_NONE || lt >= LOG_MAX {
-			Println("StartLogger Error: Invalid Info LogType")
-			return
-		} else {
-			str := "LogCmd"
-			if lt == LogFile {
-				str = "LogFile"
-			} else if lt == LogCmdFile {
-				str = "LogCmdFile"
+		if lt, ok := conf["Info"]; ok {
+			str := ""
+			if lt & LogCmd != 0 {
+				str += "Cmd "
+			} 
+			if lt & LogFile {
+				str += "File"
 			}
 			loginfotype = lt
 			Println("	", "Info	", str)
 		}
-		if lt, ok := conf["Warn"]; !ok || lt <= LOG_NONE || lt >= LOG_MAX {
-			Println("StartLogger Error: Invalid Warn LogType")
-			return
-		} else {
-			str := "LogCmd"
-			if lt == LogFile {
-				str = "LogFile"
-			} else if lt == LogCmdFile {
-				str = "LogCmdFile"
+		if lt, ok := conf["Warn"]; ok {
+			str := ""
+			if lt & LogCmd != 0 {
+				str += "Cmd "
+			} 
+			if lt & LogFile {
+				str += "File"
 			}
 			logwarntype = lt
 			Println("	", "Warn	", str)
 		}
-		if lt, ok := conf["Error"]; !ok || lt <= LOG_NONE || lt >= LOG_MAX {
-			Println("StartLogger Error: Invalid Error LogType")
-			return
-		} else {
-			str := "LogCmd"
-			if lt == LogFile {
-				str = "LogFile"
-			} else if lt == LogCmdFile {
-				str = "LogCmdFile"
+		if lt, ok := conf["Error"]; ok {
+			str := ""
+			if lt & LogCmd != 0 {
+				str += "Cmd "
+			} 
+			if lt & LogFile {
+				str += "File"
 			}
 			logerrortype = lt
 			Println("	", "Error	", str)
 		}
-		if lt, ok := conf["Action"]; !ok || lt <= LOG_NONE || lt >= LOG_MAX {
-			Println("StartLogger Error: Invalid Action LogType")
-			return
-		} else {
-			str := "LogCmd"
-			if lt == LogFile {
-				str = "LogFile"
-			} else if lt == LogCmdFile {
-				str = "LogCmdFile"
+		if lt, ok := conf["Action"]; ok {
+			str := ""
+			if lt & LogCmd != 0 {
+				str += "Cmd "
+			} 
+			if lt & LogFile {
+				str += "File"
 			}
 			logactiontype = lt
 			Println("	", "Action	", str)
