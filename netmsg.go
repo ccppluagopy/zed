@@ -6,8 +6,8 @@ import (
 )
 
 type NetMsgDef interface {
-	Encrypt()
-	Decrypt()
+	Encrypt()bool
+	Decrypt()bool
 	GetCmd() CmdType
 	SetCmd(CmdType)
 	GetClient() *TcpClient
@@ -44,16 +44,18 @@ func (msg *NetMsg) DeepClone() *NetMsg {
 	}
 }
 
-func (msg *NetMsg) Encrypt() {
+func (msg *NetMsg) Encrypt()bool {
 	if atomic.CompareAndSwapInt32(&(msg.encrypted), 0, 1) {
 
 	}
+	return true
 }
 
-func (msg *NetMsg) Decrypt() {
+func (msg *NetMsg) Decrypt()bool {
 	if atomic.CompareAndSwapInt32(&(msg.encrypted), 1, 0) {
 		
 	}
+	return true
 }
 
 func (msg *NetMsg) GetCmd() CmdType {

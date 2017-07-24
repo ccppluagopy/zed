@@ -119,7 +119,9 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) NetMsgDef {
 		}
 	}
 
-	msg.Decrypt()
+	if !msg.Decrypt(){
+		goto Exit
+	}
 
 	return msg
 
@@ -134,7 +136,9 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 		err      error
 	)
 
-	msg.Encrypt()
+	if !msg.Encrypt(){
+		return false
+	}
 
 	msgLen := msg.MsgLen()
 
