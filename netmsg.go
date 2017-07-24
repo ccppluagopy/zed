@@ -11,9 +11,9 @@ type NetMsgDef interface {
 	GetCmd() CmdType
 	SetCmd(CmdType)
 	GetClient() *TcpClient
-	MsgLen() int
-	HeadLen() int
-	DataLen() int
+	GetMsgLen() int
+	GetHeadLen() int
+	GetDataLen() int
 	GetData() []byte
 	SetData([]byte)
 	GetSendBuf() []byte
@@ -88,15 +88,15 @@ func (msg *NetMsg) GetSendBuf() []byte {
 	return msg.buf
 }
 
-func (msg *NetMsg) MsgLen() int {
+func (msg *NetMsg) GetMsgLen() int {
 	return len(msg.buf)
 }
 
-func (msg *NetMsg) HeadLen() int {
+func (msg *NetMsg) GetHeadLen() int {
 	return PACK_HEAD_LEN
 }
 
-func (msg *NetMsg) DataLen() int {
+func (msg *NetMsg) GetDataLen() int {
 	return len(msg.buf) - PACK_HEAD_LEN
 }
 

@@ -140,7 +140,7 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 		return false
 	}
 
-	msgLen := msg.MsgLen()
+	msgLen := msg.GetMsgLen()
 
 	if msgLen > dele.maxPackLen {
 		if dele.showClientData {
@@ -164,7 +164,7 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 	}
 
 	buf = msg.GetSendBuf()
-	binary.LittleEndian.PutUint32(buf, uint32(msg.DataLen()))
+	binary.LittleEndian.PutUint32(buf, uint32(msg.GetDataLen()))
 	writeLen, err = client.conn.Write(buf)
 
 	if err == nil && writeLen == msgLen {
