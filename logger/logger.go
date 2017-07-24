@@ -11,9 +11,9 @@ import (
 
 const (
 	//LOG_NONE = iota
-	LogCmd = 0x1 << 0
-	LogFile = 0x1 << 1
-	LogCmdFile = 0x1 <<2
+	LogCmd     = 0x1 << 0
+	LogFile    = 0x1 << 1
+	LogCmdFile = 0x1 << 2
 	//LOG_MAX
 )
 
@@ -200,10 +200,10 @@ func LogInfo(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_INFO >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
-			if loginfotype & LogFile !=0 {
+			if loginfotype&LogFile != 0 {
 				writetofile(s)
 			}
-			if loginfotype & LogCmd !=0 {
+			if loginfotype&LogCmd != 0 {
 				Printf(s)
 			}
 		}
@@ -214,10 +214,10 @@ func LogWarn(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_WARN >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  WARN] ", Sprintf(format, v...), "\n"}, logsep)
-			if logwarntype & LogFile !=0 {
+			if logwarntype&LogFile != 0 {
 				writetofile(s)
 			}
-			if logwarntype & LogCmd !=0 {
+			if logwarntype&LogCmd != 0 {
 				Printf(s)
 			}
 		}
@@ -228,10 +228,10 @@ func LogError(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ERROR >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ ERROR] ", Sprintf(format, v...), "\n"}, logsep)
-			if logerrortype & LogFile !=0 {
+			if logerrortype&LogFile != 0 {
 				writetofile(s)
 			}
-			if logerrortype & LogCmd !=0 {
+			if logerrortype&LogCmd != 0 {
 				Printf(s)
 			}
 		}
@@ -242,10 +242,10 @@ func LogAction(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ACTION >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ACTION] ", Sprintf(format, v...), "\n"}, logsep)
-			if logactiontype & LogFile !=0 {
+			if logactiontype&LogFile != 0 {
 				writetofile(s)
 			}
-			if logactiontype & LogCmd !=0 {
+			if logactiontype&LogCmd != 0 {
 				Printf(s)
 			}
 		}
@@ -302,10 +302,10 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		Println("logconf:")
 		if lt, ok := conf["Info"]; ok {
 			str := ""
-			if lt & LogCmd != 0 {
+			if lt&LogCmd != 0 {
 				str += "Cmd "
-			} 
-			if lt & LogFile != 0 {
+			}
+			if lt&LogFile != 0 {
 				str += "File"
 			}
 			loginfotype = lt
@@ -313,10 +313,10 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		}
 		if lt, ok := conf["Warn"]; ok {
 			str := ""
-			if lt & LogCmd != 0 {
+			if lt&LogCmd != 0 {
 				str += "Cmd "
-			} 
-			if lt & LogFile != 0 {
+			}
+			if lt&LogFile != 0 {
 				str += "File"
 			}
 			logwarntype = lt
@@ -324,10 +324,10 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		}
 		if lt, ok := conf["Error"]; ok {
 			str := ""
-			if lt & LogCmd != 0 {
+			if lt&LogCmd != 0 {
 				str += "Cmd "
-			} 
-			if lt & LogFile != 0 {
+			}
+			if lt&LogFile != 0 {
 				str += "File"
 			}
 			logerrortype = lt
@@ -335,10 +335,10 @@ func StartLogger(conf map[string]int, tags map[int]string) {
 		}
 		if lt, ok := conf["Action"]; ok {
 			str := ""
-			if lt & LogCmd != 0 {
+			if lt&LogCmd != 0 {
 				str += "Cmd "
-			} 
-			if lt & LogFile != 0 {
+			}
+			if lt&LogFile != 0 {
 				str += "File"
 			}
 			logactiontype = lt
@@ -401,5 +401,6 @@ func StopLogger() {
 		close(chsynclogfile)
 		chsynclogfile = nil
 	}*/
+	syncLogFile()
 	Println("Logger Stop!")
 }
