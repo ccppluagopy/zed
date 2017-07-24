@@ -97,10 +97,10 @@ func NewFile(path string) (*os.File, error) {
 
 func checkFile() bool {
 	var err error = nil
-	currfilename := Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
+	currfilename := Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 	if logfilename != currfilename {
 		logfilesubnum = 0
-		logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
+		logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		if logfile != nil {
 			logfile.Close()
 		}
@@ -120,10 +120,10 @@ func checkFile() bool {
 	if logfilesize > maxfilesize {
 		if logfilename == currfilename {
 			logfilesubnum++
-			logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
+			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		} else {
 			logfilesubnum = 0
-			logfilename = Sprintf("%s", time.Now().Format(LOG_FILE_NAME_FORMAT))
+			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		}
 		if logfile != nil {
 			logfile.Close()
