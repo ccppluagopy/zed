@@ -161,14 +161,14 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
 
 	if err == nil && writeLen == msgLen {
 		if dele.showClientData {
-			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.Cmd(), msgLen)
+			ZLog("[Send] %s Cmd: %d Len: %d", client.Info(), msg.GetCmd(), msgLen)
 		}
 		return true
 	}
 
 Exit:
 	if dele.showClientData {
-		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.Cmd(), msgLen, err.Error())
+		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.GetCmd(), msgLen, err.Error())
 	}
 	client.Stop()
 	return false
@@ -229,19 +229,19 @@ func (dele *DefaultTCDelegate) HandleMsg(msg NetMsgDef) {
 		msg.Client.Stop()
 	})*/
 	client := msg.GetClient()
-	cb, ok := dele.HandlerMap[msg.Cmd()]
+	cb, ok := dele.HandlerMap[msg.GetCmd()]
 	if ok {
 		if cb(msg) {
 			return
 		} else {
 			if dele.showClientData {
-				ZLog("%s HandleMsg Error, %s Msg Cmd: %d, Data: %v.", dele.tag, client.Info(), msg.Cmd(), string(msg.GetData()))
+				ZLog("%s HandleMsg Error, %s Msg Cmd: %d, Data: %v.", dele.tag, client.Info(), msg.GetCmd(), string(msg.GetData()))
 			}
 			client.Stop()
 		}
 	} else {
 		if dele.showClientData {
-			ZLog("%s HandleMsg Error: No Handler For Cmd %d, %s", dele.tag, msg.Cmd(), client.Info())
+			ZLog("%s HandleMsg Error: No Handler For Cmd %d, %s", dele.tag, msg.GetCmd(), client.Info())
 		}
 	}
 }

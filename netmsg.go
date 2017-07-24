@@ -5,7 +5,7 @@ import (
 )
 
 type NetMsgDef interface {
-	Cmd() CmdType
+	GetCmd() CmdType
 	GetClient() *TcpClient
 	MsgLen() int
 	HeadLen() int
@@ -31,8 +31,12 @@ func (msg *NetMsg) DeepClone() *NetMsg {
 	}
 }
 
-func (msg *NetMsg) Cmd() CmdType {
+func (msg *NetMsg) GetCmd() CmdType {
 	return CmdType(binary.BigEndian.Uint32(msg.buf[4:]))
+}
+
+func (msg *NetMsg) SetCmd(cmd CmdType) {
+	binary.BigEndian.PutUint32(msg.buf[4:], uint32(cmd))
 }
 
 func (msg *NetMsg) GetClient() *TcpClient {

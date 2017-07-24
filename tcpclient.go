@@ -160,12 +160,12 @@ func (client *TcpClient) SendMsgAsync(msg NetMsgDef, argv ...interface{}) bool {
 			select {
 			case client.chSend <- asyncmsg:
 				if client.parent.ShowClientData() {
-					ZLog("[SendAsync][Info] %s Cmd: %d Len: %d Success", client.Info(), msg.Cmd, msg.MsgLen())
+					ZLog("[SendAsync][Info] %s Cmd: %d Len: %d Success", client.Info(), msg.GetCmd(), msg.MsgLen())
 				}
 				break
 			case <-time.After(time.Second * 2):
 				if client.parent.ShowClientData() {
-					ZLog("[SendAsync][Error] %s Cmd: %d Len: %d Timeout", client.Info(), msg.Cmd, msg.MsgLen())
+					ZLog("[SendAsync][Error] %s Cmd: %d Len: %d Timeout", client.Info(), msg.GetCmd(), msg.MsgLen())
 				}
 				return false
 			}
