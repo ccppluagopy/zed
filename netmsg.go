@@ -6,6 +6,7 @@ import (
 
 type NetMsgDef interface {
 	GetCmd() CmdType
+	SetCmd(CmdType)
 	GetClient() *TcpClient
 	MsgLen() int
 	HeadLen() int
