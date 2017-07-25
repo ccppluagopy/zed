@@ -377,7 +377,7 @@ func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) 
 			if v[:len(TAG_NULL)] != TAG_NULL {
 				if len(v) < maxtaglen {
 					newv := v
-					for i := 0; i < maxtaglen; i++ {
+					for i := 0; i < maxtaglen-len(v); i++ {
 						newv = " " + newv
 					}
 					tags[k] = newv
