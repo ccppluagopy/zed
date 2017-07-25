@@ -252,7 +252,7 @@ func (dele *DefaultTCDelegate) AddMsgHandler(cmd uint32, cb MsgHandler) {
 	dele.Lock()
 	defer dele.Unlock()
 
-	ZLog("%s AddMsgHandler, Cmd: %d", dele.tag, cmd)
+	//ZLog("%s AddMsgHandler, Cmd: %d", dele.tag, cmd)
 	if dele.HandlerMap == nil {
 		dele.HandlerMap = make(map[uint32]MsgHandler)
 	}
@@ -263,7 +263,7 @@ func (dele *DefaultTCDelegate) RemoveMsgHandler(cmd uint32) {
 	dele.Lock()
 	defer dele.Unlock()
 
-	ZLog("%s RemoveMsgHandler, Cmd: %d", dele.tag, cmd)
+	//ZLog("%s RemoveMsgHandler, Cmd: %d", dele.tag, cmd)
 
 	delete(dele.HandlerMap, cmd)
 }
