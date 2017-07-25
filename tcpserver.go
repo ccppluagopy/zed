@@ -15,7 +15,7 @@ var (
 
 func (server *TcpServer) acceptConn() bool {
 	conn, err := server.listener.AcceptTCP()
-	defer conn.Close()
+	//defer conn.Close()
 	if !server.running {
 		return false
 	}
@@ -24,6 +24,11 @@ func (server *TcpServer) acceptConn() bool {
 		ZLog("TcpServer Accept error: %v\n", err)
 	} else {
 		client := newTcpClient(server.delegate, conn, server.ClientNum)
+		
+		if server.delegate != nil {
+			server.delegate.OnNewConn(client)
+		}
+
 		if client.start() {
 			server.ClientNum = server.ClientNum + 1
 
@@ -32,9 +37,7 @@ func (server *TcpServer) acceptConn() bool {
 				onnew(client)
 			}*/
 
-			if server.delegate != nil {
-				server.delegate.OnNewConn(client)
-			}
+			
 
 			/*for _, cb := range server.newConnCBMap {
 				cb(client)
