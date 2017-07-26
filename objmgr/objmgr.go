@@ -56,6 +56,21 @@ func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
 
 }
 
+
+func (mgr *ObjMgr) ForEachAsync(cb func(ObjKey, interface{})) {
+	Async(func(){
+		for _, container := range mgr.containers {
+			Async(func() {
+				container.RLock()
+				defer container.RUnlock()
+				for k, v := range container.keyvalues {
+					cb(k, v)
+				}
+			})
+		}
+	})
+}
+
 func NewObjMgr(bucketNum int) *ObjMgr {
 	mgr := &ObjMgr{
 		size:       bucketNum,

@@ -46,7 +46,6 @@ func (mgr *ObjMgr) Delete(k ObjKey) {
 func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
 	for _, container := range mgr.containers {
 		func() {
-			defer HandlePanic(true)
 			container.RLock()
 			defer container.RUnlock()
 			for k, v := range container.keyvalues {
@@ -54,21 +53,33 @@ func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
 			}
 		}()
 	}
-
 }
 
 func (mgr *ObjMgr) ForEachAsync(cb func(ObjKey, interface{})) {
-	for _, container := range mgr.containers {
-		Async(func() {
-			defer HandlePanic(true)
-			container.RLock()
-			defer container.RUnlock()
-			for k, v := range container.keyvalues {
-				cb(k, v)
-			}
-		})
+	Async(func(){
+		for _, container := range mgr.containers {
+			Async(func() {
+				container.RLock()
+				defer container.RUnlock()
+				for k, v := range container.keyvalues {
+					cb(k, v)
+				}
+			})
+		}
+	})
+}
+
+func (mgr *ObjMgr) Init(bucketNum int) *ObjMgr {
+	mgr.size = bucketNum
+	mgr.containers = make([]*objcontainer, bucketNum)
+	
+	for i := 0; i < bucketNum; i++ {
+		mgr.containers[i] = &objcontainer{
+			keyvalues: make(map[ObjKey]interface{}),
+		}
 	}
 
+	return mgr
 }
 
 func NewObjMgr(bucketNum int) *ObjMgr {
