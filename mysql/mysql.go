@@ -23,19 +23,25 @@ const (
 	KEEP_ALIVE_INTERVAL = time.Hour
 )
 
+const (
+	STATE_RUNNING = iota
+	STATE_RECONNECTING
+	STATE_STOP
+)
+
 type Mysql struct {
 	sync.RWMutex
-	DB      mysql.Conn
-	addr    string
-	dbname  string
-	usr     string
-	passwd  string
-	timer   *time.Timer
-	running bool
+	DB     mysql.Conn
+	addr   string
+	dbname string
+	usr    string
+	passwd string
+	timer  *time.Timer
+	state  uint32
 }
 
 func (msql *Mysql) startHeartbeat() {
-	if msql.running {
+	if msql.state == STATE_RUNNING {
 		if msql.timer == nil {
 			msql.timer = time.NewTimer(KEEP_ALIVE_INTERVAL)
 			zed.Async(func() {
@@ -54,9 +60,10 @@ func (msql *Mysql) startHeartbeat() {
 
 func (msql *Mysql) Start() {
 	//zed.Println("--- Start() 111")
-	if !msql.running {
+	if msql.state == STATE_STOP {
 		//zed.Println("--- Start() 222")
-		msql.running = true
+		msql.state = STATE_RECONNECTING
+		msql.Reset()
 		zed.Async(func() {
 			//zed.Println("--- Start() 333")
 			msql.Connect()
@@ -67,8 +74,8 @@ func (msql *Mysql) Start() {
 func (msql *Mysql) Stop() {
 	msql.Lock()
 	defer msql.Unlock()
-	if msql.running {
-		msql.running = false
+	if msql.state == STATE_RUNNING {
+		msql.state = STATE_STOP
 		if msql.timer != nil {
 			msql.timer.Stop()
 			msql.timer = nil
@@ -95,13 +102,15 @@ func (msql *Mysql) Connect() {
 	//zed.Println("--- Connect() 111")
 	msql.Lock()
 	defer msql.Unlock()
-	msql.Reset()
+
 	//zed.Println("--- Connect() 222")
-	if msql.running {
+	if msql.state != STATE_STOP {
+		msql.state = STATE_RECONNECTING
+		msql.Reset()
 		//zed.Println("--- Connect() 333")
 		db := mysql.New("tcp", "", msql.addr, msql.usr, msql.passwd, msql.dbname)
 		if err := db.Connect(); err != nil {
-			//zed.Println("--- Connect() 555")
+			zed.ZLog("Mysql Connect To %s Failed, Error: %s", msql.addr, err.Error())
 			zed.Async(func() {
 				//zed.Println("--- Connect() 666")
 				time.Sleep(time.Second)
@@ -111,6 +120,7 @@ func (msql *Mysql) Connect() {
 		}
 		//zed.Println("--- Connect() 444")
 		msql.DB = db
+		msql.state = STATE_RUNNING
 		msql.startHeartbeat()
 		zed.ZLog("Mysql Connect Addr: %s DBName: %s", msql.addr, msql.dbname)
 	}
@@ -119,22 +129,23 @@ func (msql *Mysql) Connect() {
 func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 	msql.Lock()
 	defer msql.Unlock()
-	if msql.running {
-		defer func() {
-			if err := recover(); err != nil {
+	//if msql.state == STATE_RUNNING {
+	defer func() {
+		if err := recover(); err != nil {
+			if msql.state == STATE_RUNNING {
+				//zed.Println("............. ")
 				zed.Async(func() {
 					msql.Connect()
 				})
-			} else {
-				if msql.timer != nil {
-					msql.timer.Reset(KEEP_ALIVE_INTERVAL)
-				}
 			}
-		}()
-		if msql.DB != nil {
-			cb(msql.DB)
+		} else {
+			if msql.timer != nil {
+				msql.timer.Reset(KEEP_ALIVE_INTERVAL)
+			}
 		}
-	}
+	}()
+	cb(msql.DB)
+	//}
 }
 
 func (msql *Mysql) Ping() {
@@ -149,13 +160,13 @@ func NewMysql(name string, addr string, dbname string, usr string, passwd string
 	msql, ok := instances[name]
 	if !ok {
 		msql = &Mysql{
-			DB:      nil,
-			addr:    addr,
-			dbname:  dbname,
-			usr:     usr,
-			passwd:  passwd,
-			timer:   nil,
-			running: false,
+			DB:     nil,
+			addr:   addr,
+			dbname: dbname,
+			usr:    usr,
+			passwd: passwd,
+			timer:  nil,
+			state:  STATE_STOP,
 		}
 
 		//msql.DB = mysql.New("tcp", "", addr, usr, passwd, dbname)
