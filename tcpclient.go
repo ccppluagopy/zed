@@ -50,7 +50,7 @@ func (client *TcpClient) IsRunning() bool {
 func (client *TcpClient) Stop() {
 	//LogStackInfo()
 	//NewCoroutine(func() {
-	time.AfterFunc(1, func() {
+	Async(func() {
 		defer HandlePanic(true)
 		client.Lock()
 		defer client.Unlock()
@@ -77,9 +77,9 @@ func (client *TcpClient) Stop() {
 			if len(client.closeCB) > 0 {
 				//NewCoroutine(func() {
 				for _, cb := range client.closeCB {
-					time.AfterFunc(1, func() {
-						cb(client)
-					})
+					//time.AfterFunc(1, func() {
+					cb(client)
+					//})
 				}
 			}
 
