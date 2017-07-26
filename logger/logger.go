@@ -19,6 +19,7 @@ const (
 
 const (
 	LOG_LEVEL_NONE = iota
+	LOG_LEVEL_DEBUG
 	LOG_LEVEL_INFO
 	LOG_LEVEL_WARN
 	LOG_LEVEL_ERROR
@@ -49,8 +50,8 @@ var (
 	logerrortype  = LogCmd
 	logactiontype = LogCmd
 
-	logdebug     = true
-	loglevel     = LOG_LEVEL_INFO
+	//logdebug     = true
+	loglevel     = LOG_LEVEL_DEBUG
 	syncinterval = time.Second * 30
 
 	Printf  = fmt.Printf
@@ -215,6 +216,20 @@ func syncLogFile() {
 		logfile.Sync()
 	}
 	//logfile.Sync()
+}
+
+func LogDebug(tag int, format string, v ...interface{}) {
+	if LOG_LEVEL_DEBUG >= loglevel {
+		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
+			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
+			if loginfotype&LogFile != 0 {
+				writetofile(s)
+			}
+			if loginfotype&LogCmd != 0 {
+				Printf(s)
+			}
+		}
+	}
 }
 
 func LogInfo(tag int, format string, v ...interface{}) {
