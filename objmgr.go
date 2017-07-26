@@ -44,14 +44,13 @@ func (mgr *ObjMgr) Delete(k ObjKey) {
 }
 
 func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
+	defer HandlePanic(true)
 	for _, container := range mgr.containers {
-		func() {
-			container.RLock()
-			defer container.RUnlock()
-			for k, v := range container.keyvalues {
-				cb(k, v)
-			}
-		}()
+		container.RLock()
+		defer container.RUnlock()
+		for k, v := range container.keyvalues {
+			cb(k, v)
+		}
 	}
 }
 
