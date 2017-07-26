@@ -11,319 +11,214 @@ import (
 )
 
 var (
-	mysqlMgrs     = make(map[string]*MysqlMgr)
-	mysqlMgrPools = make(map[string]*MysqlMgrPool)
+	mysqlmtx  = sync.Mutex{}
+	instances = make(map[string]*Mysql)
+	poolmtx   = sync.Mutex{}
+	pools     = make(map[string]*MysqlPool)
 )
 
 const (
-	DB_DIAL_TIMEOUT   = time.Second * 10
-	DB_DIAL_MAX_TIMES = 1000
+	DB_DIAL_TIMEOUT     = time.Second * 10
+	DB_DIAL_MAX_TIMES   = 1000
+	KEEP_ALIVE_INTERVAL = time.Hour
 )
 
-type MysqlActionCB func(*mysql.Conn)
-
-type MysqlMgr struct {
+type Mysql struct {
 	sync.RWMutex
-	DB *mysql.Conn
-	//DB       *sql.DB
-	tryCount   int
-	addr       string
-	dbname     string
-	usr        string
-	passwd     string
-	ticker     *time.Ticker
-	running    bool
-	restarting bool
+	DB      mysql.Conn
+	addr    string
+	dbname  string
+	usr     string
+	passwd  string
+	timer   *time.Timer
+	running bool
 }
 
-type MysqlMgrPool struct {
-	mgrs []*MysqlMgr
-}
-
-func (pool *MysqlMgrPool) GetMgr(idx int) *MysqlMgr {
-	//Println("MysqlMgrPool GetMgr: ", idx, len(pool.mgrs))
-	return pool.mgrs[idx%len(pool.mgrs)]
-}
-
-func (pool *MysqlMgrPool) DBAction(idx int, cb func(*mysql.Conn)) {
-	(*(pool.GetMgr(idx))).DBAction(cb)
-}
-
-func (pool *MysqlMgrPool) DB(idx int) *mysql.Conn {
-	return (pool.GetMgr(idx).DB)
-}
-
-func (pool *MysqlMgrPool) Stop() {
-	for i := 0; i < len(pool.mgrs); i++ {
-		pool.mgrs[i].Stop()
-	}
-}
-
-func (msqlMgr *MysqlMgr) IsRunning() bool {
-	msqlMgr.Lock()
-	defer msqlMgr.Unlock()
-
-	return msqlMgr.running
-}
-
-func (msqlMgr *MysqlMgr) SetRunningState(running bool) {
-	msqlMgr.Lock()
-	defer msqlMgr.Unlock()
-
-	msqlMgr.running = running
-}
-
-/*
-func (msqlMgr *MysqlMgr) handleAction() {
-	var (
-		cb       MysqlActionCB
-		ok       bool
-		chAction = msqlMgr.chAction
-	)
-
-	for {
-		select {
-		case cb, ok = <-chAction:
-			if ok && msqlMgr.IsRunning() {
-				if !cb(msqlMgr) {
-					NewCoroutine(func() {
-						msqlMgr.Restart()
-					})
+func (msql *Mysql) startHeartbeat() {
+	if msql.running {
+		if msql.timer == nil {
+			msql.timer = time.NewTimer(KEEP_ALIVE_INTERVAL)
+			zed.Async(func() {
+				for {
+					_, ok := <-msql.timer.C
+					if !ok {
+						break
+					}
+					msql.Ping()
+					msql.timer.Reset(KEEP_ALIVE_INTERVAL)
 				}
-			} else {
-				break
-			}
-		case <-msqlMgr.ticker.C:
-			msqlMgr.heartbeat()
-		}
-	}
-}*/
-
-func (mysqlMgr *MysqlMgr) startHeartbeat() {
-	zed.ZLog("MysqlMgr start heartbeat")
-	for {
-		select {
-		case _, ok := <-mysqlMgr.ticker.C:
-			if ok {
-				mysqlMgr.heartbeat()
-			} else {
-				break
-			}
-		}
-	}
-}
-
-func (msqlMgr *MysqlMgr) Start() bool {
-	var err error
-
-	if !msqlMgr.IsRunning() {
-		if msqlMgr.restarting {
-			err = (*(msqlMgr.DB)).Reconnect()
-		} else {
-			err = (*(msqlMgr.DB)).Connect()
-		}
-
-		//msqlMgr.DB, err = msqlMgr.Session.Use()
-		if err != nil {
-			zed.ZLog("MysqlMgr Start err: %v addr: %s dbname: %s", err, msqlMgr.addr, msqlMgr.dbname)
-			if msqlMgr.tryCount < DB_DIAL_MAX_TIMES {
-				msqlMgr.tryCount = msqlMgr.tryCount + 1
-				time.Sleep(time.Second * 1)
-				return msqlMgr.Start()
-			} else {
-				return false
-			}
-		}
-
-		/*msqlMgr.Session.SetMode(mgo.Monotonic, true)
-		msqlMgr.DB = msqlMgr.Session.DB(msqlMgr.dbname)*/
-
-		msqlMgr.tryCount = 0
-
-		msqlMgr.ticker = time.NewTicker(time.Hour)
-
-		msqlMgr.SetRunningState(true)
-		msqlMgr.restarting = false
-
-		zed.NewCoroutine(func() {
-			/*msqlMgr.chAction = make(chan MysqlActionCB)
-			msqlMgr.handleAction()*/
-			msqlMgr.startHeartbeat()
-		})
-
-		zed.ZLog("MsqlMgr addr: %s dbname: %v Start() --->>>", msqlMgr.addr, msqlMgr.DB)
-	}
-	//Println("-----------------------------------")
-	return true
-}
-
-func (msqlMgr *MysqlMgr) Restart() {
-	zed.NewCoroutine(func() {
-		msqlMgr.RLock()
-		defer msqlMgr.RUnlock()
-
-		if !msqlMgr.restarting {
-			msqlMgr.restarting = true
-			zed.NewCoroutine(func() {
-				msqlMgr.Stop()
-				msqlMgr.Start()
 			})
 		}
-	})
+	}
 }
 
-func (msqlMgr *MysqlMgr) Stop() {
-	msqlMgr.Lock()
-	defer msqlMgr.Unlock()
-	if msqlMgr.running {
-		msqlMgr.running = false
-		msqlMgr.ticker.Stop()
-		if msqlMgr.DB != nil {
-			//(*(msqlMgr.DB)).Close()
-			//msqlMgr.DB = nil
+func (msql *Mysql) Start() {
+	//zed.Println("--- Start() 111")
+	if !msql.running {
+		//zed.Println("--- Start() 222")
+		msql.running = true
+		zed.Async(func() {
+			//zed.Println("--- Start() 333")
+			msql.Connect()
+		})
+	}
+}
+
+func (msql *Mysql) Stop() {
+	msql.Lock()
+	defer msql.Unlock()
+	if msql.running {
+		msql.running = false
+		if msql.timer != nil {
+			msql.timer.Stop()
+			msql.timer = nil
+		}
+		if msql.DB != nil {
+			msql.DB.Close()
+			msql.DB = nil
 		}
 	}
 }
 
-func (msqlMgr *MysqlMgr) HandlePanic() {
-	if err := recover(); err != nil {
-		/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
-		zed.LogStackInfo()
-		msqlMgr.Restart()
+func (msql *Mysql) Reset() {
+	if msql.timer != nil {
+		msql.timer.Stop()
+		msql.timer = nil
+	}
+	if msql.DB != nil {
+		msql.DB.Close()
+		msql.DB = nil
 	}
 }
 
-func (msqlMgr *MysqlMgr) DBAction(cb func(*mysql.Conn)) {
-	msqlMgr.Lock()
-	defer msqlMgr.Unlock()
-	defer msqlMgr.HandlePanic()
-
-	//db := msqlMgr.DB
-	if msqlMgr.running {
-		cb(msqlMgr.DB)
+func (msql *Mysql) Connect() {
+	//zed.Println("--- Connect() 111")
+	msql.Lock()
+	defer msql.Unlock()
+	msql.Reset()
+	//zed.Println("--- Connect() 222")
+	if msql.running {
+		//zed.Println("--- Connect() 333")
+		db := mysql.New("tcp", "", msql.addr, msql.usr, msql.passwd, msql.dbname)
+		if err := db.Connect(); err != nil {
+			//zed.Println("--- Connect() 555")
+			zed.Async(func() {
+				//zed.Println("--- Connect() 666")
+				time.Sleep(time.Second)
+				msql.Connect()
+			})
+			return
+		}
+		//zed.Println("--- Connect() 444")
+		msql.DB = db
+		msql.startHeartbeat()
+		zed.ZLog("Mysql Connect Addr: %s DBName: %s", msql.addr, msql.dbname)
 	}
 }
 
-func (msqlMgr *MysqlMgr) heartbeat() {
-	msqlMgr.Lock()
-	defer msqlMgr.Unlock()
-
-	msqlMgr.DBAction(func(msql *mysql.Conn) {
-		if msql != nil {
-			if err := (*msql).Ping(); err != nil {
-				zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "MysqlMgr heartbeat err: %v!", err)
-				panic(err)
+func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
+	msql.Lock()
+	defer msql.Unlock()
+	if msql.running {
+		defer func() {
+			if err := recover(); err != nil {
+				zed.Async(func() {
+					msql.Connect()
+				})
+			} else {
+				if msql.timer != nil {
+					msql.timer.Reset(KEEP_ALIVE_INTERVAL)
+				}
 			}
-		} else {
-
+		}()
+		if msql.DB != nil {
+			cb(msql.DB)
 		}
-		return
+	}
+}
+
+func (msql *Mysql) Ping() {
+	msql.DBAction(func(conn mysql.Conn) {
+		conn.Ping()
 	})
 }
 
-func NewMysqlMgr(name string, addr string, dbname string, usr string, passwd string) *MysqlMgr {
-	mgr, ok := mysqlMgrs[name]
+func NewMysql(name string, addr string, dbname string, usr string, passwd string) *Mysql {
+	mysqlmtx.Lock()
+	defer mysqlmtx.Unlock()
+	msql, ok := instances[name]
 	if !ok {
-		mgr = &MysqlMgr{
-			tryCount: 0,
-			DB:       nil,
-			addr:     addr,
-			dbname:   dbname,
-			usr:      usr,
-			passwd:   passwd,
-			//chAction: nil,
-			ticker:  nil,
+		msql = &Mysql{
+			DB:      nil,
+			addr:    addr,
+			dbname:  dbname,
+			usr:     usr,
+			passwd:  passwd,
+			timer:   nil,
 			running: false,
 		}
 
-		m := mysql.New("tcp", "", addr, usr, passwd, dbname)
-		mgr.DB = &m
-		ok := mgr.Start()
-		if !ok {
-			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
-			return nil
-		}
+		//msql.DB = mysql.New("tcp", "", addr, usr, passwd, dbname)
 
-		return mgr
+		msql.Start()
+
+		return msql
 	} else {
-		zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr Error: %s has been exist!", name)
-	}
-
-	return mgr
-}
-
-func GetMysqlMgrByName(name string) (*MysqlMgr, bool) {
-	mgr, ok := mysqlMgrs[name]
-	return mgr, ok
-}
-
-func NewMysqlMgrPool(name string, addr string, dbname string, usr string, passwd string, size int) *MysqlMgrPool {
-	mgrs, ok := mysqlMgrPools[name]
-	if !ok {
-		mgrs = &MysqlMgrPool{
-			mgrs: make([]*MysqlMgr, size),
-		}
-
-		mgr := &MysqlMgr{
-			tryCount: 0,
-			DB:       nil,
-			//DB:       nil,
-			addr:   addr,
-			dbname: dbname,
-			usr:    usr,
-			passwd: passwd,
-			//chAction: nil,
-			ticker:     nil,
-			running:    false,
-			restarting: false,
-		}
-		m := mysql.New("tcp", "", addr, usr, passwd, dbname)
-		mgr.DB = &m
-		ok := mgr.Start()
-		if !ok {
-			zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgr %s mgr.Start() Error.!", name)
-			return nil
-		}
-
-		mgrs.mgrs[0] = mgr
-
-		for i := 1; i < size; i++ {
-			mgrCopy := &MysqlMgr{
-				tryCount: 0,
-				DB:       nil,
-				//DB:       nil,
-				addr:   addr,
-				dbname: dbname,
-				usr:    usr,
-				passwd: passwd,
-				//chAction: nil,
-				ticker:     nil,
-				running:    false,
-				restarting: false,
-			}
-			m2 := m.Clone()
-			mgrCopy.DB = &m2
-
-			ok := mgrCopy.Start()
-			if !ok {
-				zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "%s mgrCopy.Start() %d Error.!", name, i)
-				return nil
-			}
-			mgrs.mgrs[i] = mgrCopy
-			//Println("mongo copy", i, mgr.Session, mgrs.mgrs[i].Session)
-		}
-
-		mysqlMgrPools[name] = mgrs
-
-		return mgrs
-	} else {
-		zed.LogError(zed.LOG_IDX, zed.LOG_IDX, "NewMysqlMgrPool Error: %s has been exist!", name)
+		zed.ZLog("NewMysql Error: %s Exist!", name)
 	}
 
 	return nil
 }
 
-func GetMysqlMgrPoolByName(name string) (*MysqlMgrPool, bool) {
-	mgr, ok := mysqlMgrPools[name]
+func GetMysqlByName(name string) (*Mysql, bool) {
+	msql, ok := instances[name]
+	return msql, ok
+}
+
+type MysqlPool struct {
+	size      int
+	instances []*Mysql
+}
+
+func (pool *MysqlPool) GetMysql(idx int) *Mysql {
+	return pool.instances[idx%pool.size]
+}
+
+func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) {
+	pool.instances[idx%pool.size].DBAction(cb)
+}
+
+func (pool *MysqlPool) GetDB(idx int) mysql.Conn {
+	return pool.instances[idx%pool.size].DB
+}
+
+func (pool *MysqlPool) Stop() {
+	for i := 0; i < len(pool.instances); i++ {
+		pool.instances[i].Stop()
+	}
+}
+
+func NewMysqlPool(name string, addr string, dbname string, usr string, passwd string, size int) *MysqlPool {
+	poolmtx.Lock()
+	defer poolmtx.Unlock()
+	pool, ok := pools[name]
+	if !ok {
+		pool = &MysqlPool{}
+		for i := 1; i < size; i++ {
+			msql := NewMysql(zed.Sprintf("%s_%d", name, i), addr, dbname, usr, passwd)
+			pool.instances = append(pool.instances, msql)
+		}
+		pools[name] = pool
+	} else {
+		zed.ZLog("NewMysqlPool Error: %s Exist!", name)
+	}
+
+	return pool
+}
+
+func GetMysqlPoolByName(name string) (*MysqlPool, bool) {
+	poolmtx.Lock()
+	defer poolmtx.Unlock()
+	mgr, ok := pools[name]
 	return mgr, ok
 }
