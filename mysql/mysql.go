@@ -15,6 +15,8 @@ var (
 	instances = make(map[string]*Mysql)
 	poolmtx   = sync.Mutex{}
 	pools     = make(map[string]*MysqlPool)
+
+	MysqlErr = &MysqlError{}
 )
 
 const (
@@ -29,6 +31,13 @@ const (
 	STATE_STOP
 )
 
+type MysqlError struct {
+}
+
+func (err *MysqlError) Error() string {
+	return "MysqlError For Reconnect"
+}
+
 type Mysql struct {
 	sync.RWMutex
 	DB     mysql.Conn
@@ -37,7 +46,7 @@ type Mysql struct {
 	usr    string
 	passwd string
 	timer  *time.Timer
-	state  int 
+	state  int
 }
 
 func (msql *Mysql) startHeartbeat() {
@@ -122,9 +131,15 @@ func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 	//if msql.state == STATE_RUNNING {
 	defer func() {
 		if err := recover(); err != nil {
-			if msql.state == STATE_RUNNING {
+			_, ok := err.(*MysqlError)
+			if ok && msql.state == STATE_RUNNING {
 				//zed.Println("............. ")
-				zed.Async(msql.Connect)
+				zed.Async(func() {
+					msql.Connect()
+				})
+			} else {
+				zed.ZLog("DBAction Error: %s", err.Error())
+				zed.LogStackInfo()
 			}
 		} else {
 			if msql.timer != nil {
