@@ -202,7 +202,7 @@ func NewMysqlPool(name string, addr string, dbname string, usr string, passwd st
 	defer poolmtx.Unlock()
 	pool, ok := pools[name]
 	if !ok {
-		pool = &MysqlPool{}
+		pool = &MysqlPool{size: size}
 		for i := 1; i < size; i++ {
 			msql := NewMysql(zed.Sprintf("%s_%d", name, i), addr, dbname, usr, passwd)
 			pool.instances = append(pool.instances, msql)
