@@ -37,7 +37,7 @@ type Mysql struct {
 	usr    string
 	passwd string
 	timer  *time.Timer
-	state  uint32
+	state  int 
 }
 
 func (msql *Mysql) startHeartbeat() {
@@ -63,27 +63,17 @@ func (msql *Mysql) Start() {
 	if msql.state == STATE_STOP {
 		//zed.Println("--- Start() 222")
 		msql.state = STATE_RECONNECTING
-		msql.Reset()
-		zed.Async(func() {
-			//zed.Println("--- Start() 333")
-			msql.Connect()
-		})
+		//msql.Reset()
+		zed.Async(msql.Connect)
 	}
 }
 
 func (msql *Mysql) Stop() {
 	msql.Lock()
 	defer msql.Unlock()
-	if msql.state == STATE_RUNNING {
+	if msql.state != STATE_STOP {
 		msql.state = STATE_STOP
-		if msql.timer != nil {
-			msql.timer.Stop()
-			msql.timer = nil
-		}
-		if msql.DB != nil {
-			msql.DB.Close()
-			msql.DB = nil
-		}
+		msql.Reset()
 	}
 }
 
@@ -134,9 +124,7 @@ func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 		if err := recover(); err != nil {
 			if msql.state == STATE_RUNNING {
 				//zed.Println("............. ")
-				zed.Async(func() {
-					msql.Connect()
-				})
+				zed.Async(msql.Connect)
 			}
 		} else {
 			if msql.timer != nil {
