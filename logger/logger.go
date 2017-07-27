@@ -45,6 +45,7 @@ var (
 	logfilesize                 = 0
 
 	maxfilesize   = (1024 * 1024 * 32)
+	logdebugtype   = LogCmd
 	loginfotype   = LogCmd
 	logwarntype   = LogCmd
 	logerrortype  = LogCmd
@@ -66,6 +67,7 @@ var (
 	}
 
 	logconf = map[string]int{
+		"Debug":   LogCmd,
 		"Info":   LogCmd,
 		"Warn":   LogCmd,
 		"Error":  LogCmd,
@@ -222,10 +224,10 @@ func LogDebug(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_DEBUG >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
-			if loginfotype&LogFile != 0 {
+			if logdebugtype&LogFile != 0 {
 				writetofile(s)
 			}
-			if loginfotype&LogCmd != 0 {
+			if logdebugtype&LogCmd != 0 {
 				Printf(s)
 			}
 		}
@@ -332,6 +334,17 @@ func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) 
 	}
 	if conf != nil {
 		Println("logconf:")
+		if lt, ok := conf["Debug"]; ok {
+			str := ""
+			if lt&LogCmd != 0 {
+				str += "Cmd "
+			}
+			if lt&LogFile != 0 {
+				str += "File"
+			}
+			logdebugtype = lt
+			Println("	", "Debug	", str)
+		}
 		if lt, ok := conf["Info"]; ok {
 			str := ""
 			if lt&LogCmd != 0 {
