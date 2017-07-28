@@ -263,6 +263,10 @@ func (client *TcpClient) start() bool {
 	return true
 }
 
+func (client *TcpClient) SetDelegate(dele ZTcpClientDelegate){
+	client.parent = dele
+}
+
 func (client *TcpClient) Connect() {
 	client.Lock()
 	defer client.Unlock()
