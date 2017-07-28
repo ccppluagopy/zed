@@ -63,8 +63,10 @@ func (client *TcpClient) Stop() {
 			}
 			client.running = false
 
-			client.conn.Close()
-			//client.conn.SetLinger(0)
+			if client.conn != nil {
+				client.conn.Close()	
+				//client.conn.SetLinger(0)
+			}
 
 			if client.chSend != nil {
 				close(client.chSend)
@@ -300,6 +302,8 @@ ErrExit:
 			time.Sleep(time.Second)
 			client.Connect()
 		})
+	}else{
+		client.Stop()
 	}
 }
 

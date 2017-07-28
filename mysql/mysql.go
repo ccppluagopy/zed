@@ -195,14 +195,23 @@ type MysqlPool struct {
 }
 
 func (pool *MysqlPool) GetMysql(idx int) *Mysql {
+	if pool.size == 0{
+		return nil
+	}
 	return pool.instances[idx%pool.size]
 }
 
 func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) {
+	if pool.size == 0{
+		return cb(nil)
+	}
 	pool.instances[idx%pool.size].DBAction(cb)
 }
 
 func (pool *MysqlPool) GetDB(idx int) mysql.Conn {
+	if pool.size == 0{
+		return nil
+	}
 	return pool.instances[idx%pool.size].DB
 }
 
