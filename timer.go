@@ -250,6 +250,15 @@ func (tm *Timer) Size() int {
 	return len(tm.timers)
 }
 
+func (tm *Timer) Stop() int {
+	tm.Lock()
+	defer tm.Unlock()
+	if tm.signal!=nil{
+		tm.signal.Stop()
+		tm.signal=nil
+	}
+}
+
 func NewTimer() *Timer {
 	tm := &Timer{
 		signal: time.NewTimer(TIME_FOREVER),
@@ -276,7 +285,9 @@ func NewTimer() *Timer {
 
 	go func() {
 		for {
-			<-tm.signal.C
+			if _,ok:=<-tm.signal.C;!ok{
+				break
+			}
 			once()
 		}
 	}()
