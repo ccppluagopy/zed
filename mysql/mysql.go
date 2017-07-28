@@ -133,12 +133,12 @@ func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 		if err := recover(); err != nil {
 			_, ok := err.(*MysqlError)
 			if ok && msql.state == STATE_RUNNING {
-				//zed.Println("............. ")
+				zed.ZLog("DBAction Mysql Error")
 				zed.Async(func() {
 					msql.Connect()
 				})
 			} else {
-				zed.ZLog("DBAction Error: %s", err.Error())
+				zed.ZLog("DBAction Error: %v", err)
 				zed.LogStackInfo()
 			}
 		} else {
@@ -203,7 +203,8 @@ func (pool *MysqlPool) GetMysql(idx int) *Mysql {
 
 func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) {
 	if pool.size == 0{
-		return cb(nil)
+		cb(nil)
+		return
 	}
 	pool.instances[idx%pool.size].DBAction(cb)
 }
