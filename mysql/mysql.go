@@ -138,7 +138,7 @@ func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 					msql.Connect()
 				})
 			} else {
-				zed.ZLog("DBAction Error: %v", err)
+				zed.ZLog("Mysql DBAction Error: %v", err)
 				zed.LogStackInfo()
 			}
 		} else {
