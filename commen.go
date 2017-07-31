@@ -13,8 +13,9 @@ import (
 )
 
 func Async(cb func(), args ...interface{}) {
-	var t *time.Timer
-	t = time.AfterFunc(1, func() {
+	//var t *time.Timer
+	//t = time.AfterFunc(1, func() {
+	go func() {
 		if len(args) == 1 {
 			if panichandler, ok := args[0].(func()); ok {
 				defer panichandler()
@@ -25,8 +26,9 @@ func Async(cb func(), args ...interface{}) {
 			defer HandlePanic(true)
 		}
 		cb()
-		t.Stop()
-	})
+	}()
+		//t.Stop()
+	//})
 }
 
 func NewCoroutine(cb ClosureCB) {
