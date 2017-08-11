@@ -17,28 +17,19 @@ func main() {
 
 	loop := 1000000
 
-	getcor := func() {
-		for i := 0; i < loop; i++ {
-			//fmt.Println(om.Get(Int(i)) == i)
-		}
-	}
-
 	setcor := func() {
 		for i := 0; i < loop; i++ {
 			om.Set(Int(i), i)
 		}
 	}
 
+	t1 := time.Now()
 	setcor()
-
-	go getcor()
-	go setcor()
-	go getcor()
-	go setcor()
-	go getcor()
-	go setcor()
-
-	fmt.Println(om.Size())
+	time.Async(func() {
+		fmt.Println("size: ", om.Size())
+		fmt.Println("time used: ", time.Since(t1).Seconds())
+	})
+	
 
 	v, ok := om.Get(Int(100))
 	fmt.Println(v, ok)
