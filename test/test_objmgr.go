@@ -5,6 +5,11 @@ import (
 	"github.com/ccppluagopy/zed"
 	"time"
 )
+/*
+	time.Async是我自己对go/src/time/sleep.go打的补丁，补丁代码在test/sleep.go中
+	objmgr可以对比https://github.com/golang/go/blob/master/src/sync/map.go根据实际场景需要选择使用
+*/
+
 
 type Int int
 
