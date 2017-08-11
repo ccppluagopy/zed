@@ -248,7 +248,7 @@ func (server *TcpServer) SetMaxPackLen(maxPL int) {
 	}
 }
 
-func (server *TcpServer) SetDelegate(delegate ZTcpClientDelegate) {
+func (server *TcpServer) SetDelegate(delegate ITcpClientDelegate) {
 	server.Lock()
 	defer server.Unlock()
 	delegate.Init()

@@ -10,7 +10,7 @@ type Delegate struct {
 	zed.DefaultTCDelegate
 }
 
-func (dele *Delegate) HandleMsg(msg zed.NetMsgDef) {
+func (dele *Delegate) HandleMsg(msg zed.INetMsg) {
 	time.Sleep(time.Second)
 	msg.GetClient().SendMsg(msg)
 }

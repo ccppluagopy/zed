@@ -8,12 +8,12 @@ import (
 	"sync/atomic"
 )
 
-type ZTcpClientDelegate interface {
+type ITcpClientDelegate interface {
 	Init()
 
-	RecvMsg(*TcpClient) NetMsgDef
-	SendMsg(*TcpClient, NetMsgDef) bool
-	HandleMsg(NetMsgDef)
+	RecvMsg(*TcpClient) INetMsg
+	SendMsg(*TcpClient, INetMsg) bool
+	HandleMsg(INetMsg)
 
 	SetServer(*TcpServer)
 	AddMsgHandler(cmd uint32, cb MsgHandler)
@@ -61,7 +61,7 @@ type DefaultTCDelegate struct {
 	aliveTime         time.Duration
 	noDelay           bool
 	keepAlive         bool
-	delegate          ZTcpClientDelegate
+	delegate          ITcpClientDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
 	newConnCB         func(*TcpClient)
@@ -69,7 +69,7 @@ type DefaultTCDelegate struct {
 	tag string
 }
 
-func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) NetMsgDef {
+func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) INetMsg {
 	var (
 		readLen = 0
 		err     error
@@ -131,7 +131,7 @@ Exit:
 	return nil
 }
 
-func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg NetMsgDef) bool {
+func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg INetMsg) bool {
 	var (
 		writeLen = 0
 		buf      []byte
@@ -225,7 +225,7 @@ func (dele *DefaultTCDelegate) Init() {
 	}
 }
 
-func (dele *DefaultTCDelegate) HandleMsg(msg NetMsgDef) {
+func (dele *DefaultTCDelegate) HandleMsg(msg INetMsg) {
 	/*defer HandlePanic(true, func() {
 		ZLog("HandleMsg %s panic err!", msg.Client.Info())
 		msg.Client.Stop()

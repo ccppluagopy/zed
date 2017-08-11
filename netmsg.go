@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 )
 
-type NetMsgDef interface {
+type INetMsg interface {
 	Encrypt()bool
 	Decrypt()bool
 	GetCmd() uint32

@@ -12,7 +12,7 @@ import (
 )
 
 type AsyncMsg struct {
-	msg NetMsgDef
+	msg INetMsg
 	cb  func()
 }
 
@@ -125,7 +125,7 @@ func (client *TcpClient) writer() {
 	}
 }
 
-func (client *TcpClient) SendMsg(msg NetMsgDef) {
+func (client *TcpClient) SendMsg(msg INetMsg) {
 	client.Lock()
 	defer client.Unlock()
 	defer func() {
@@ -142,7 +142,7 @@ func (client *TcpClient) SendMsg(msg NetMsgDef) {
 	//client.SendMsgAsync(msg)
 }
 
-func (client *TcpClient) SendMsgAsync(msg NetMsgDef, argv ...interface{}) bool {
+func (client *TcpClient) SendMsgAsync(msg INetMsg, argv ...interface{}) bool {
 	client.Lock()
 	defer client.Unlock()
 	if client.running {
@@ -263,7 +263,7 @@ func (client *TcpClient) start() bool {
 	return true
 }
 
-func (client *TcpClient) SetDelegate(dele ZTcpClientDelegate){
+func (client *TcpClient) SetDelegate(dele ITcpClientDelegate){
 	client.parent = dele
 }
 
@@ -311,7 +311,7 @@ ErrExit:
 	}
 }
 
-func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpClient {
+func newTcpClient(parent ITcpClientDelegate, conn *net.TCPConn, idx int) *TcpClient {
 	client := &TcpClient{
 		conn:   conn,
 		parent: parent,
@@ -339,7 +339,7 @@ func newTcpClient(parent ZTcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 	return client
 }
 
-func NewTcpClient(dele ZTcpClientDelegate, serveraddr string, idx int, reconn bool, onconnected func(*TcpClient)) *TcpClient {
+func NewTcpClient(dele ITcpClientDelegate, serveraddr string, idx int, reconn bool, onconnected func(*TcpClient)) *TcpClient {
 	dele.Init()
 	client := newTcpClient(dele, nil, idx)
 	client.Addr = serveraddr

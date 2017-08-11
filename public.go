@@ -30,7 +30,7 @@ type WTimerCallBack func(timer *WTimer)
 
 //type DBErrorHandler func()
 
-type MsgHandler func(msg NetMsgDef) bool
+type MsgHandler func(msg INetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
@@ -62,7 +62,7 @@ type ZClientDelegate interface {
 type TcpClient struct {
 	sync.Mutex
 	conn   *net.TCPConn
-	parent ZTcpClientDelegate
+	parent ITcpClientDelegate
 	//ID     ClientIDType
 	Idx    int
 	Addr   string
@@ -92,7 +92,7 @@ type TcpServer struct {
 	sendBlockTime     time.Duration
 	sendBufLen        int
 	aliveTime         time.Duration
-	delegate          ZTcpClientDelegate
+	delegate          ITcpClientDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
 

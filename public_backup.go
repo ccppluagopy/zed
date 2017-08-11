@@ -86,7 +86,7 @@ type TcpServer struct {
 	sendBlockTime     time.Duration
 	sendBufLen        int
 	aliveTime         time.Duration
-	delegate          ZTcpClientDelegate
+	delegate          ITcpClientDelegate
 	dataInSupervisor  func(*NetMsg)
 	dataOutSupervisor func(*NetMsg)
 }
