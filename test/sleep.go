@@ -4,12 +4,12 @@
 */
 
 var (
-	asyncCh chan func()  
+	asyncCh chan func() = nil
 )
 
 func InitAsync(buf int) {
 	if asyncCh == nil {
-		asyncCh = make(chan func, 100)
+		asyncCh = make(chan func(), 100)
 		go func() {
 			for {
 				if cb, ok := <- asyncCh; ok {
@@ -18,7 +18,7 @@ func InitAsync(buf int) {
 					break
 				}
 			}
-		}
+		}()
 	}
 }
 
@@ -30,7 +30,7 @@ func Async(f func()) {
 			when: when(1),
 			f: func(arg interface{}, seq uintptr) {
 				asyncCh <- func() {
-					defer func() { recover() }
+					defer func() { recover() }()
 					arg.(func())()
 					t.Stop()
 				}
@@ -47,7 +47,7 @@ func AfterFuncWithoutGo(d Duration, f func()) *Timer {
 			when: when(d),
 			f: func(arg interface{}, seq uintptr) {
 				asyncCh <- func() {
-					defer func() { recover() }
+					defer func() { recover() }()
 					arg.(func())()
 				}
 			},
