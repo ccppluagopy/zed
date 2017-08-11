@@ -9,7 +9,7 @@ import (
 	"net"
 	"runtime"
 	"strings"
-	"time"
+	//"time"
 )
 
 func Async(cb func(), args ...interface{}) {

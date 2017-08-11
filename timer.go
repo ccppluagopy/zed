@@ -250,7 +250,7 @@ func (tm *Timer) Size() int {
 	return len(tm.timers)
 }
 
-func (tm *Timer) Stop() int {
+func (tm *Timer) Stop() {
 	tm.Lock()
 	defer tm.Unlock()
 	if tm.signal!=nil{
