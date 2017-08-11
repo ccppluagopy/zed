@@ -18,15 +18,15 @@ type ObjMgr struct {
 	size       int
 }
 
-func (mgr *ObjMgr) Get(k ObjKey) interface{} {
+func (mgr *ObjMgr) Get(k ObjKey) (interface{},bool) {
 	container := mgr.containers[k.HashIdx()%mgr.size]
 	container.RLock()
 	defer container.RUnlock()
 
 	if v, ok := container.keyvalues[k]; ok {
-		return v
+		return v, true
 	}
-	return nil
+	return nil, false
 }
 
 func (mgr *ObjMgr) Set(k ObjKey, v interface{}) {
@@ -43,6 +43,17 @@ func (mgr *ObjMgr) Delete(k ObjKey) {
 	delete(container.keyvalues, k)
 }
 
+
+func (mgr *ObjMgr) Size() int {
+	size := 0
+	for _, container := range mgr.containers {
+		container.RLock()
+		defer container.RUnlock()
+		size += len(container.keyvalues)
+	}
+	return size
+}
+
 func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
 	defer HandlePanic(true)
 	for _, container := range mgr.containers {
@@ -57,13 +68,13 @@ func (mgr *ObjMgr) ForEach(cb func(ObjKey, interface{})) {
 func (mgr *ObjMgr) ForEachAsync(cb func(ObjKey, interface{})) {
 	Async(func(){
 		for _, container := range mgr.containers {
-			Async(func() {
+			//Async(func() {
 				container.RLock()
 				defer container.RUnlock()
 				for k, v := range container.keyvalues {
 					cb(k, v)
 				}
-			})
+			//})
 		}
 	})
 }
