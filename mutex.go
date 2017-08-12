@@ -62,7 +62,7 @@ type Mutex struct {
 
 func (mt *Mutex) Lock() {
 	if mtxdebug {
-		key := Sprintf("%vl", &mt)
+		key := Sprintf("%pl", mt)
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
@@ -81,7 +81,7 @@ func (mt *Mutex) Lock() {
 
 	if mtxdebug {
 		{
-			key := Sprintf("%vl", &mt)
+			key := Sprintf("%pl", mt)
 			if timer := getLockTimer(key); timer != nil {
 				locktimer.DeleteItem(timer)
 				unsaveLockTimer(key)
@@ -91,7 +91,7 @@ func (mt *Mutex) Lock() {
 
 		{
 			if mt.unlockkey == "" {
-				mt.unlockkey = Sprintf("%vul", &mt)
+				mt.unlockkey = Sprintf("%pul", mt)
 			}
 			//Println("Lock Unlock key:", mt.unlockkey)
 			if timer := getLockTimer(mt.unlockkey); timer == nil {
@@ -130,7 +130,7 @@ type RWMutex struct {
 
 func (rwmt *RWMutex) Lock() {
 	if mtxdebug {
-		key := Sprintf("%vl", &rwmt)
+		key := Sprintf("%pl", rwmt)
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
@@ -149,7 +149,7 @@ func (rwmt *RWMutex) Lock() {
 	rwmt.RWMutex.Lock()
 
 	if mtxdebug {
-		key := Sprintf("%vl", &rwmt)
+		key := Sprintf("%pl", rwmt)
 		if timer := getLockTimer(key); timer != nil {
 			locktimer.DeleteItem(timer)
 			unsaveLockTimer(key)
@@ -158,7 +158,7 @@ func (rwmt *RWMutex) Lock() {
 
 		{
 			if rwmt.unlockkey == "" {
-				rwmt.unlockkey = Sprintf("%vul", &rwmt)
+				rwmt.unlockkey = Sprintf("%pul", rwmt)
 			}
 			if timer := getLockTimer(rwmt.unlockkey); timer == nil {
 				t1 := time.Now()
@@ -188,7 +188,7 @@ func (rwmt *RWMutex) Unlock() {
 
 func (rwmt *RWMutex) RLock() {
 	if mtxdebug {
-		key := Sprintf("%vrl", &rwmt)
+		key := Sprintf("%prl", rwmt)
 		if timer := getLockTimer(key); timer == nil {
 			t1 := time.Now()
 			stack := GetStackInfo()
@@ -206,7 +206,7 @@ func (rwmt *RWMutex) RLock() {
 	rwmt.RWMutex.RLock()
 
 	if mtxdebug {
-		key := Sprintf("%vrl", &rwmt)
+		key := Sprintf("%prl", rwmt)
 		if timer := getLockTimer(key); timer != nil {
 			locktimer.DeleteItem(timer)
 			unsaveLockTimer(key)
