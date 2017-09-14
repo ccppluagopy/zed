@@ -10,6 +10,17 @@ import (
 	"time"
 )
 
+const (
+	STATE_RUNNING = iota
+	STATE_RECONNECTING
+	STATE_STOP
+)
+
+const (
+	DB_DIAL_TIMEOUT     = time.Second * 15
+	KEEP_ALIVE_INTERVAL = time.Hour
+)
+
 var (
 	mysqlmtx  = sync.Mutex{}
 	instances = make(map[string]*Mysql)
@@ -19,29 +30,17 @@ var (
 	MysqlErr = &MysqlError{}
 )
 
-const (
-	DB_DIAL_TIMEOUT     = time.Second * 10
-	DB_DIAL_MAX_TIMES   = 1000
-	KEEP_ALIVE_INTERVAL = time.Hour
-)
-
-const (
-	STATE_RUNNING = iota
-	STATE_RECONNECTING
-	STATE_STOP
-)
-
 type MysqlError struct {
 }
 
 func (err *MysqlError) Error() string {
-	return "MysqlError For Reconnect"
+	return "naivefox/oracle MysqlError"
 }
 
 type Mysql struct {
 	sync.RWMutex
 	DB     mysql.Conn
-	addr   string
+	ddr    string
 	dbname string
 	usr    string
 	passwd string
@@ -125,7 +124,7 @@ func (msql *Mysql) Connect() {
 	}
 }
 
-func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
+func (msql *Mysql) DBAction(cb func(mysql.Conn)) *Mysql {
 	msql.Lock()
 	defer msql.Unlock()
 	//if msql.state == STATE_RUNNING {
@@ -148,7 +147,7 @@ func (msql *Mysql) DBAction(cb func(mysql.Conn)) {
 		}
 	}()
 	cb(msql.DB)
-	//}
+	return msql
 }
 
 func (msql *Mysql) Ping() {
@@ -158,6 +157,15 @@ func (msql *Mysql) Ping() {
 }
 
 func NewMysql(name string, addr string, dbname string, usr string, passwd string) *Mysql {
+	if name == "" {
+		fmt.Printf("NewMysql Error: name is null\n")
+		return nil
+	}
+	if dbname == "" {
+		fmt.Printf("NewMysql Error: dbname is null\n")
+		return nil
+	}
+
 	mysqlmtx.Lock()
 	defer mysqlmtx.Unlock()
 	msql, ok := instances[name]
@@ -175,7 +183,7 @@ func NewMysql(name string, addr string, dbname string, usr string, passwd string
 		//msql.DB = mysql.New("tcp", "", addr, usr, passwd, dbname)
 
 		msql.Start()
-
+		instances[name] = msql
 		return msql
 	} else {
 		zed.ZLog("NewMysql Error: %s Exist!", name)
@@ -195,22 +203,22 @@ type MysqlPool struct {
 }
 
 func (pool *MysqlPool) GetMysql(idx int) *Mysql {
-	if pool.size == 0{
+	if pool.size == 0 {
 		return nil
 	}
 	return pool.instances[idx%pool.size]
 }
 
-func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) {
-	if pool.size == 0{
+func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) *Mysql {
+	if pool.size == 0 {
 		cb(nil)
 		return
 	}
-	pool.instances[idx%pool.size].DBAction(cb)
+	return pool.instances[idx%pool.size].DBAction(cb)
 }
 
 func (pool *MysqlPool) GetDB(idx int) mysql.Conn {
-	if pool.size == 0{
+	if pool.size == 0 {
 		return nil
 	}
 	return pool.instances[idx%pool.size].DB

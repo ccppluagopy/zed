@@ -3,291 +3,289 @@ package mongo
 import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
+	"fmt"
 	"github.com/ccppluagopy/zed"
 	"sync"
 	"time"
 )
 
 const (
-	DB_DIAL_TIMEOUT   = time.Second * 10
-	DB_DIAL_MAX_TIMES = 1000
+	STATE_RUNNING = iota
+	STATE_RECONNECTING
+	STATE_STOP
 )
 
-type MongoActionCB func(mongo *MongoMgr) bool
+const (
+	DB_DIAL_TIMEOUT    = time.Second * 15
+	KEEPALIVE_INTERVAL = time.Hour
+)
 
-type MongoMgr struct {
-	sync.RWMutex
+var (
+	mongos   = make(map[string]*Mongo)
+	mongomtx = sync.Mutex{}
+
+	pools   = make(map[string]*MongoPool)
+	poolmtx = sync.Mutex{}
+
+	MongoErr = &MongoError{}
+)
+
+type MongoError struct {
+}
+
+func (err *MongoError) Error() string {
+	return "naivefox/mongo MongoError"
+}
+
+type Mongo struct {
+	sync.Mutex
+	Name       string
 	Session    *mgo.Session
 	Collection *mgo.Collection
-	tryCount   int
 	addr       string
 	database   string
 	collection string
 	usr        string
 	passwd     string
 	ticker     *time.Ticker
-	running    bool
-	restarting bool
+	state      int
 }
 
-type MongoMgrPool struct {
-	mgrs []*MongoMgr
+func (mongo *Mongo) Ping() bool {
+	mongo.Lock()
+	defer mongo.Unlock()
+	return mongo.Session.Ping() == nil
 }
 
-var (
-	mongoMgrs     = make(map[string]*MongoMgr)
-	mongoMgrPools = make(map[string]*MongoMgrPool)
-)
-
-func (pool *MongoMgrPool) GetMgr(idx int) *MongoMgr {
-	//Println("-----------GetMgr: ", idx, len(pool.mgrs))
-	return pool.mgrs[idx%len(pool.mgrs)]
-}
-
-func (pool *MongoMgrPool) DBAction(idx int, cb func(*mgo.Collection) bool) bool {
-	return pool.GetMgr(idx).DBAction(cb)
-}
-
-func (pool *MongoMgrPool) Collection(idx int) *mgo.Collection {
-	return pool.GetMgr(idx).Collection
-}
-
-func (pool *MongoMgrPool) Stop() {
-	for i := 0; i < len(pool.mgrs); i++ {
-		pool.mgrs[i].Stop()
-	}
-}
-
-func (mongoMgr *MongoMgr) IsRunning() bool {
-	mongoMgr.Lock()
-	defer mongoMgr.Unlock()
-
-	return mongoMgr.running
-}
-
-func (mongoMgr *MongoMgr) SetRunningState(running bool) {
-	mongoMgr.Lock()
-	defer mongoMgr.Unlock()
-
-	mongoMgr.running = running
-}
-
-func (mongoMgr *MongoMgr) startHeartbeat() {
-	/*zed.ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
-	for {
-		select {
-		case _, ok := <-mongoMgr.ticker.C:
-			if ok {
-				mongoMgr.heartbeat()
-			} else {
-				break
-			}
+func (mongo *Mongo) startHeartbeat() {
+	if mongo.state == STATE_RUNNING {
+		if mongo.ticker == nil {
+			time.AfterFunc(1, func() {
+				mongo.ticker = time.NewTicker(KEEPALIVE_INTERVAL)
+				for {
+					_, ok := <-mongo.ticker.C
+					if !ok {
+						break
+					}
+					mongo.Ping()
+				}
+			})
 		}
 	}
 }
 
-func (mongoMgr *MongoMgr) Start() bool {
-	if !mongoMgr.IsRunning() {
+func (mongo *Mongo) Connect() {
+	mongo.Lock()
+	defer mongo.Unlock()
+	if mongo.state != STATE_STOP {
+		mongo.state = STATE_RECONNECTING
+		mongo.Reset()
 		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
-			zed.ZLog("MongoMgr Start err: %v addr: %s dbname: %s collection: %s", err, mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
-			if mongoMgr.tryCount < DB_DIAL_MAX_TIMES {
-				mongoMgr.tryCount = mongoMgr.tryCount + 1
+			fmt.Printf("Mongo Connect To: %s Failed, Error: %v", mongo.addr, err)
+			time.AfterFunc(1, func() {
 				time.Sleep(time.Second * 1)
-				return mongoMgr.Start()
-			} else {
-				return false
-			}
+				mongo.Connect()
+			})
+			return
 		}
 
 		mongoMgr.Session = session
 		mongoMgr.Collection = session.DB(mongoMgr.database).C(mongoMgr.collection)
-		//mongoMgr.Session.SetMode(mgo.Monotonic, true)
-		//mongoMgr.DB = mongoMgr.Session.DB(mongoMgr.dbname)
 
-		mongoMgr.tryCount = 0
+		mongo.state = STATE_RUNNING
+		mongoMgr.startHeartbeat()
 
-		mongoMgr.ticker = time.NewTicker(time.Hour)
-
-		mongoMgr.SetRunningState(true)
-		mongoMgr.restarting = false
-
-		zed.NewCoroutine(func() {
-			//mongoMgr.chAction = make(chan MongoActionCB)
-			mongoMgr.startHeartbeat()
-		})
-		/*zed.ZLog("MongoMgr startHeartbeat addr: %s dbname: %s collection: %s", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)*/
-
-		zed.ZLog("MongoMgr addr: %s dbname: %s collection: %s Start() --->>>", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
-	}
-
-	return true
-}
-
-func (mongoMgr *MongoMgr) Restart() {
-	mongoMgr.Lock()
-	defer mongoMgr.Unlock()
-
-	if !mongoMgr.restarting {
-		mongoMgr.restarting = true
-		zed.NewCoroutine(func() {
-			mongoMgr.Stop()
-			mongoMgr.Start()
-		})
+		fmt.Printf("Mongo(Name: %s, db: %s collection: %s Connected()\n", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
 	}
 }
 
-func (mongoMgr *MongoMgr) Stop() {
-	mongoMgr.Lock()
-	defer mongoMgr.Unlock()
-	if mongoMgr.running {
-		mongoMgr.running = false
-		mongoMgr.ticker.Stop()
-		if mongoMgr.Session != nil {
-			mongoMgr.Session.Close()
-			mongoMgr.Session = nil
+func (mongo *Mongo) Start() {
+	if mongo.state == STATE_STOP {
+		mongo.state = STATE_RECONNECTING
+		time.AfterFunc(1, mongo.Connect)
+	}
+}
+
+func (mongo *Mongo) Reset() {
+	if mongo.ticker != nil {
+		mongo.ticker.Stop()
+		mongo.ticker = nil
+	}
+	if mongo.Session != nil {
+		mongo.Session.Close()
+		mongo.Session = nil
+	}
+	if mongo.Collection != nil {
+		mongo.Collection = nil
+	}
+}
+
+func (mongo *Mongo) Stop() {
+	mongo.Lock()
+	defer mongo.Unlock()
+	if mongo.state != STATE_STOP {
+		mongo.state = STATE_STOP
+		mongo.Reset()
+	}
+}
+
+func (mongo *Mongo) DBAction(cb func(*mgo.Collection)) *Mongo {
+	mongo.Lock()
+	defer mongo.Unlock()
+	defer func() {
+		if err := recover(); err != nil {
+			_, ok := err.(*MongoError)
+			if ok && mongo.state == STATE_RUNNING {
+				time.AfterFunc(1, func() {
+					mongo.Connect()
+				})
+			} else {
+				fmt.Printf("Mongo DBAction Error: %v\n", err)
+				//log stack
+			}
 		}
-		/*if mongoMgr.chAction != nil {
-			close(mongoMgr.chAction)
-		}*/
-	}
+	}()
+	cb(mongo.Collection)
 }
 
-/*func (mongoMgr *MongoMgr) Collection() *mgo.Collection {
-	return mongoMgr.Collection
-}*/
-
-func (mongoMgr *MongoMgr) HandlePanic() {
-	if err := recover(); err != nil {
-		/*zed.ZLog("MongoMgr DBAction err: %v!", err)*/
-		zed.LogStackInfo()
-		mongoMgr.Restart()
-	}
-}
-
-func (mongoMgr *MongoMgr) DBAction(cb func(*mgo.Collection) bool) bool {
-	defer mongoMgr.HandlePanic()
-	
-	if mongoMgr.running {
-		c := mongoMgr.Collection
-		if c != nil {
-			return cb(c)
-		} else {
-			return false
-		}
-
-		return true
-	}
-	return false
-}
-
-func (mongoMgr *MongoMgr) heartbeat() {
-	mongoMgr.RLock()
-	defer mongoMgr.RUnlock()
-
-	if mongoMgr.Session != nil {
-		if err := mongoMgr.Session.Ping(); err != nil {
-			zed.ZLog("MongoMgr heartbeat err: %v!", err)
-			panic(err)
-			mongoMgr.Restart()
-		}
-	} else {
-
+func NewMongo(name string, addr string, dbname string, collectionname string, usr string, passwd string) *Mongo {
+	if name == "" {
+		fmt.Printf("NewMongo Error: name is null\n")
+		return nil
 	}
 
-func NewMongoMgr(name string, addr string, dbname string, cname string, usr string, passwd string) *MongoMgr {
-	mgr, ok := mongoMgrs[name]
+	if dbname == "" {
+		fmt.Printf("NewMongo Error: dbname is null\n")
+		return nil
+	}
+	if collectionname == "" {
+		fmt.Printf("NewMongo Error: collectionname is null\n")
+		return nil
+	}
+
+	if addr == "" {
+		fmt.Printf("NewMongo addr is null, use default addr: 127.0.0.1:27017\n")
+		addr = "127.0.0.1:27017"
+	}
+
+	mongomtx.Lock()
+	defer mongomtx.Unlock()
+	mongo, ok := mongoMgrs[name]
 	if !ok {
-		mgr = &MongoMgr{
-			tryCount:   0,
-			Session:    nil,
+		mongo = &Mongo{
+			Name:       name,
 			addr:       addr,
 			database:   dbname,
-			collection: cname,
+			collection: collectionname,
 			usr:        usr,
 			passwd:     passwd,
 			//chAction: nil,
-			running:    false,
-			restarting: false,
+			state: STATE_STOP,
 		}
-
-}		ok := mgr.Start()
-		if !ok {
-			zed.ZLog("NewMongoMgr %s mgr.Start() Error.!", name)
-			return nil
-		}
-
+		fmt.Printf("NewMongo Name: %s, Addr: %s, DBName: %s, CollectionName: %s, Usr: %s, Passwd: %s\n", name, addr, dbname, collectionname, usr, passwd)
+		mongo.Start()
+		mongoMgrs[name] = mongo
 		return mgr
 	} else {
-		zed.ZLog("NewMongoMgr Error: %s has been exist!", name)
+		fmt.Printf("NewMongo Error: %s has been exist\n", name)
 	}
 
 	return nil
 }
 
-func NewMongoMgrPool(name string, addr string, dbname string, cname string, usr string, passwd string, size int) *MongoMgrPool {
-	mgrs, ok := mongoMgrPools[name]
+func GetMongoByName(name string) *Mongo {
+	mongomtx.Lock()
+	defer mongomtx.Unlock()
+	if mongo, ok := mongoMgrs[name]; ok {
+		return mongo
+	}
+	return nil
+}
+
+type MongoPool struct {
+	size      int
+	instances []*Mongo
+}
+
+func (pool *MongoPool) GetMongo(idx int) *Mongo {
+	if pool.size == 0 {
+		return nil
+	}
+	return pool.instances[idx%pool.size]
+}
+
+func (pool *MongoPool) DBAction(idx int, cb func(*mgo.Collection)) *Mongo {
+	if pool.size == 0 {
+		cb(nil)
+		return
+	}
+
+	return pool.instances[idx%pool.size].DBAction(cb)
+}
+
+func (pool *MongoPool) GetCollection(idx int) *mgo.Collection {
+	return pool.instances[idx%pool.size].Collection
+}
+
+func (pool *MongoPool) Stop() {
+	for _, v := range pool.instances {
+		v.Stop()
+	}
+}
+
+func NewMongoPool(name string, addr string, dbname string, collectionname string, usr string, passwd string, size int) *MongoPool {
+	if name == "" {
+		fmt.Printf("NewMongoPool Error: name is null\n")
+		return nil
+	}
+
+	if dbname == "" {
+		fmt.Printf("NewMongoPool Error: dbname is null\n")
+		return nil
+	}
+	if collectionname == "" {
+		fmt.Printf("NewMongoPool Error: collectionname is null\n")
+		return nil
+	}
+
+	if addr == "" {
+		fmt.Printf("NewMongoPool addr is null, use default addr: 127.0.0.1:27017\n")
+		addr = "127.0.0.1:27017"
+	}
+
+	poolmtx.Lock()
+	defer poolmtx.Unlock()
+	pool, ok := pools[name]
 	if !ok {
-		mgrs = &MongoMgrPool{
-			mgrs: make([]*MongoMgr, size),
-		}
-		mgr := &MongoMgr{
-			tryCount:   0,
-			Session:    nil,
-			addr:       addr,
-			database:   dbname,
-			collection: cname,
-			usr:        usr,
-			passwd:     passwd,
-			//chAction: nil,
-			running:    false,
-			restarting: false,
-		}
-		ok := mgr.Start()
-		if !ok {
-			zed.ZLog("NewMongoMgr %s mgr.Start() Error.!", name)
-			return nil
+		pool = &MongoPool{
+			size:      size,
+			instances: make([]*Mongo, size),
 		}
 
-		mgrs.mgrs[0] = mgr
-		for i := 1; i < size; i++ {
-			mgrCopy := &MongoMgr{
-				tryCount:   0,
-				Session:    mgr.Session.Clone(),
-				addr:       addr,
-				database:   dbname,
-				collection: cname,
-				usr:        usr,
-				passwd:     passwd,
-				//chAction: nil,
-				running:    false,
-				restarting: false,
+		for i := 0; i < size; i++ {
+			mongo := NewMongo(fmt.Sprintf("%s_%d", name, i), addr, dbname, collectionname, usr, passwd)
+			if mongo != nil {
+				pool.instances = append(pool.instances, mongo)
 			}
-			ok := mgrCopy.Start()
-			if !ok {
-				zed.ZLog("%s mgrCopy.Start() %d Error.!", name, i)
-				return nil
-			}
-			mgrs.mgrs[i] = mgrCopy
-			//Println("mongo copy", i, mgr.Session, mgrs.mgrs[i].Session)
 		}
 
-		mongoMgrPools[name] = mgrs
+		pools[name] = pool
 
 		return mgrs
 	} else {
-		zed.ZLog("NewMongoMgrPool Error: %s has been exist!", name)
+		fmt.Printf("NewMongoPool Error: %s has been exist!", name)
 	}
 
 	return nil
 }
 
-func GetMongoMgrByName(name string) (*MongoMgr, bool) {
-	mgr, ok := mongoMgrs[name]
-	return mgr, ok
-}
+func GetMongoPoolByName(name string) *MongoPool {
+	poolmtx.Lock()
+	defer poolmtx.Unlock()
 
-func GetMongoMgrPoolByName(name string) (*MongoMgrPool, bool) {
-	mgr, ok := mongoMgrPools[name]
-	return mgr, ok
+	if pool, ok := pools[name]; ok {
+		return pool
+	}
+	return nil
 }

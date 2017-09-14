@@ -9,6 +9,12 @@ import (
 )
 
 const (
+	STATE_RUNNING = iota
+	STATE_RECONNECTING
+	STATE_STOP
+)
+
+const (
 	KEEPALIVE_INTERVAL = time.Hour
 )
 
@@ -22,17 +28,11 @@ var (
 	OrcleErr = &OracleError{}
 )
 
-const (
-	STATE_RUNNING = iota
-	STATE_RECONNECTING
-	STATE_STOP
-)
-
 type OracleError struct {
 }
 
 func (err *OracleError) Error() string {
-	return "naivefox/go-oci8 OracleError"
+	return "naivefox/oracle OracleError"
 }
 
 type Oracle struct {
@@ -158,6 +158,7 @@ func (ora *Oracle) NewOracle(name string, dbinfo string) *Oracle {
 			state:  STATE_STOP,
 		}
 		ora.Start()
+		oracles[name] = ora
 		return ora
 	} else {
 		fmt.Printf("NewOracle Error: %s has been exist\n", name)
