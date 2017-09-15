@@ -4,7 +4,7 @@ import (
 	"gopkg.in/mgo.v2"
 	//"gopkg.in/mgo.v2/bson"
 	"fmt"
-	"github.com/ccppluagopy/zed"
+	//"github.com/ccppluagopy/zed"
 	"sync"
 	"time"
 )
@@ -80,7 +80,7 @@ func (mongo *Mongo) Connect() {
 	if mongo.state != STATE_STOP {
 		mongo.state = STATE_RECONNECTING
 		mongo.Reset()
-		session, err := mgo.DialWithTimeout(mongoMgr.addr, DB_DIAL_TIMEOUT)
+		session, err := mgo.DialWithTimeout(mongo.addr, DB_DIAL_TIMEOUT)
 		if err != nil {
 			fmt.Printf("Mongo Connect To: %s Failed, Error: %v", mongo.addr, err)
 			time.AfterFunc(1, func() {
@@ -90,13 +90,13 @@ func (mongo *Mongo) Connect() {
 			return
 		}
 
-		mongoMgr.Session = session
-		mongoMgr.Collection = session.DB(mongoMgr.database).C(mongoMgr.collection)
+		mongo.Session = session
+		mongo.Collection = session.DB(mongo.database).C(mongo.collection)
 
 		mongo.state = STATE_RUNNING
-		mongoMgr.startHeartbeat()
+		mongo.startHeartbeat()
 
-		fmt.Printf("Mongo(Name: %s, db: %s collection: %s Connected()\n", mongoMgr.addr, mongoMgr.database, mongoMgr.collection)
+		fmt.Printf("Mongo(Name: %s, db: %s collection: %s Connected()\n", mongo.addr, mongo.database, mongo.collection)
 	}
 }
 
@@ -147,6 +147,7 @@ func (mongo *Mongo) DBAction(cb func(*mgo.Collection)) *Mongo {
 		}
 	}()
 	cb(mongo.Collection)
+	return mongo
 }
 
 func NewMongo(name string, addr string, dbname string, collectionname string, usr string, passwd string) *Mongo {
@@ -171,7 +172,7 @@ func NewMongo(name string, addr string, dbname string, collectionname string, us
 
 	mongomtx.Lock()
 	defer mongomtx.Unlock()
-	mongo, ok := mongoMgrs[name]
+	mongo, ok := mongos[name]
 	if !ok {
 		mongo = &Mongo{
 			Name:       name,
@@ -185,8 +186,8 @@ func NewMongo(name string, addr string, dbname string, collectionname string, us
 		}
 		fmt.Printf("NewMongo Name: %s, Addr: %s, DBName: %s, CollectionName: %s, Usr: %s, Passwd: %s\n", name, addr, dbname, collectionname, usr, passwd)
 		mongo.Start()
-		mongoMgrs[name] = mongo
-		return mgr
+		mongos[name] = mongo
+		return mongo
 	} else {
 		fmt.Printf("NewMongo Error: %s has been exist\n", name)
 	}
@@ -197,7 +198,7 @@ func NewMongo(name string, addr string, dbname string, collectionname string, us
 func GetMongoByName(name string) *Mongo {
 	mongomtx.Lock()
 	defer mongomtx.Unlock()
-	if mongo, ok := mongoMgrs[name]; ok {
+	if mongo, ok := mongos[name]; ok {
 		return mongo
 	}
 	return nil
@@ -218,7 +219,7 @@ func (pool *MongoPool) GetMongo(idx int) *Mongo {
 func (pool *MongoPool) DBAction(idx int, cb func(*mgo.Collection)) *Mongo {
 	if pool.size == 0 {
 		cb(nil)
-		return
+		return nil
 	}
 
 	return pool.instances[idx%pool.size].DBAction(cb)
@@ -272,7 +273,7 @@ func NewMongoPool(name string, addr string, dbname string, collectionname string
 
 		pools[name] = pool
 
-		return mgrs
+		return pool
 	} else {
 		fmt.Printf("NewMongoPool Error: %s has been exist!", name)
 	}
