@@ -3,6 +3,7 @@ package mysql
 import (
 	/*"database/sql"
 	"github.com/go-sql-driver/mysql"*/
+	"fmt"
 	"github.com/ccppluagopy/zed"
 	"github.com/ziutek/mymysql/mysql"
 	_ "github.com/ziutek/mymysql/native" // Native engine
@@ -37,10 +38,14 @@ func (err *MysqlError) Error() string {
 	return "naivefox/oracle MysqlError"
 }
 
+func Recover() {
+	panic(MysqlErr)
+}
+
 type Mysql struct {
 	sync.RWMutex
 	DB     mysql.Conn
-	ddr    string
+	addr   string
 	dbname string
 	usr    string
 	passwd string
@@ -212,7 +217,7 @@ func (pool *MysqlPool) GetMysql(idx int) *Mysql {
 func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) *Mysql {
 	if pool.size == 0 {
 		cb(nil)
-		return
+		return nil
 	}
 	return pool.instances[idx%pool.size].DBAction(cb)
 }

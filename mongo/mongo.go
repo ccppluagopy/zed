@@ -37,6 +37,10 @@ func (err *MongoError) Error() string {
 	return "naivefox/mongo MongoError"
 }
 
+func Recover() {
+	panic(MongoErr)
+}
+
 type Mongo struct {
 	sync.Mutex
 	Name       string

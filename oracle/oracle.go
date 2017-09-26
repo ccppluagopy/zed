@@ -35,6 +35,10 @@ func (err *OracleError) Error() string {
 	return "naivefox/oracle OracleError"
 }
 
+func Recover() {
+	panic(OrcleErr)
+}
+
 type Oracle struct {
 	sync.Mutex
 	Name   string
