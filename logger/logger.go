@@ -11,10 +11,9 @@ import (
 
 const (
 	//LOG_NONE = iota
-	LogCmd     = 0x1 << 0
-	LogFile    = 0x1 << 1
-	LogCmdFile = 0x1 << 2
-	LogWriter  = 0x1 << 3
+	LogCmd    = 0x1 << 0
+	LogFile   = 0x1 << 1
+	LogWriter = 0x1 << 3
 	//LOG_MAX
 )
 
@@ -29,10 +28,15 @@ const (
 )
 
 const (
-	TAG_NULL             = "--"
-	LOG_FILE_NAME_FORMAT = "20060102-15"
-	LOG_STR_FORMAT       = "2006-01-02 15:04:05.000"
-	logsep               = ""
+	TAG_NULL               = "--"
+	LOG_DIR_NAME_FORMAT    = "20060102-150405/"
+	LOG_SUBDIR_NAME_FORMAT = "20060102/"
+	LOG_FILE_NAME_FORMAT   = "20060102-15"
+	/*LOG_DIR_NAME_FORMAT    = "20060102-150405/"
+	LOG_SUBDIR_NAME_FORMAT = "20060102-150405/"
+	LOG_FILE_NAME_FORMAT   = "20060102-150405"*/
+	LOG_STR_FORMAT = "2006-01-02 15:04:05.000"
+	logsep         = ""
 )
 
 var (
@@ -45,7 +49,7 @@ var (
 	logfilesubnum               = 0
 	logfilesize                 = 0
 
-	maxfilesize   = (1024 * 1024 * 32)
+	maxfilesize   = (1024 * 1024 * 10)
 	logdebugtype  = LogCmd
 	loginfotype   = LogCmd
 	logwarntype   = LogCmd
@@ -75,17 +79,19 @@ var (
 		"Action": LogCmd,
 	}
 
-	logtimer    *time.Timer = nil
-	enablebufio             = false
+	logtimer     *time.Timer = nil
+	enablebufio              = false
+	enableSubdir             = false
 	//chsynclogfile chan struct{} = nil
-	writer = func(str string) {}
+	writer   = func(str string) {}
+	inittime = time.Now()
 )
 
 func NewFile(path string) (*os.File, error) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
 
 	if err != nil {
-		Println("zlog NewFile Error: %s, %s", path, err.Error())
+		Printf("zlog NewFile Error: %s, %s\n", path, err.Error())
 		return nil, err
 	}
 
@@ -101,13 +107,27 @@ func NewFile(path string) (*os.File, error) {
 }
 
 func checkFile() bool {
-	var err error = nil
-	currfilename := Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+	var (
+		err error = nil
+		now       = time.Now()
+	)
+
+	currfilename := Sprintf("%s-%d", now.Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 	if logfilename != currfilename {
 		logfilesubnum = 0
-		logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+		logfilename = Sprintf("%s-%d", now.Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		if logfile != nil {
 			logfile.Close()
+		}
+		if enableSubdir {
+			logdir := logdir + inittime.Format(LOG_DIR_NAME_FORMAT) + now.Format(LOG_SUBDIR_NAME_FORMAT)
+			if logdir != currlogdir {
+				currlogdir = logdir
+				if err := MakeDir(currlogdir); err != nil {
+					Println("zlog checkFile Failed")
+					return false
+				}
+			}
 		}
 		logfile, err = NewFile(currlogdir + logfilename)
 		if err != nil {
@@ -125,13 +145,23 @@ func checkFile() bool {
 	if logfilesize > maxfilesize {
 		if logfilename == currfilename {
 			logfilesubnum++
-			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+			logfilename = Sprintf("%s-%d", now.Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		} else {
 			logfilesubnum = 0
-			logfilename = Sprintf("%s-%d", time.Now().Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
+			logfilename = Sprintf("%s-%d", now.Format(LOG_FILE_NAME_FORMAT), logfilesubnum)
 		}
 		if logfile != nil {
 			logfile.Close()
+		}
+		if enableSubdir {
+			logdir := logdir + inittime.Format(LOG_DIR_NAME_FORMAT) + now.Format(LOG_SUBDIR_NAME_FORMAT)
+			if logdir != currlogdir {
+				currlogdir = logdir
+				if err := MakeDir(currlogdir); err != nil {
+					Println("zlog checkFile Failed")
+					return false
+				}
+			}
 		}
 		logfile, err = NewFile(currlogdir + logfilename)
 		if err != nil {
@@ -151,11 +181,16 @@ func MakeDir(path string) error {
 	return err
 }
 
-func SetLogDir(dir string) {
+func SetLogDir(dir string, args ...interface{}) {
 	if strings.HasSuffix(dir, "/") || strings.HasSuffix(dir, "\\") {
 		logdir = dir
 	} else {
 		logdir = dir + "/"
+	}
+	if len(args) > 0 {
+		if es, ok := args[0].(bool); ok {
+			enableSubdir = es
+		}
 	}
 }
 
@@ -163,6 +198,14 @@ func SetLogWriter(w func(str string)) {
 	writer = w
 }
 
+func SetMaxFileSize(size int) {
+	if size > 0 {
+		maxfilesize = size
+	} else {
+		Printf("zlog SetMaxFileSize Error: size(%d) <= 0\n", size)
+	}
+
+}
 func SetLogLevel(level int) {
 	if level > LOG_LEVEL_NONE && level < LOG_LEVEL_MAX {
 		loglevel = level
@@ -184,7 +227,12 @@ func setSyncLogFileInterval(interval time.Duration) {
 }
 
 func initLogDirAndFile() bool {
-	currlogdir = logdir + time.Now().Format("20060102-150405/")
+	//currlogdir = logdir + time.Now().Format("20060102-150405/")
+	inittime := time.Now()
+	currlogdir = logdir + inittime.Format(LOG_DIR_NAME_FORMAT)
+	if enableSubdir {
+		currlogdir += inittime.Format(LOG_SUBDIR_NAME_FORMAT)
+	}
 	err := MakeDir(currlogdir)
 	if err != nil {
 		Printf("zlog initLogDirAndFile Error: %s-%v\n", currlogdir, err)
@@ -198,6 +246,7 @@ func writetofile(str string) {
 	defer logmtx.Unlock()
 
 	checkFile()
+	//return
 	var (
 		n   int
 		err error
