@@ -14,6 +14,7 @@ const (
 	LogCmd     = 0x1 << 0
 	LogFile    = 0x1 << 1
 	LogCmdFile = 0x1 << 2
+	LogWriter  = 0x1 << 3
 	//LOG_MAX
 )
 
@@ -77,6 +78,7 @@ var (
 	logtimer    *time.Timer = nil
 	enablebufio             = false
 	//chsynclogfile chan struct{} = nil
+	writer = func(str string) {}
 )
 
 func NewFile(path string) (*os.File, error) {
@@ -157,6 +159,10 @@ func SetLogDir(dir string) {
 	}
 }
 
+func SetLogWriter(w func(str string)) {
+	writer = w
+}
+
 func SetLogLevel(level int) {
 	if level > LOG_LEVEL_NONE && level < LOG_LEVEL_MAX {
 		loglevel = level
@@ -220,7 +226,7 @@ func syncLogFile() {
 	//logfile.Sync()
 }
 
-func LogDebug(tag int, format string, v ...interface{}) {
+func Debug(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_DEBUG >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
@@ -230,11 +236,14 @@ func LogDebug(tag int, format string, v ...interface{}) {
 			if logdebugtype&LogCmd != 0 {
 				Printf(s)
 			}
+			if loginfotype&LogWriter != 0 {
+				writer(s)
+			}
 		}
 	}
 }
 
-func LogInfo(tag int, format string, v ...interface{}) {
+func Info(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_INFO >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
@@ -244,11 +253,14 @@ func LogInfo(tag int, format string, v ...interface{}) {
 			if loginfotype&LogCmd != 0 {
 				Printf(s)
 			}
+			if loginfotype&LogWriter != 0 {
+				writer(s)
+			}
 		}
 	}
 }
 
-func LogWarn(tag int, format string, v ...interface{}) {
+func Warn(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_WARN >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  WARN] ", Sprintf(format, v...), "\n"}, logsep)
@@ -258,11 +270,14 @@ func LogWarn(tag int, format string, v ...interface{}) {
 			if logwarntype&LogCmd != 0 {
 				Printf(s)
 			}
+			if loginfotype&LogWriter != 0 {
+				writer(s)
+			}
 		}
 	}
 }
 
-func LogError(tag int, format string, v ...interface{}) {
+func Error(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ERROR >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ ERROR] ", Sprintf(format, v...), "\n"}, logsep)
@@ -272,11 +287,14 @@ func LogError(tag int, format string, v ...interface{}) {
 			if logerrortype&LogCmd != 0 {
 				Printf(s)
 			}
+			if loginfotype&LogWriter != 0 {
+				writer(s)
+			}
 		}
 	}
 }
 
-func LogAction(tag int, format string, v ...interface{}) {
+func Action(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_ACTION >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [ACTION] ", Sprintf(format, v...), "\n"}, logsep)
@@ -285,6 +303,9 @@ func LogAction(tag int, format string, v ...interface{}) {
 			}
 			if logactiontype&LogCmd != 0 {
 				Printf(s)
+			}
+			if loginfotype&LogWriter != 0 {
+				writer(s)
 			}
 		}
 	}
