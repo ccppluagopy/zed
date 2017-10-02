@@ -45,7 +45,7 @@ var (
 	logfilesize                 = 0
 
 	maxfilesize   = (1024 * 1024 * 32)
-	logdebugtype   = LogCmd
+	logdebugtype  = LogCmd
 	loginfotype   = LogCmd
 	logwarntype   = LogCmd
 	logerrortype  = LogCmd
@@ -67,7 +67,7 @@ var (
 	}
 
 	logconf = map[string]int{
-		"Debug":   LogCmd,
+		"Debug":  LogCmd,
 		"Info":   LogCmd,
 		"Warn":   LogCmd,
 		"Error":  LogCmd,
@@ -75,7 +75,7 @@ var (
 	}
 
 	logtimer    *time.Timer = nil
-	enablebufio             = true
+	enablebufio             = false
 	//chsynclogfile chan struct{} = nil
 )
 
