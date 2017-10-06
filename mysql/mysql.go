@@ -203,6 +203,7 @@ func GetMysqlByName(name string) (*Mysql, bool) {
 }
 
 type MysqlPool struct {
+	idx       int
 	size      int
 	instances []*Mysql
 }
@@ -214,10 +215,22 @@ func (pool *MysqlPool) GetMysql(idx int) *Mysql {
 	return pool.instances[idx%pool.size]
 }
 
-func (pool *MysqlPool) DBAction(idx int, cb func(mysql.Conn)) *Mysql {
+func (pool *MysqlPool) DBAction(cb func(mysql.Conn), args ...interface{}) *Mysql {
 	if pool.size == 0 {
 		cb(nil)
 		return nil
+	}
+	idx := 0
+	if len(args) == 1 {
+		if i, ok := args[0].(int); ok {
+			idx = i % pool.size
+		} else {
+			idx = pool.idx % pool.size
+			pool.idx++
+		}
+	}
+	if idx < 0 {
+		idx += pool.size
 	}
 	return pool.instances[idx%pool.size].DBAction(cb)
 }

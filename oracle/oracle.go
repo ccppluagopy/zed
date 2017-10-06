@@ -193,10 +193,22 @@ func (pool *OraclePool) GetOracle(idx int) *Oracle {
 	return pool.instances[idx%pool.size]
 }
 
-func (pool *OraclePool) DBAction(idx int, cb func(*sql.DB)) *Oracle {
+func (pool *OraclePool) DBAction(cb func(*sql.DB), args ...interface{}) *Oracle {
 	if pool.size == 0 {
 		cb(nil)
 		return nil
+	}
+	idx := 0
+	if len(args) == 1 {
+		if i, ok := args[0].(int); ok {
+			idx = i % pool.size
+		} else {
+			idx = pool.idx % pool.size
+			pool.idx++
+		}
+	}
+	if idx < 0 {
+		idx += pool.size
 	}
 	return pool.instances[idx%pool.size].DBAction(cb)
 }

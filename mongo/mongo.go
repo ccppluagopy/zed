@@ -209,6 +209,7 @@ func GetMongoByName(name string) *Mongo {
 }
 
 type MongoPool struct {
+	idx       int
 	size      int
 	instances []*Mongo
 }
@@ -220,10 +221,23 @@ func (pool *MongoPool) GetMongo(idx int) *Mongo {
 	return pool.instances[idx%pool.size]
 }
 
-func (pool *MongoPool) DBAction(idx int, cb func(*mgo.Collection)) *Mongo {
+func (pool *MongoPool) DBAction(cb func(*mgo.Collection), args ...interface{}) *Mongo {
 	if pool.size == 0 {
 		cb(nil)
 		return nil
+	}
+
+	idx := 0
+	if len(args) == 1 {
+		if i, ok := args[0].(int); ok {
+			idx = i % pool.size
+		} else {
+			idx = pool.idx % pool.size
+			pool.idx++
+		}
+	}
+	if idx < 0 {
+		idx += pool.size
 	}
 
 	return pool.instances[idx%pool.size].DBAction(cb)
