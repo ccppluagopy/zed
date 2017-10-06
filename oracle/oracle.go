@@ -182,6 +182,7 @@ func GetOracleByName(name string) *Oracle {
 type OraclePool struct {
 	Name      string
 	DBInfo    string
+	idx       int
 	size      int
 	instances []*Oracle
 }
