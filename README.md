@@ -1,3 +1,6 @@
+## Todo
+增加SendData, msg.Encode返回buf？
+
 ## Install
 * go get github.com/ccppluagopy/zed
 * go get github.com/ccppluagopy/zed/timer
