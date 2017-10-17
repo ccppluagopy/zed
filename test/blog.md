@@ -1,3 +1,6 @@
+关于Golang中database/sql包的学习笔记
+	https://segmentfault.com/a/1190000003036452
+
 解决宿主机不能访问虚拟机Centos中的站点
 	http://www.it610.com/article/1472160.htm
 	http://www.it610.com/article/4865551.htm
