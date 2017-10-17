@@ -1,3 +1,8 @@
+解决宿主机不能访问虚拟机Centos中的站点
+	http://www.it610.com/article/1472160.htm
+	http://www.it610.com/article/4865551.htm
+	service iptables stop 关闭防火墙
+
 经典算法题每日演练——第六题 协同推荐SlopeOne 算法
 http://www.cnblogs.com/huangxincheng/archive/2012/11/22/2782647.html
 
