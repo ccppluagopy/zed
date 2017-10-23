@@ -64,7 +64,7 @@ func (client *TcpClient) Stop() {
 			client.running = false
 
 			if client.conn != nil {
-				client.conn.Close()	
+				client.conn.Close()
 				//client.conn.SetLinger(0)
 			}
 
@@ -263,7 +263,7 @@ func (client *TcpClient) start() bool {
 	return true
 }
 
-func (client *TcpClient) SetDelegate(dele ITcpClientDelegate){
+func (client *TcpClient) SetDelegate(dele ITcpClientDelegate) {
 	client.parent = dele
 }
 
@@ -296,7 +296,7 @@ func (client *TcpClient) Connect() {
 	if client.onConnected != nil {
 		Async(func() {
 			HandlePanic(true)
-			client.onConnected(client)
+			client.onConnected(client, true)
 		})
 	}
 	return
@@ -306,7 +306,11 @@ ErrExit:
 			time.Sleep(time.Second)
 			client.Connect()
 		})
-	}else{
+	} else {
+		if client.onConnected != nil {
+			HandlePanic(true)
+			client.onConnected(client, false)
+		}
 		client.Stop()
 	}
 }
@@ -316,7 +320,7 @@ func newTcpClient(parent ITcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 		conn:   conn,
 		parent: parent,
 		//ID:     NullID,
-		Idx:    idx,
+		Idx: idx,
 		//Addr:    conn.RemoteAddr().String(),
 		closeCB: make(map[interface{}]ClientCloseCB),
 		chSend:  make(chan *AsyncMsg, 100),
@@ -339,7 +343,7 @@ func newTcpClient(parent ITcpClientDelegate, conn *net.TCPConn, idx int) *TcpCli
 	return client
 }
 
-func NewTcpClient(dele ITcpClientDelegate, serveraddr string, idx int, reconn bool, onconnected func(*TcpClient)) *TcpClient {
+func NewTcpClient(dele ITcpClientDelegate, serveraddr string, idx int, reconn bool, onconnected func(*TcpClient, bool)) *TcpClient {
 	dele.Init()
 	client := newTcpClient(dele, nil, idx)
 	client.Addr = serveraddr

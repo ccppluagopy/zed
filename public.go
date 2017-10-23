@@ -17,7 +17,6 @@ const (
 	TAG_NULL = "--"
 )
 
-
 //type ClientIDType uint32
 //type ClientIDType string
 
@@ -43,8 +42,6 @@ type EventMgr struct {
 	valid bool
 }
 
-
-
 type ZClientDelegate interface {
 	ShowClientData() bool
 	MaxPackLen() int
@@ -64,15 +61,15 @@ type TcpClient struct {
 	conn   *net.TCPConn
 	parent ITcpClientDelegate
 	//ID     ClientIDType
-	Idx    int
-	Addr   string
+	Idx  int
+	Addr string
 	//Data    interface{}
 	chSend          chan *AsyncMsg
 	closeCB         map[interface{}]ClientCloseCB
 	Valid           bool
 	running         bool
 	EnableReconnect bool
-	onConnected     func(*TcpClient)
+	onConnected     func(*TcpClient, bool)
 }
 
 type TcpServer struct {
