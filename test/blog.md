@@ -1,3 +1,6 @@
+golang 编码
+锁：
+在执行流中对模块统一加锁：比如tcpclient 的 msghandler 对 tcpclient 相关的room、player加锁，子函数中不去加锁避免死锁
 
 KMP，Boyer-Moore，Sunday
 给lua写一个高效split过程中所犯的错误（附v8实现简要分析）。
