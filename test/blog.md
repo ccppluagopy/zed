@@ -1,3 +1,7 @@
+KMP，Boyer-Moore，Sunday
+给lua写一个高效split过程中所犯的错误（附v8实现简要分析）。
+https://cnodejs.org/topic/570b6b379bd3efeb3cdf6445
+
 关于Golang中database/sql包的学习笔记
 	https://segmentfault.com/a/1190000003036452
 
