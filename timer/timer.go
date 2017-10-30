@@ -236,22 +236,20 @@ func NewTimer() *Timer {
 	}
 
 	once := func() {
-		tm.Lock()
 		defer func() {
 			recover()
-			tm.Unlock()
-			//zed.HandlePanic(true)
 		}()
-
+		tm.Lock()
 		if item := tm.timers.Pop(); item != nil {
-			item.(*TimeItem).Callback()
-
 			if head := tm.timers.Head(); head != nil {
 				tm.signal.Reset(head.Expire.Sub(time.Now()))
 			}
 		} else {
 			tm.signal.Reset(TIME_FOREVER)
 		}
+		tm.Unlock()
+
+		item.(*TimeItem).Callback()
 	}
 
 	go func() {
