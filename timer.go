@@ -253,9 +253,9 @@ func (tm *Timer) Size() int {
 func (tm *Timer) Stop() {
 	tm.Lock()
 	defer tm.Unlock()
-	if tm.signal!=nil{
+	if tm.signal != nil {
 		tm.signal.Stop()
-		tm.signal=nil
+		tm.signal = nil
 	}
 }
 
@@ -266,14 +266,10 @@ func NewTimer() *Timer {
 	}
 
 	once := func() {
-		tm.Lock()
-		defer func() {
-			tm.Unlock()
-			HandlePanic(true)
-		}()
+		defer HandlePanic(true)
 
+		tm.Lock()
 		if item := tm.timers.Pop(); item != nil {
-			item.(*TimeItem).Callback()
 
 			if head := tm.timers.Head(); head != nil {
 				tm.signal.Reset(head.Expire.Sub(time.Now()))
@@ -281,11 +277,14 @@ func NewTimer() *Timer {
 		} else {
 			tm.signal.Reset(TIME_FOREVER)
 		}
+		tm.Unlock()
+
+		item.(*TimeItem).Callback()
 	}
 
 	go func() {
 		for {
-			if _,ok:=<-tm.signal.C;!ok{
+			if _, ok := <-tm.signal.C; !ok {
 				break
 			}
 			once()
