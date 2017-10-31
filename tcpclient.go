@@ -11,6 +11,10 @@ import (
 	//"time"
 )
 
+var (
+	stoptimer = NewTimer()
+)
+
 type AsyncMsg struct {
 	//msg  INetMsg
 	v  interface{}
@@ -51,7 +55,8 @@ func (client *TcpClient) IsRunning() bool {
 func (client *TcpClient) Stop() {
 	//LogStackInfo()
 	//NewCoroutine(func() {
-	Async(func() {
+	//Async(func() {
+	stoptimer.NewItem(5, func() {
 		defer HandlePanic(true)
 		client.Lock()
 		defer client.Unlock()
