@@ -38,6 +38,7 @@ const (
 	LOG_FILE_NAME_FORMAT   = "20060102-150405"*/
 	LOG_STR_FORMAT = "2006-01-02 15:04:05.000"
 	logsep         = ""
+	callerdepth    = 1
 )
 
 var (
@@ -368,7 +369,7 @@ func Action(tag int, format string, v ...interface{}) {
 
 func Debug(format string, v ...interface{}) {
 	if LOG_LEVEL_DEBUG >= loglevel {
-		_, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(callerdepth)
 		if !ok {
 			file = "???"
 			line = -1
@@ -393,7 +394,7 @@ func Debug(format string, v ...interface{}) {
 
 func Info(format string, v ...interface{}) {
 	if LOG_LEVEL_INFO >= loglevel {
-		_, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(callerdepth)
 		if !ok {
 			file = "???"
 		} else {
@@ -417,7 +418,7 @@ func Info(format string, v ...interface{}) {
 
 func Warn(format string, v ...interface{}) {
 	if LOG_LEVEL_WARN >= loglevel {
-		_, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(callerdepth)
 		if !ok {
 			file = "???"
 		} else {
@@ -441,7 +442,7 @@ func Warn(format string, v ...interface{}) {
 
 func Action(format string, v ...interface{}) {
 	if LOG_LEVEL_ACTION >= loglevel {
-		_, file, line, ok := runtime.Caller(2)
+		_, file, line, ok := runtime.Caller(callerdepth)
 		if !ok {
 			file = "???"
 		} else {
