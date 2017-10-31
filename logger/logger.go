@@ -33,6 +33,7 @@ const (
 	LOG_DIR_NAME_FORMAT    = "20060102-150405/"
 	LOG_SUBDIR_NAME_FORMAT = "20060102/"
 	LOG_FILE_NAME_FORMAT   = "20060102-15"
+	LOG_SUFIX              = ".log"
 	/*LOG_DIR_NAME_FORMAT    = "20060102-150405/"
 	LOG_SUBDIR_NAME_FORMAT = "20060102-150405/"
 	LOG_FILE_NAME_FORMAT   = "20060102-150405"*/
@@ -44,6 +45,7 @@ const (
 var (
 	logmtx                      = sync.Mutex{}
 	logdir                      = "./logs/"
+	logdirinited                = false
 	currlogdir                  = ""
 	logfile       *os.File      = nil
 	filewriter    *bufio.Writer = nil
@@ -133,7 +135,7 @@ func checkFile() bool {
 				}
 			}
 		}
-		logfile, err = newFile(currlogdir + logfilename)
+		logfile, err = newFile(currlogdir + logfilename + LOG_SUFIX)
 		if err != nil {
 			Println("zlog checkFile Failed")
 			return false
@@ -167,7 +169,7 @@ func checkFile() bool {
 				}
 			}
 		}
-		logfile, err = newFile(currlogdir + logfilename)
+		logfile, err = newFile(currlogdir + logfilename + LOG_SUFIX)
 		if err != nil {
 			Println("zlog checkFile Failed")
 			return false
@@ -236,16 +238,19 @@ func setSyncLogFileInterval(interval time.Duration) {
 }
 
 func initLogDirAndFile() bool {
-	//currlogdir = logdir + time.Now().Format("20060102-150405/")
-	inittime := time.Now()
-	currlogdir = logdir + inittime.Format(LOG_DIR_NAME_FORMAT)
-	if enableSubdir {
-		currlogdir += inittime.Format(LOG_SUBDIR_NAME_FORMAT)
-	}
-	err := MakeDir(currlogdir)
-	if err != nil {
-		Printf("zlog initLogDirAndFile Error: %s-%v\n", currlogdir, err)
-		return false
+	if !logdirinited {
+		logdirinited = true
+		//currlogdir = logdir + time.Now().Format("20060102-150405/")
+		inittime := time.Now()
+		currlogdir = logdir + inittime.Format(LOG_DIR_NAME_FORMAT)
+		if enableSubdir {
+			currlogdir += inittime.Format(LOG_SUBDIR_NAME_FORMAT)
+		}
+		err := MakeDir(currlogdir)
+		if err != nil {
+			Printf("zlog initLogDirAndFile Error: %s-%v\n", currlogdir, err)
+			return false
+		}
 	}
 	return true
 }
@@ -262,10 +267,8 @@ func writetofile(str string) {
 	)
 	if enablebufio {
 		n, err = filewriter.WriteString(str)
-		fmt.Println("writetofile --- 111", n, err, enableSubdir)
 	} else {
 		n, err = logfile.WriteString(str)
-		fmt.Println("writetofile --- 222", n, err, enableSubdir)
 	}
 	//Println(n, err, str)
 	if err != nil || n != len(str) {
@@ -388,7 +391,7 @@ func Debug(format string, v ...interface{}) {
 				file = file[pos+1:]
 			}
 		}
-		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] [%s:%d]", file, line), Sprintf(format, v...), "\n"}, logsep)
 		if logdebugtype&LogFile != 0 {
 			writetofile(s)
 		}
@@ -412,7 +415,7 @@ func Info(format string, v ...interface{}) {
 				file = file[pos+1:]
 			}
 		}
-		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] [%s:%d]", file, line), Sprintf(format, v...), "\n"}, logsep)
 		if loginfotype&LogFile != 0 {
 			writetofile(s)
 		}
@@ -436,7 +439,7 @@ func Warn(format string, v ...interface{}) {
 				file = file[pos+1:]
 			}
 		}
-		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] [%s:%d]", file, line), Sprintf(format, v...), "\n"}, logsep)
 		if logwarntype&LogFile != 0 {
 			writetofile(s)
 		}
@@ -460,7 +463,7 @@ func Action(format string, v ...interface{}) {
 				file = file[pos+1:]
 			}
 		}
-		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] [%s:%d]", file, line), Sprintf(format, v...), "\n"}, logsep)
 		if logactiontype&LogFile != 0 {
 			writetofile(s)
 		}
@@ -475,18 +478,30 @@ func Action(format string, v ...interface{}) {
 
 func SetLogDebugType(t int) {
 	logdebugtype = t
+	if t&LogFile == LogFile {
+		initLogDirAndFile()
+	}
 }
 
 func SetLogInfoType(t int) {
 	loginfotype = t
+	if t&LogFile == LogFile {
+		initLogDirAndFile()
+	}
 }
 
 func SetLogWarnType(t int) {
 	logwarntype = t
+	if t&LogFile == LogFile {
+		initLogDirAndFile()
+	}
 }
 
 func SetLogErrorType(t int) {
 	logerrortype = t
+	if t&LogFile == LogFile {
+		initLogDirAndFile()
+	}
 }
 
 func SetLogType(t int) {
@@ -494,6 +509,9 @@ func SetLogType(t int) {
 	loginfotype = t
 	logwarntype = t
 	logerrortype = t
+	if t&LogFile == LogFile {
+		initLogDirAndFile()
+	}
 }
 
 func Save() {
