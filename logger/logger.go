@@ -87,6 +87,8 @@ var (
 	//chsynclogfile chan struct{} = nil
 	userlogger = func(str string) {}
 	inittime   = time.Now()
+
+	initsync = false
 )
 
 func newFile(path string) (*os.File, error) {
@@ -175,6 +177,11 @@ func checkFile() bool {
 			logticker.Reset(syncinterval)
 		}*/
 	}
+
+	if !initsync {
+		startSync()
+	}
+
 	return true
 }
 
@@ -255,8 +262,10 @@ func writetofile(str string) {
 	)
 	if enablebufio {
 		n, err = filewriter.WriteString(str)
+		fmt.Println("writetofile --- 111", n, err, enableSubdir)
 	} else {
 		n, err = logfile.WriteString(str)
+		fmt.Println("writetofile --- 222", n, err, enableSubdir)
 	}
 	//Println(n, err, str)
 	if err != nil || n != len(str) {
@@ -464,12 +473,36 @@ func Action(format string, v ...interface{}) {
 	}
 }
 
+func SetLogDebugType(t int) {
+	logdebugtype = t
+}
+
+func SetLogInfoType(t int) {
+	loginfotype = t
+}
+
+func SetLogWarnType(t int) {
+	logwarntype = t
+}
+
+func SetLogErrorType(t int) {
+	logerrortype = t
+}
+
+func SetLogType(t int) {
+	logdebugtype = t
+	loginfotype = t
+	logwarntype = t
+	logerrortype = t
+}
+
 func Save() {
 	syncLogFile()
 }
 
 func startSync() {
-	if logfile != nil || (enablebufio && filewriter != nil) {
+	if !initsync {
+		initsync = true
 		go func() {
 			defer func() {
 				recover()
@@ -608,7 +641,6 @@ func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) 
 	}
 
 	checkFile()
-	startSync()
 
 	Println("===========================================")
 }
