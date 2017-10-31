@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -79,19 +80,19 @@ var (
 		"Action": LogCmd,
 	}
 
-	logtimer     *time.Timer = nil
-	enablebufio              = false
-	enableSubdir             = false
+	logticker    *time.Ticker = nil
+	enablebufio               = false
+	enableSubdir              = false
 	//chsynclogfile chan struct{} = nil
 	userlogger = func(str string) {}
 	inittime   = time.Now()
 )
 
-func NewFile(path string) (*os.File, error) {
+func newFile(path string) (*os.File, error) {
 	file, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0666)
 
 	if err != nil {
-		Printf("zlog NewFile Error: %s, %s\n", path, err.Error())
+		Printf("zlog newFile Error: %s, %s\n", path, err.Error())
 		return nil, err
 	}
 
@@ -129,15 +130,15 @@ func checkFile() bool {
 				}
 			}
 		}
-		logfile, err = NewFile(currlogdir + logfilename)
+		logfile, err = newFile(currlogdir + logfilename)
 		if err != nil {
 			Println("zlog checkFile Failed")
 			return false
 		} else {
 			logfilesize = 0
-			if logtimer != nil {
-				logtimer.Reset(syncinterval)
-			}
+			/*if logticker != nil {
+				logticker.Reset(syncinterval)
+			}*/
 			return true
 		}
 	}
@@ -163,15 +164,15 @@ func checkFile() bool {
 				}
 			}
 		}
-		logfile, err = NewFile(currlogdir + logfilename)
+		logfile, err = newFile(currlogdir + logfilename)
 		if err != nil {
 			Println("zlog checkFile Failed")
 			return false
 		}
 		logfilesize = 0
-		if logtimer != nil {
-			logtimer.Reset(syncinterval)
-		}
+		/*if logticker != nil {
+			logticker.Reset(syncinterval)
+		}*/
 	}
 	return true
 }
@@ -267,15 +268,20 @@ func writetofile(str string) {
 func syncLogFile() {
 	logmtx.Lock()
 	defer logmtx.Unlock()
+
 	if enablebufio {
-		filewriter.Flush()
+		if filewriter != nil {
+			filewriter.Flush()
+		}
 	} else {
-		logfile.Sync()
+		if logfile != nil {
+			logfile.Sync()
+		}
 	}
 	//logfile.Sync()
 }
 
-func Debug(tag int, format string, v ...interface{}) {
+/*func Debug(tag int, format string, v ...interface{}) {
 	if LOG_LEVEL_DEBUG >= loglevel {
 		if tagstr, ok := logtags[tag]; ok && (tagstr[0:len(TAG_NULL)] != TAG_NULL) {
 			s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), " [", tagstr, "] [  INFO] ", Sprintf(format, v...), "\n"}, logsep)
@@ -358,6 +364,103 @@ func Action(tag int, format string, v ...interface{}) {
 			}
 		}
 	}
+}*/
+
+func Debug(format string, v ...interface{}) {
+	if LOG_LEVEL_DEBUG >= loglevel {
+		_, file, line, ok := runtime.Caller(2)
+		if !ok {
+			file = "???"
+			line = -1
+		} else {
+			pos := strings.LastIndex(file, "/")
+			if pos >= 0 {
+				file = file[pos+1:]
+			}
+		}
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		if logdebugtype&LogFile != 0 {
+			writetofile(s)
+		}
+		if logdebugtype&LogCmd != 0 {
+			Printf(s)
+		}
+		if logdebugtype&LogUser != 0 {
+			userlogger(s)
+		}
+	}
+}
+
+func Info(format string, v ...interface{}) {
+	if LOG_LEVEL_INFO >= loglevel {
+		_, file, line, ok := runtime.Caller(2)
+		if !ok {
+			file = "???"
+		} else {
+			pos := strings.LastIndex(file, "/")
+			if pos >= 0 {
+				file = file[pos+1:]
+			}
+		}
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		if loginfotype&LogFile != 0 {
+			writetofile(s)
+		}
+		if loginfotype&LogCmd != 0 {
+			Printf(s)
+		}
+		if loginfotype&LogUser != 0 {
+			userlogger(s)
+		}
+	}
+}
+
+func Warn(format string, v ...interface{}) {
+	if LOG_LEVEL_WARN >= loglevel {
+		_, file, line, ok := runtime.Caller(2)
+		if !ok {
+			file = "???"
+		} else {
+			pos := strings.LastIndex(file, "/")
+			if pos >= 0 {
+				file = file[pos+1:]
+			}
+		}
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		if logwarntype&LogFile != 0 {
+			writetofile(s)
+		}
+		if logwarntype&LogCmd != 0 {
+			Printf(s)
+		}
+		if logwarntype&LogUser != 0 {
+			userlogger(s)
+		}
+	}
+}
+
+func Action(format string, v ...interface{}) {
+	if LOG_LEVEL_ACTION >= loglevel {
+		_, file, line, ok := runtime.Caller(2)
+		if !ok {
+			file = "???"
+		} else {
+			pos := strings.LastIndex(file, "/")
+			if pos >= 0 {
+				file = file[pos+1:]
+			}
+		}
+		s := strings.Join([]string{time.Now().Format(LOG_STR_FORMAT), Sprintf(" [ Debug] file: %s line: %d", file, line), Sprintf(format, v...), "\n"}, logsep)
+		if logactiontype&LogFile != 0 {
+			writetofile(s)
+		}
+		if logactiontype&LogCmd != 0 {
+			Printf(s)
+		}
+		if logactiontype&LogUser != 0 {
+			userlogger(s)
+		}
+	}
 }
 
 func Save() {
@@ -365,30 +468,32 @@ func Save() {
 }
 
 func startSync() {
-	go func() {
-		defer func() {
-			recover()
-		}()
+	if logfile != nil || (enablebufio && filewriter != nil) {
+		go func() {
+			defer func() {
+				recover()
+			}()
 
-		logtimer = time.NewTimer(syncinterval)
+			logticker = time.NewTicker(syncinterval)
 
-		for {
-			//select {
-			//case _, ok := <-logtimer.C:
-			_, ok := <-logtimer.C
-			syncLogFile()
-			if !ok {
-				return
-			}
-			/*case _, ok := <-chsynclogfile:
+			for {
+				//select {
+				//case _, ok := <-logticker.C:
+				_, ok := <-logticker.C
 				syncLogFile()
 				if !ok {
 					return
 				}
-			}*/
-			logtimer.Reset(syncinterval)
-		}
-	}()
+				/*case _, ok := <-chsynclogfile:
+					syncLogFile()
+					if !ok {
+						return
+					}
+				}*/
+				//logticker.Reset(syncinterval)
+			}
+		}()
+	}
 }
 
 func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) {
@@ -508,9 +613,9 @@ func StartLogger(conf map[string]int, tags map[int]string, args ...interface{}) 
 }
 
 func StopLogger() {
-	if logtimer != nil {
-		logtimer.Stop()
-		logtimer = nil
+	if logticker != nil {
+		logticker.Stop()
+		logticker = nil
 	}
 	/*if chsynclogfile != nil {
 		close(chsynclogfile)
