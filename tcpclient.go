@@ -12,8 +12,9 @@ import (
 )
 
 type AsyncMsg struct {
-	msg INetMsg
-	cb  func()
+	//msg  INetMsg
+	v  interface{}
+	cb func()
 }
 
 func (client *TcpClient) Info() string {
@@ -94,28 +95,37 @@ func (client *TcpClient) Stop() {
 }
 
 func (client *TcpClient) writer() {
-	parent := client.parent
+	var (
+		parent             = client.parent
+		asyncMsg *AsyncMsg = nil
+		ok                 = false
+	)
+	send := func() bool {
+		client.Lock()
+		defer func() {
+			client.Unlock()
+			if err := HandlePanic(true); err != nil {
+				client.Stop()
+				return
+			}
+		}()
+		//time.AfterFunc(1, func() {
+		if msg, ok := asyncMsg.v.(INetMsg); ok {
+			parent.SendMsg(client, msg)
+		} else if data, ok := asyncMsg.v.([]byte); ok {
+			parent.SendData(client, data)
+		}
+		if asyncMsg.cb != nil {
+			//defer HandlePanic(true)
+			asyncMsg.cb()
+		}
+		//})
+		return true
+	}
 	if client.chSend != nil {
 		for {
-			if asyncMsg, ok := <-client.chSend; ok {
-				if !func() bool {
-					client.Lock()
-					defer client.Unlock()
-					defer func() {
-						if err := HandlePanic(true); err != nil {
-							client.Stop()
-							return
-						}
-					}()
-					time.AfterFunc(1, func() {
-						parent.SendMsg(client, asyncMsg.msg)
-						if asyncMsg.cb != nil {
-							defer HandlePanic(true)
-							asyncMsg.cb()
-						}
-					})
-					return true
-				}() {
+			if asyncMsg, ok = <-client.chSend; ok {
+				if !send() {
 					return
 				}
 			} else {
@@ -148,8 +158,8 @@ func (client *TcpClient) SendMsgAsync(msg INetMsg, argv ...interface{}) bool {
 	if client.running {
 
 		asyncmsg := &AsyncMsg{
-			msg: msg,
-			cb:  nil,
+			v:  msg,
+			cb: nil,
 		}
 
 		if len(argv) > 0 {

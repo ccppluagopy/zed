@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"io"
 	"sync"
-	"time"
 	"sync/atomic"
+	"time"
 )
 
 type ITcpClientDelegate interface {
@@ -13,6 +13,7 @@ type ITcpClientDelegate interface {
 
 	RecvMsg(*TcpClient) INetMsg
 	SendMsg(*TcpClient, INetMsg) bool
+	SendData(*TcpClient, []byte) bool
 	HandleMsg(INetMsg)
 
 	SetServer(*TcpServer)
@@ -74,8 +75,8 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) INetMsg {
 		readLen = 0
 		err     error
 		msg     = &NetMsg{
-			Client: client,
-			buf:    make([]byte, PACK_HEAD_LEN),
+			Client:    client,
+			buf:       make([]byte, PACK_HEAD_LEN),
 			encrypted: 1,
 		}
 		dataLen = 0
@@ -121,7 +122,7 @@ func (dele *DefaultTCDelegate) RecvMsg(client *TcpClient) INetMsg {
 		}
 	}
 
-	if !msg.Decrypt(){
+	if !msg.Decrypt() {
 		goto Exit
 	}
 
@@ -138,7 +139,7 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg INetMsg) bool {
 		err      error
 	)
 
-	if !msg.Encrypt(){
+	if !msg.Encrypt() {
 		return false
 	}
 
@@ -179,6 +180,45 @@ func (dele *DefaultTCDelegate) SendMsg(client *TcpClient, msg INetMsg) bool {
 Exit:
 	if dele.showClientData {
 		ZLog("[Send] %s Cmd: %d Len: %d, Error: %s", client.Info(), msg.GetCmd(), msgLen, err.Error())
+	}
+	client.Stop()
+	return false
+}
+
+func (dele *DefaultTCDelegate) SendData(client *TcpClient, data []byte) bool {
+	msgLen := len(data)
+	if msgLen > 0 {
+		if len(data) > dele.maxPackLen {
+			if dele.showClientData {
+				ZLog("SendMsg Error: Body Len(%d) > MAXPACK_LEN(%d)", msgLen, dele.maxPackLen)
+			}
+			goto Exit
+		}
+
+		if err := (*client.conn).SetWriteDeadline(time.Now().Add(dele.sendBlockTime)); err != nil {
+			if dele.showClientData {
+				ZLog("%s SetWriteDeadline Error: %v.", client.Info(), err)
+			}
+			goto Exit
+		}
+
+		writeLen, err := client.conn.Write(data)
+		if err == nil && writeLen == msgLen {
+			if dele.showClientData {
+				ZLog("[SendData] %s Len: %d", client.Info(), msgLen)
+			}
+			return true
+		}
+	} else {
+		if dele.showClientData {
+			ZLog("[SendData] %s Warn: Len == 0", client.Info())
+		}
+		return true
+	}
+
+Exit:
+	if dele.showClientData {
+		ZLog("[SendData] %s Error: Len == %d", client.Info(), msgLen)
 	}
 	client.Stop()
 	return false

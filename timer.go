@@ -269,7 +269,8 @@ func NewTimer() *Timer {
 		defer HandlePanic(true)
 
 		tm.Lock()
-		if item := tm.timers.Pop(); item != nil {
+		item := tm.timers.Pop()
+		if item != nil {
 
 			if head := tm.timers.Head(); head != nil {
 				tm.signal.Reset(head.Expire.Sub(time.Now()))

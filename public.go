@@ -70,6 +70,7 @@ type TcpClient struct {
 	running         bool
 	EnableReconnect bool
 	onConnected     func(*TcpClient, bool)
+	UserData        interface{}
 }
 
 type TcpServer struct {
