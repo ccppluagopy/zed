@@ -11,9 +11,9 @@ import (
 
 const (
 	//LOG_NONE = iota
-	LogCmd    = 0x1 << 0
-	LogFile   = 0x1 << 1
-	LogWriter = 0x1 << 3
+	LogCmd  = 0x1 << 0
+	LogFile = 0x1 << 1
+	LogUser = 0x1 << 3
 	//LOG_MAX
 )
 
@@ -83,8 +83,8 @@ var (
 	enablebufio              = false
 	enableSubdir             = false
 	//chsynclogfile chan struct{} = nil
-	writer   = func(str string) {}
-	inittime = time.Now()
+	userlogger = func(str string) {}
+	inittime   = time.Now()
 )
 
 func NewFile(path string) (*os.File, error) {
@@ -194,8 +194,8 @@ func SetLogDir(dir string, args ...interface{}) {
 	}
 }
 
-func SetLogWriter(w func(str string)) {
-	writer = w
+func SetLogUser(w func(str string)) {
+	userlogger = w
 }
 
 func SetMaxFileSize(size int) {
@@ -285,8 +285,8 @@ func Debug(tag int, format string, v ...interface{}) {
 			if logdebugtype&LogCmd != 0 {
 				Printf(s)
 			}
-			if loginfotype&LogWriter != 0 {
-				writer(s)
+			if loginfotype&LogUser != 0 {
+				userlogger(s)
 			}
 		}
 	}
@@ -302,8 +302,8 @@ func Info(tag int, format string, v ...interface{}) {
 			if loginfotype&LogCmd != 0 {
 				Printf(s)
 			}
-			if loginfotype&LogWriter != 0 {
-				writer(s)
+			if loginfotype&LogUser != 0 {
+				userlogger(s)
 			}
 		}
 	}
@@ -319,8 +319,8 @@ func Warn(tag int, format string, v ...interface{}) {
 			if logwarntype&LogCmd != 0 {
 				Printf(s)
 			}
-			if loginfotype&LogWriter != 0 {
-				writer(s)
+			if loginfotype&LogUser != 0 {
+				userlogger(s)
 			}
 		}
 	}
@@ -336,8 +336,8 @@ func Error(tag int, format string, v ...interface{}) {
 			if logerrortype&LogCmd != 0 {
 				Printf(s)
 			}
-			if loginfotype&LogWriter != 0 {
-				writer(s)
+			if loginfotype&LogUser != 0 {
+				userlogger(s)
 			}
 		}
 	}
@@ -353,8 +353,8 @@ func Action(tag int, format string, v ...interface{}) {
 			if logactiontype&LogCmd != 0 {
 				Printf(s)
 			}
-			if loginfotype&LogWriter != 0 {
-				writer(s)
+			if loginfotype&LogUser != 0 {
+				userlogger(s)
 			}
 		}
 	}
