@@ -18,12 +18,12 @@ const (
 )
 
 const (
-	LOG_LEVEL_NONE = iota
-	LOG_LEVEL_DEBUG
+	LOG_LEVEL_DEBUG = iota
 	LOG_LEVEL_INFO
 	LOG_LEVEL_WARN
 	LOG_LEVEL_ERROR
 	LOG_LEVEL_ACTION
+	LOG_LEVEL_NONE
 	LOG_LEVEL_MAX
 )
 
@@ -207,7 +207,7 @@ func SetMaxFileSize(size int) {
 
 }
 func SetLogLevel(level int) {
-	if level > LOG_LEVEL_NONE && level < LOG_LEVEL_MAX {
+	if level >= 0 && level < LOG_LEVEL_MAX {
 		loglevel = level
 	} else {
 		Printf("zlog SetLogLevel Error: Invalid Level - %d\n", level)
