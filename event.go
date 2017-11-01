@@ -13,6 +13,15 @@ var (
 	instanceMutex   = sync.Mutex{}
 )
 
+type EventHandler func(event interface{}, args []interface{})
+
+type EventMgr struct {
+	listenerMap map[interface{}]interface{}
+	listeners   map[interface{}]map[interface{}]EventHandler
+	sync.Mutex
+	valid bool
+}
+
 func eventHandler(handler EventHandler, event interface{}, args []interface{}) {
 	defer HandlePanic(true)
 	handler(event, args)
@@ -72,7 +81,23 @@ func (eventMgr *EventMgr) dispatch(event interface{}, args ...interface{}) bool 
 func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
 	eventMgr.Lock()
 	defer eventMgr.Unlock()
-	if listeners, ok := eventMgr.listeners[event]; ok {
+
+	els := eventMgr.listeners[event]
+	aels := eventMgr.listeners[EventAll]
+	all := make([]EventHandler, len(els)+len(aels))
+	i := 0
+	for _, l := range els {
+		all[i] = l
+		i++
+	}
+	for _, l := range aels {
+		all[i] = l
+		i++
+	}
+	for _, l := range all {
+		eventHandler(l, event, args)
+	}
+	/*if listeners, ok := eventMgr.listeners[event]; ok {
 		for _, listener := range listeners {
 			eventHandler(listener, event, args)
 		}
@@ -81,7 +106,7 @@ func (eventMgr *EventMgr) Dispatch(event interface{}, args ...interface{}) {
 		for _, listener := range listeners {
 			eventHandler(listener, event, args)
 		}
-	}
+	}*/
 }
 
 func GetInstance() *EventMgr {

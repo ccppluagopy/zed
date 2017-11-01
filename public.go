@@ -33,15 +33,6 @@ type MsgHandler func(msg INetMsg) bool
 
 type ClientCloseCB func(client *TcpClient)
 
-type EventHandler func(event interface{}, args []interface{})
-
-type EventMgr struct {
-	listenerMap map[interface{}]interface{}
-	listeners   map[interface{}]map[interface{}]EventHandler
-	sync.Mutex
-	valid bool
-}
-
 type ZClientDelegate interface {
 	ShowClientData() bool
 	MaxPackLen() int
