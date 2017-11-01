@@ -1,3 +1,12 @@
+云风 谈谈陌陌争霸在数据库方面踩过的坑(芒果篇）
+https://blog.codingnow.com/2014/03/mmzb_redis.html
+
+Go性能优化技巧-string
+https://leokongwq.github.io/2016/10/15/golang-performance-optimize-string.html
+
+Golang编译提速优化
+http://fishedee.com/%E5%90%8E%E7%AB%AF/2016/04/30/golang%E7%BC%96%E8%AF%91%E6%8F%90%E9%80%9F%E4%BC%98%E5%8C%96.html
+
 golang 编码
 锁：
 在执行流中对模块统一加锁：比如tcpclient 的 msghandler 对 tcpclient 相关的room、player加锁，子函数中不去加锁避免死锁
