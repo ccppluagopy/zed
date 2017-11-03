@@ -1,0 +1,10 @@
+https://core.telegram.org/bots
+
+https://core.telegram.org/bots#6-botfather
+
+https://telegram.me/botfather
+
+https://core.telegram.org/api
+Telegram APIs
+
+We offer two kinds of APIs for developers. The Bot API allows you to easily create programs that use Telegram messages for an interface. The Telegram API allows you to build your own customized Telegram clients. You are welcome to use both APIs free of charge.
