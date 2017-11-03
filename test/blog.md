@@ -1,3 +1,6 @@
+MongoDB在58同城百亿量级数据下的应用实践
+http://www.infoq.com/cn/articles/app-practice-of-mongodb-in-58-ten-billion-scale-data
+
 云风 谈谈陌陌争霸在数据库方面踩过的坑(芒果篇）
 https://blog.codingnow.com/2014/03/mmzb_redis.html
 
