@@ -1,7 +1,12 @@
 #!/bin/bash
 
+
 BUILD_TIME=`date +%FT%T%z`
-go build -ldflags "-X main.BuildTime=${BUILD_TIME}" -o ./main.bin main.go
+SVN_VER=$(svn info | grep "Rev:" | cut -d ' ' -f 4)
+VERSION=$(echo $BUILD_TIME$SVN_VER)
+go build -ldflags "-X main.VERSION=${VERSION}" -o ./main.bin main.go
+
+
 
 mkdir bin
 cp config.json start.sh stop.sh bin/
