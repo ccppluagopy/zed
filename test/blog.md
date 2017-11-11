@@ -1,3 +1,6 @@
+kafka学习线路指导入门：包括理论、部署、实战知识汇总整理
+http://www.aboutyun.com/thread-19665-1-1.html
+
 MongoDB在58同城百亿量级数据下的应用实践
 http://www.infoq.com/cn/articles/app-practice-of-mongodb-in-58-ten-billion-scale-data
 
