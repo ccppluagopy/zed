@@ -1,3 +1,6 @@
+go kafka
+http://legendtkl.com/2016/06/30/kafka-in-action/
+
 kafka学习线路指导入门：包括理论、部署、实战知识汇总整理
 http://www.aboutyun.com/thread-19665-1-1.html
 
