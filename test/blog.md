@@ -1,6 +1,9 @@
 如何实现支持数亿用户的长连消息系统 | Golang高并发案例 360消息推送系统
 http://chuansong.me/n/1641640
 
+fasthttp中的协程池实现
+https://studygolang.com/articles/9731
+
 go kafka
 http://legendtkl.com/2016/06/30/kafka-in-action/
 
