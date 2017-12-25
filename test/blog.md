@@ -1,3 +1,6 @@
+查看内联
+go build -gcflags=-m inline.go 
+
 如何实现支持数亿用户的长连消息系统 | Golang高并发案例 360消息推送系统
 http://chuansong.me/n/1641640
 
