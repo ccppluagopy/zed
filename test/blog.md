@@ -1,3 +1,6 @@
+Go语言经典笔试题
+https://goquiz.github.io/#label-break
+
 docker/ectd
 https://doc.yonyoucloud.com/doc/docker_practice/introduction/what.html
 
