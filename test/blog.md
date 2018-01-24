@@ -1,3 +1,6 @@
+go websocket跨域
+https://www.iphpt.com/detail/86/
+
 Go语言经典笔试题
 https://goquiz.github.io/#label-break
 
