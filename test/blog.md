@@ -1,3 +1,6 @@
+golang通过zookeeper实现master选举
+http://blog.csdn.net/u013235478/article/details/70158522
+
 zookeeper分布式锁
 https://www.cnblogs.com/dennyzhangdd/p/6257335.html
 
