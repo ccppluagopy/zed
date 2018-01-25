@@ -1,3 +1,6 @@
+raft动画演示
+http://thesecretlivesofdata.com/raft/
+
 golang通过zookeeper实现master选举
 http://blog.csdn.net/u013235478/article/details/70158522
 
