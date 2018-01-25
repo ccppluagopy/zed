@@ -1,3 +1,7 @@
+使用Golang利用ectd实现一个分布式锁
+https://studygolang.com/articles/7354
+https://github.com/researchrepos/etcdsync
+
 raft动画演示
 http://thesecretlivesofdata.com/raft/
 
