@@ -1,3 +1,6 @@
+mgo重连
+https://yangchenglong11.github.io/2017/04/03/mgo-%E6%96%AD%E7%BA%BF%E9%87%8D%E8%BF%9E/
+
 使用Golang利用ectd实现一个分布式锁
 https://studygolang.com/articles/7354
 https://github.com/researchrepos/etcdsync
