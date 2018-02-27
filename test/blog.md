@@ -1,3 +1,6 @@
+TypeArray、ArrayBuffer、Blob的相互转换
+http://shiwah.me/2015/12/29/20151229_arrayBuffer/
+
 mgo重连
 https://yangchenglong11.github.io/2017/04/03/mgo-%E6%96%AD%E7%BA%BF%E9%87%8D%E8%BF%9E/
 
