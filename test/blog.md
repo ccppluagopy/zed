@@ -1,3 +1,9 @@
+分析golang定时器cpu使用率高的现象
+https://juejin.im/entry/5abda55a6fb9a028e1200cd2
+
+为编译器植入隐藏后门——亲手实践 Thompson hack
+https://ekyu.moe/article/thompson-hack-on-golang/
+
 TypeArray、ArrayBuffer、Blob的相互转换
 http://shiwah.me/2015/12/29/20151229_arrayBuffer/
 
