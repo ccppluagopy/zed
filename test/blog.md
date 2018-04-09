@@ -1,3 +1,6 @@
+Go在谷歌：以软件工程为目的的语言设计 
+https://www.oschina.net/translate/go-at-google-language-design-in-the-service-of-software-engineering
+
 分析golang定时器cpu使用率高的现象
 https://juejin.im/entry/5abda55a6fb9a028e1200cd2
 
