@@ -1,3 +1,9 @@
+Node之父Ryan Dahl：我不想被定义
+http://www.infoq.com/cn/news/2017/09/Node-Ryan-Dahl
+Nodejs 创始人眼中的 Go
+https://studygolang.com/topics/3387
+https://www.mappingthejourney.com/single-post/2017/08/31/episode-8-interview-with-ryan-dahl-creator-of-nodejs/
+
 beego web ...
 https://github.com/astaxie/build-web-application-with-golang/blob/master/zh/preface.md
 
