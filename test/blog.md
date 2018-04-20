@@ -1,3 +1,8 @@
+辞职文案火了，程序员的辞职理由要命不要钱。
+https://blog.csdn.net/EGEFCXzo3Ha1x4/article/details/79990585
+我永远不会成为一个好员工
+https://blog.csdn.net/EGEFCXzo3Ha1x4/article/details/79990586
+
 Node之父Ryan Dahl：我不想被定义
 http://www.infoq.com/cn/news/2017/09/Node-Ryan-Dahl
 Nodejs 创始人眼中的 Go
