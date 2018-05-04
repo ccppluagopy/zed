@@ -1,3 +1,6 @@
+win10下面visual studio, sublime ctrl+shift+f快捷键失效的原因
+https://www.cnblogs.com/asis/p/6223291.html
+
 辞职文案火了，程序员的辞职理由要命不要钱。
 https://blog.csdn.net/EGEFCXzo3Ha1x4/article/details/79990585
 我永远不会成为一个好员工
