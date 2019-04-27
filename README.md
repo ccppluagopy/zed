@@ -1,3 +1,53 @@
+```golang
+package main
+
+import (
+	"fmt"
+	"sort"
+)
+
+func makeNums(arr map[int64]struct{}, num int64) map[int64]struct{} {
+	ret := map[int64]struct{}{}
+	for v, _ := range arr {
+		if v+num >= 0 {
+			ret[v+num] = struct{}{}
+		}
+		if v-num >= 0 {
+			ret[v-num] = struct{}{}
+		}
+		if v*num >= 0 {
+			ret[v*num] = struct{}{}
+		}
+		if v%num == 0 && v/num >= 0 {
+			ret[v/num] = struct{}{}
+		}
+	}
+	return ret
+}
+
+func main() {
+	ret := map[int64]struct{}{9: struct{}{}}
+	for i := 1; i < 9; i++ {
+		ret = makeNums(ret, 9)
+	}
+	fmt.Println(len(ret))
+	arr := make([]int64, len(ret))
+	idx := 0
+	for v, _ := range ret {
+		arr[idx] = v
+		idx++
+	}
+	sort.Slice(arr, func(i, j int) bool {
+		return arr[i] < arr[j]
+	})
+	for i, v := range arr {
+		if int64(i) != v {
+			fmt.Println(v)
+		}
+	}
+}
+```
+
 ## Todo
 增加SendData, msg.Encode返回buf？
 
