@@ -6,43 +6,113 @@ import (
 	"sort"
 )
 
-func makeNums(arr map[int64]struct{}, num int64) map[int64]struct{} {
-	ret := map[int64]struct{}{}
-	for v, _ := range arr {
-		if v+num >= 0 {
-			ret[v+num] = struct{}{}
+type Num struct {
+	Value int64
+	Count int64
+	Text  string
+}
+
+func (num *Num) Desc() string {
+	if num.Count == 1 {
+		return fmt.Sprintf("%v", num.Value)
+	}
+	return "(" + num.Text + ")"
+}
+
+func MakeNums(nums map[Num]bool, num Num) map[Num]bool {
+	ret := map[Num]bool{}
+	for v, _ := range nums {
+		if v.Value+num.Value >= 0 {
+			ret[Num{v.Value + num.Value, v.Count + num.Count, fmt.Sprintf("%s+%s", v.Desc(), num.Desc())}] = true
 		}
-		if v-num >= 0 {
-			ret[v-num] = struct{}{}
+		if v.Value-num.Value >= 0 {
+			ret[Num{v.Value - num.Value, v.Count + num.Count, fmt.Sprintf("%s-%s", v.Desc(), num.Desc())}] = true
 		}
-		if v*num >= 0 {
-			ret[v*num] = struct{}{}
+		if num.Value-v.Value >= 0 {
+			ret[Num{num.Value - v.Value, v.Count + num.Count, fmt.Sprintf("%s-%s", num.Desc(), v.Desc())}] = true
 		}
-		if v%num == 0 && v/num >= 0 {
-			ret[v/num] = struct{}{}
+		if v.Value*num.Value >= 0 {
+			ret[Num{v.Value * num.Value, v.Count + num.Count, fmt.Sprintf("%s*%s", v.Desc(), num.Desc())}] = true
+		}
+		if num.Value != 0 && v.Value%num.Value == 0 {
+			ret[Num{v.Value / num.Value, v.Count + num.Count, fmt.Sprintf("%s/%s", v.Desc(), num.Desc())}] = true
+		}
+		if v.Value != 0 && num.Value%v.Value == 0 {
+			ret[Num{num.Value / v.Value, v.Count + num.Count, fmt.Sprintf("%s/%s", num.Desc(), v.Desc())}] = true
 		}
 	}
 	return ret
 }
 
 func main() {
-	ret := map[int64]struct{}{9: struct{}{}}
-	for i := 1; i < 9; i++ {
-		ret = makeNums(ret, 9)
+	all := map[int64][]Num{
+		1: []Num{Num{9, 1, "9"}},
 	}
-	fmt.Println(len(ret))
-	arr := make([]int64, len(ret))
+
+	ret := map[Num]bool{Num{9, 1, "9"}: true}
+	for i := 1; i < 9; i++ {
+		tmp := MakeNums(ret, Num{9, 1, "9"})
+		for v, _ := range tmp {
+			all[v.Count] = append(all[v.Count], v)
+		}
+
+		ret = tmp
+	}
+	mInt := map[int64]Num{}
+	for i := int64(1); i < 5; i++ {
+		for _, v1 := range all[i] {
+			for _, v2 := range all[9-i] {
+				if v1.Value+v2.Value >= 0 {
+					mInt[v1.Value+v2.Value] = Num{v1.Value + v2.Value, v1.Count + v2.Count, fmt.Sprintf("%s+%s", v1.Desc(), v2.Desc())}
+				}
+				if v1.Value-v2.Value >= 0 {
+					mInt[v1.Value-v2.Value] = Num{v1.Value - v2.Value, v1.Count + v2.Count, fmt.Sprintf("%s-%s", v1.Desc(), v2.Desc())}
+				}
+				if v2.Value-v1.Value >= 0 {
+					mInt[v2.Value-v1.Value] = Num{v2.Value - v1.Value, v1.Count + v2.Count, fmt.Sprintf("%s-%s", v2.Desc(), v1.Desc())}
+				}
+				if v1.Value*v2.Value >= 0 {
+					mInt[v2.Value*v1.Value] = Num{v1.Value * v2.Value, v1.Count + v2.Count, fmt.Sprintf("%s*%s", v1.Desc(), v2.Desc())}
+				}
+				if v2.Value != 0 && v1.Value%v2.Value == 0 {
+					mInt[v1.Value/v2.Value] = Num{v1.Value / v2.Value, v1.Count + v2.Count, fmt.Sprintf("%s/%s", v1.Desc(), v2.Desc())}
+				}
+				if v1.Value != 0 && v2.Value%v1.Value == 0 {
+					mInt[v2.Value/v1.Value] = Num{v2.Value / v1.Value, v1.Count + v2.Count, fmt.Sprintf("%s/%s", v2.Desc(), v1.Desc())}
+				}
+			}
+		}
+	}
+
 	idx := 0
-	for v, _ := range ret {
+	arr := make([]int64, len(mInt))
+	for v, _ := range mInt {
 		arr[idx] = v
 		idx++
 	}
+	//fmt.Println("len(arr):", len(arr))
+
 	sort.Slice(arr, func(i, j int) bool {
 		return arr[i] < arr[j]
 	})
+
+	//fmt.Println(len(arr))
+
+	//i是想得到的表达式的值
+	fmt.Println("----------------------")
+	for i := int64(0); i < 10; i++ {
+		if v, ok := mInt[i]; ok {
+			fmt.Printf("%d: %s\n", i, v.Desc())
+		}
+	}
+
+	fmt.Println("----------------------")
 	for i, v := range arr {
 		if int64(i) != v {
-			fmt.Println(v)
+			//结果：无法表达的最小的自然数
+			fmt.Println("result:", i)
+			break
+			//return
 		}
 	}
 }
